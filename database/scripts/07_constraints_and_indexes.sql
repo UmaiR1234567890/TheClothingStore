@@ -34,6 +34,14 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Categories_ParentCate
     CREATE INDEX IX_Categories_ParentCategoryId ON dbo.Categories (ParentCategoryId);
 GO
 
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_ProductDepartments_DepartmentId' AND object_id = OBJECT_ID(N'dbo.ProductDepartments'))
+    CREATE INDEX IX_ProductDepartments_DepartmentId ON dbo.ProductDepartments (DepartmentId, ProductId);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_ProductCategories_CategoryId' AND object_id = OBJECT_ID(N'dbo.ProductCategories'))
+    CREATE INDEX IX_ProductCategories_CategoryId ON dbo.ProductCategories (CategoryId, ProductId);
+GO
+
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Products_Status' AND object_id = OBJECT_ID(N'dbo.Products'))
     CREATE INDEX IX_Products_Status ON dbo.Products (Status) WHERE IsDeleted = 0;
 GO
@@ -42,8 +50,20 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_ProductVariants_Produ
     CREATE INDEX IX_ProductVariants_ProductId ON dbo.ProductVariants (ProductId) INCLUDE (Sku, RegularPrice, IsActive);
 GO
 
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_ProductVariants_ColorId' AND object_id = OBJECT_ID(N'dbo.ProductVariants'))
+    CREATE INDEX IX_ProductVariants_ColorId ON dbo.ProductVariants (ColorId, ProductId) WHERE ColorId IS NOT NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_ProductVariants_SizeId' AND object_id = OBJECT_ID(N'dbo.ProductVariants'))
+    CREATE INDEX IX_ProductVariants_SizeId ON dbo.ProductVariants (SizeId, ProductId) WHERE SizeId IS NOT NULL;
+GO
+
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_ProductImages_ProductId' AND object_id = OBJECT_ID(N'dbo.ProductImages'))
     CREATE INDEX IX_ProductImages_ProductId ON dbo.ProductImages (ProductId, DisplayOrder);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_ProductAttributeValues_AttributeId' AND object_id = OBJECT_ID(N'dbo.ProductAttributeValues'))
+    CREATE INDEX IX_ProductAttributeValues_AttributeId ON dbo.ProductAttributeValues (ProductAttributeId, ProductId) INCLUDE (AttributeValue);
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_SaleProducts_ProductId' AND object_id = OBJECT_ID(N'dbo.SaleProducts'))
@@ -66,6 +86,10 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_OrderItems_OrderId' A
     CREATE INDEX IX_OrderItems_OrderId ON dbo.OrderItems (OrderId);
 GO
 
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_OrderItems_ProductVariantId' AND object_id = OBJECT_ID(N'dbo.OrderItems'))
+    CREATE INDEX IX_OrderItems_ProductVariantId ON dbo.OrderItems (ProductVariantId) WHERE ProductVariantId IS NOT NULL;
+GO
+
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Payments_OrderId' AND object_id = OBJECT_ID(N'dbo.Payments'))
     CREATE INDEX IX_Payments_OrderId ON dbo.Payments (OrderId, Status);
 GO
@@ -80,4 +104,8 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_CustomerAddresses_CustomerId' AND object_id = OBJECT_ID(N'dbo.CustomerAddresses'))
     CREATE INDEX IX_CustomerAddresses_CustomerId ON dbo.CustomerAddresses (CustomerId);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_CartItems_ProductVariantId' AND object_id = OBJECT_ID(N'dbo.CartItems'))
+    CREATE INDEX IX_CartItems_ProductVariantId ON dbo.CartItems (ProductVariantId) INCLUDE (CartId, Quantity);
 GO

@@ -66,23 +66,39 @@ INNER JOIN dbo.ProductVariants pv ON pv.ProductVariantId = i.ProductVariantId
 ORDER BY pv.Sku;
 
 PRINT N'=== Sale pricing ===';
-SELECT
-    pv.Sku,
-    pv.RegularPrice,
-    s.Name AS SaleName,
-    s.DiscountType,
-    s.DiscountValue,
-    CASE
-        WHEN s.DiscountType = N'Percentage' THEN ROUND(pv.RegularPrice * (1 - s.DiscountValue / 100.0), 2)
-        ELSE CASE WHEN pv.RegularPrice - s.DiscountValue < 0 THEN CAST(0 AS DECIMAL(18, 2)) ELSE pv.RegularPrice - s.DiscountValue END
-    END AS EffectivePrice
-FROM dbo.ProductVariants pv
-INNER JOIN dbo.Products p ON p.ProductId = pv.ProductId
-INNER JOIN dbo.SaleProducts sp ON sp.ProductId = p.ProductId
-INNER JOIN dbo.Sales s ON s.SaleId = sp.SaleId
-WHERE s.IsActive = 1 AND s.IsDeleted = 0
-  AND (s.StartsAt IS NULL OR s.StartsAt <= SYSUTCDATETIME())
-  AND (s.EndsAt IS NULL OR s.EndsAt >= SYSUTCDATETIME());
+;WITH EligiblePrices AS
+(
+    SELECT
+        pv.ProductVariantId,
+        pv.Sku,
+        pv.RegularPrice,
+        s.Name AS SaleName,
+        s.DiscountType,
+        s.DiscountValue,
+        CASE
+            WHEN s.DiscountType = N'Percentage'
+                THEN ROUND(pv.RegularPrice * (1 - s.DiscountValue / 100.0), 2)
+            ELSE CASE
+                WHEN pv.RegularPrice - s.DiscountValue < 0 THEN CAST(0 AS DECIMAL(18, 2))
+                ELSE pv.RegularPrice - s.DiscountValue
+            END
+        END AS EffectivePrice
+    FROM dbo.ProductVariants pv
+    INNER JOIN dbo.Products p ON p.ProductId = pv.ProductId
+    INNER JOIN dbo.SaleProducts sp ON sp.ProductId = p.ProductId
+    INNER JOIN dbo.Sales s ON s.SaleId = sp.SaleId
+    WHERE s.IsActive = 1 AND s.IsDeleted = 0
+      AND (s.StartsAt IS NULL OR s.StartsAt <= SYSUTCDATETIME())
+      AND (s.EndsAt IS NULL OR s.EndsAt >= SYSUTCDATETIME())
+),
+RankedPrices AS
+(
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY ProductVariantId ORDER BY EffectivePrice, SaleName) AS PriceRank
+    FROM EligiblePrices
+)
+SELECT Sku, RegularPrice, SaleName, DiscountType, DiscountValue, EffectivePrice
+FROM RankedPrices
+WHERE PriceRank = 1;
 
 PRINT N'=== Carts ===';
 SELECT c.CartId, c.CustomerId, c.GuestToken, ci.Quantity, pv.Sku
@@ -105,4 +121,121 @@ PRINT N'=== Identity-conflicting tables (should be empty) ===';
 SELECT name
 FROM sys.tables
 WHERE name IN (N'Roles', N'AdminUsers', N'AdminUserRoles', N'AspNetUsers', N'AspNetRoles');
+
+PRINT N'=== Required schema assertions ===';
+DECLARE @ExpectedTables TABLE (TableName SYSNAME NOT NULL PRIMARY KEY);
+INSERT INTO @ExpectedTables (TableName)
+VALUES
+    (N'Departments'), (N'Colors'), (N'Sizes'), (N'ProductAttributes'),
+    (N'Categories'), (N'Products'), (N'ProductDepartments'), (N'ProductCategories'),
+    (N'ProductVariants'), (N'ProductImages'), (N'ProductAttributeValues'),
+    (N'Sales'), (N'SaleProducts'), (N'Inventory'), (N'InventoryTransactions'),
+    (N'Customers'), (N'CustomerAddresses'), (N'Carts'), (N'CartItems'),
+    (N'Orders'), (N'OrderItems'), (N'Payments'), (N'Shipments'),
+    (N'NewsletterSubscriptions'), (N'AuditLogs');
+
+IF EXISTS
+(
+    SELECT 1
+    FROM @ExpectedTables e
+    LEFT JOIN sys.tables t ON t.name = e.TableName AND SCHEMA_NAME(t.schema_id) = N'dbo'
+    WHERE t.object_id IS NULL
+)
+BEGIN
+    SELECT e.TableName AS MissingTable
+    FROM @ExpectedTables e
+    LEFT JOIN sys.tables t ON t.name = e.TableName AND SCHEMA_NAME(t.schema_id) = N'dbo'
+    WHERE t.object_id IS NULL;
+    ;THROW 51000, N'One or more expected dbo tables are missing.', 1;
+END;
+
+IF EXISTS
+(
+    SELECT 1
+    FROM sys.foreign_keys
+    WHERE is_disabled = 1 OR is_not_trusted = 1
+)
+BEGIN
+    ;THROW 51001, N'A foreign key is disabled or untrusted.', 1;
+END;
+
+IF EXISTS
+(
+    SELECT 1
+    FROM sys.check_constraints
+    WHERE is_disabled = 1 OR is_not_trusted = 1
+)
+BEGIN
+    ;THROW 51002, N'A check constraint is disabled or untrusted.', 1;
+END;
+
+IF EXISTS
+(
+    SELECT 1
+    FROM (VALUES
+        (N'UX_Customers_IdentityUserId'), (N'UX_Carts_CustomerId'),
+        (N'UX_Carts_GuestToken'), (N'UX_ProductImages_Primary'),
+        (N'IX_Categories_ParentCategoryId'), (N'IX_ProductDepartments_DepartmentId'),
+        (N'IX_ProductCategories_CategoryId'), (N'IX_Products_Status'),
+        (N'IX_ProductVariants_ProductId'), (N'IX_ProductVariants_ColorId'),
+        (N'IX_ProductVariants_SizeId'), (N'IX_ProductImages_ProductId'),
+        (N'IX_ProductAttributeValues_AttributeId'), (N'IX_SaleProducts_ProductId'),
+        (N'IX_Sales_ActiveWindow'), (N'IX_InventoryTransactions_InventoryId'),
+        (N'IX_Orders_CustomerId'), (N'IX_OrderItems_OrderId'),
+        (N'IX_OrderItems_ProductVariantId'), (N'IX_Payments_OrderId'),
+        (N'IX_Shipments_OrderId'), (N'IX_AuditLogs_Entity'),
+        (N'IX_CustomerAddresses_CustomerId'), (N'IX_CartItems_ProductVariantId')
+    ) expected(IndexName)
+    LEFT JOIN sys.indexes actual ON actual.name = expected.IndexName
+        AND actual.is_disabled = 0
+    WHERE actual.index_id IS NULL
+)
+BEGIN
+    ;THROW 51003, N'One or more expected supporting indexes are missing or disabled.', 1;
+END;
+
+IF EXISTS (SELECT 1 FROM dbo.Inventory WHERE QuantityOnHand < 0 OR QuantityReserved < 0 OR QuantityReserved > QuantityOnHand)
+BEGIN
+    ;THROW 51004, N'Inventory contains an invalid stock quantity.', 1;
+END;
+
+IF EXISTS
+(
+    SELECT 1
+    FROM dbo.ProductVariants pv
+    LEFT JOIN dbo.Inventory i ON i.ProductVariantId = pv.ProductVariantId
+    WHERE i.InventoryId IS NULL
+)
+BEGIN
+    ;THROW 51005, N'A product variant has no inventory row.', 1;
+END;
+
+IF EXISTS (SELECT 1 FROM dbo.NewsletterSubscriptions GROUP BY Email HAVING COUNT(*) > 1)
+BEGIN
+    ;THROW 51006, N'Newsletter email uniqueness check failed.', 1;
+END;
+
+IF
+(
+    SELECT COUNT(*)
+    FROM dbo.Departments
+    WHERE Slug IN (N'men', N'women', N'kids')
+) <> 3
+BEGIN
+    ;THROW 51007, N'One or more required seeded departments are missing.', 1;
+END;
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.ProductVariants pv
+    INNER JOIN dbo.Sizes sz ON sz.SizeId = pv.SizeId
+    WHERE sz.SizeType = N'Footwear'
+)
+OR NOT EXISTS (SELECT 1 FROM dbo.ProductVariants WHERE VolumeMl IS NOT NULL)
+BEGIN
+    ;THROW 51008, N'Sample shoe-size or perfume-volume variants are missing.', 1;
+END;
+
+PRINT N'All required schema and data-integrity assertions passed.';
 GO

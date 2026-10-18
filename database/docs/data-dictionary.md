@@ -1,220 +1,334 @@
 # Data dictionary
 
-Synced with scripts `01`–`07`. Types are SQL Server.
+This dictionary describes the 25 application-owned tables created by scripts
+`01`-`06`. Script `07` adds supporting indexes. `PK`, `FK`, `UQ`, and `CK`
+denote primary key, foreign key, unique constraint/index, and check constraint.
+All timestamps are UTC `DATETIME2(0)` unless stated otherwise.
 
-## Departments
+## Reference and catalog
 
-| Column | Type | Null | Notes |
+### Departments
+
+| Column | SQL Server type | Null | Key / rule |
 | --- | --- | --- | --- |
-| DepartmentId | INT IDENTITY | PK | |
-| Name | NVARCHAR(100) | N | Unique |
-| Slug | NVARCHAR(120) | N | Unique |
-| SortOrder | INT | N | Default 0 |
-| IsActive | BIT | N | Default 1 |
-| CreatedAt / UpdatedAt | DATETIME2(0) | N / Y | UTC |
+| DepartmentId | INT IDENTITY | No | PK |
+| Name | NVARCHAR(100) | No | UQ |
+| Slug | NVARCHAR(120) | No | UQ |
+| SortOrder | INT | No | Default 0 |
+| IsActive | BIT | No | Default 1 |
+| CreatedAt | DATETIME2(0) | No | Default UTC now |
+| UpdatedAt | DATETIME2(0) | Yes | |
 
-## Colors
+### Colors
 
-| Column | Type | Null | Notes |
+| Column | SQL Server type | Null | Key / rule |
 | --- | --- | --- | --- |
-| ColorId | INT IDENTITY | PK | |
-| Name | NVARCHAR(80) | N | Unique |
-| HexCode | CHAR(7) | Y | `#RRGGBB` |
-| SortOrder | INT | N | |
-| IsActive | BIT | N | |
-| CreatedAt | DATETIME2(0) | N | |
+| ColorId | INT IDENTITY | No | PK |
+| Name | NVARCHAR(80) | No | UQ |
+| HexCode | CHAR(7) | Yes | CK: null or `#RRGGBB` |
+| SortOrder | INT | No | Default 0 |
+| IsActive | BIT | No | Default 1 |
+| CreatedAt | DATETIME2(0) | No | Default UTC now |
 
-## Sizes
+### Sizes
 
-| Column | Type | Null | Notes |
+| Column | SQL Server type | Null | Key / rule |
 | --- | --- | --- | --- |
-| SizeId | INT IDENTITY | PK | |
-| SizeType | NVARCHAR(20) | N | `Clothing` or `Footwear` |
-| Name | NVARCHAR(30) | N | e.g. `M`, `42` |
-| SortOrder | INT | N | |
-| IsActive | BIT | N | |
-| Unique | | | `(SizeType, Name)` |
+| SizeId | INT IDENTITY | No | PK |
+| SizeType | NVARCHAR(20) | No | CK: `Clothing` or `Footwear` |
+| Name | NVARCHAR(30) | No | e.g. `M`, `42` |
+| SortOrder | INT | No | Default 0 |
+| IsActive | BIT | No | Default 1 |
+| CreatedAt | DATETIME2(0) | No | Default UTC now |
+| (SizeType, Name) | — | — | UQ |
 
-## ProductAttributes
+### ProductAttributes
 
-| Column | Type | Null | Notes |
+| Column | SQL Server type | Null | Key / rule |
 | --- | --- | --- | --- |
-| ProductAttributeId | INT IDENTITY | PK | |
-| Name | NVARCHAR(80) | N | Unique, e.g. Fabric |
-| Slug | NVARCHAR(80) | N | Unique |
-| IsActive | BIT | N | |
+| ProductAttributeId | INT IDENTITY | No | PK |
+| Name | NVARCHAR(80) | No | UQ |
+| Slug | NVARCHAR(80) | No | UQ |
+| IsActive | BIT | No | Default 1 |
+| CreatedAt | DATETIME2(0) | No | Default UTC now |
 
-## Categories
+### Categories
 
-| Column | Type | Null | Notes |
+| Column | SQL Server type | Null | Key / rule |
 | --- | --- | --- | --- |
-| CategoryId | INT IDENTITY | PK | |
-| DepartmentId | INT | N | FK Departments |
-| ParentCategoryId | INT | Y | FK Categories |
-| Name | NVARCHAR(150) | N | |
-| Slug | NVARCHAR(160) | N | Unique per department |
-| SortOrder | INT | N | |
-| IsActive / IsDeleted | BIT | N | Soft delete |
-| DeletedAt | DATETIME2(0) | Y | |
-| CreatedAt / UpdatedAt | DATETIME2(0) | N / Y | |
-| Check | | | `ParentCategoryId <> CategoryId` |
+| CategoryId | INT IDENTITY | No | PK |
+| DepartmentId | INT | No | FK Departments |
+| ParentCategoryId | INT | Yes | FK Categories |
+| Name | NVARCHAR(150) | No | |
+| Slug | NVARCHAR(160) | No | Unique per department |
+| SortOrder | INT | No | Default 0 |
+| IsActive | BIT | No | Default 1 |
+| IsDeleted | BIT | No | Default 0 |
+| DeletedAt | DATETIME2(0) | Yes | |
+| CreatedAt | DATETIME2(0) | No | Default UTC now |
+| UpdatedAt | DATETIME2(0) | Yes | |
+| Constraints | — | — | Parent cannot equal self; parent department consistency is enforced by application |
 
-## Products
+### Products
 
-| Column | Type | Null | Notes |
+| Column | SQL Server type | Null | Key / rule |
 | --- | --- | --- | --- |
-| ProductId | INT IDENTITY | PK | |
-| Name | NVARCHAR(200) | N | |
-| Slug | NVARCHAR(220) | N | Unique |
-| Description | NVARCHAR(MAX) | Y | |
-| Brand | NVARCHAR(120) | Y | |
-| Status | NVARCHAR(20) | N | `Draft`,`Active`,`Inactive` |
-| IsDeleted | BIT | N | |
-| DeletedAt | DATETIME2(0) | Y | |
-| CreatedAt / UpdatedAt | DATETIME2(0) | N / Y | |
+| ProductId | INT IDENTITY | No | PK |
+| Name | NVARCHAR(200) | No | |
+| Slug | NVARCHAR(220) | No | UQ |
+| Description | NVARCHAR(MAX) | Yes | |
+| Brand | NVARCHAR(120) | Yes | |
+| Status | NVARCHAR(20) | No | Draft, Active, Inactive |
+| IsDeleted | BIT | No | Default 0 |
+| DeletedAt | DATETIME2(0) | Yes | |
+| CreatedAt | DATETIME2(0) | No | Default UTC now |
+| UpdatedAt | DATETIME2(0) | Yes | |
 
-No SKU, price, color, size, or stock on this table.
+### ProductDepartments
 
-## ProductDepartments / ProductCategories
-
-Composite PK `(ProductId, DepartmentId)` / `(ProductId, CategoryId)`.
-
-## ProductVariants
-
-| Column | Type | Null | Notes |
+| Column | SQL Server type | Null | Key / rule |
 | --- | --- | --- | --- |
-| ProductVariantId | INT IDENTITY | PK | |
-| ProductId | INT | N | FK |
-| Sku | NVARCHAR(64) | N | Unique |
-| ColorId | INT | Y | FK Colors |
-| SizeId | INT | Y | FK Sizes |
-| VolumeMl | INT | Y | Perfume only; `> 0` |
-| RegularPrice | DECIMAL(18,2) | N | `>= 0` |
-| IsActive / IsDeleted | BIT | N | |
-| DeletedAt | DATETIME2(0) | Y | |
-| CreatedAt / UpdatedAt | DATETIME2(0) | N / Y | |
-| VariantSignature | NVARCHAR(80) | N | Persisted computed unique option key |
+| ProductId | INT | No | PK part; FK Products, delete cascades |
+| DepartmentId | INT | No | PK part; FK Departments |
+| (ProductId, DepartmentId) | — | — | Composite PK |
 
-## ProductImages
+### ProductCategories
 
-| Column | Type | Null | Notes |
+| Column | SQL Server type | Null | Key / rule |
 | --- | --- | --- | --- |
-| ProductImageId | INT IDENTITY | PK | |
-| ProductId | INT | N | FK CASCADE |
-| ImageUrl | NVARCHAR(500) | N | Path or URL |
-| AltText | NVARCHAR(200) | Y | |
-| DisplayOrder | INT | N | `>= 0` |
-| IsPrimary | BIT | N | Unique filtered: one primary per product |
+| ProductId | INT | No | PK part; FK Products, delete cascades |
+| CategoryId | INT | No | PK part; FK Categories |
+| (ProductId, CategoryId) | — | — | Composite PK |
 
-## ProductAttributeValues
+### ProductVariants
 
-| Column | Type | Null | Notes |
+| Column | SQL Server type | Null | Key / rule |
 | --- | --- | --- | --- |
-| ProductAttributeValueId | INT IDENTITY | PK | |
-| ProductId | INT | N | FK CASCADE |
-| ProductAttributeId | INT | N | FK |
-| AttributeValue | NVARCHAR(200) | N | e.g. Cotton |
-| Unique | | | `(ProductId, ProductAttributeId)` |
+| ProductVariantId | INT IDENTITY | No | PK |
+| ProductId | INT | No | FK Products |
+| Sku | NVARCHAR(64) | No | UQ |
+| ColorId | INT | Yes | FK Colors |
+| SizeId | INT | Yes | FK Sizes |
+| VolumeMl | INT | Yes | CK null or > 0; used for volume variants |
+| RegularPrice | DECIMAL(18,2) | No | CK >= 0 |
+| IsActive | BIT | No | Default 1 |
+| IsDeleted | BIT | No | Default 0 |
+| DeletedAt | DATETIME2(0) | Yes | |
+| CreatedAt | DATETIME2(0) | No | Default UTC now |
+| UpdatedAt | DATETIME2(0) | Yes | |
+| VariantSignature | NVARCHAR(83) computed, persisted | No | UQ; ProductId + ColorId + SizeId + VolumeMl |
 
-## Sales / SaleProducts
+### ProductImages
 
-| Column | Type | Null | Notes |
+| Column | SQL Server type | Null | Key / rule |
 | --- | --- | --- | --- |
-| SaleId | INT IDENTITY | PK | |
-| Name | NVARCHAR(150) | N | |
-| DiscountType | NVARCHAR(20) | N | `Percentage` or `FixedAmount` |
-| DiscountValue | DECIMAL(18,2) | N | % 0–100 or amount `> 0` |
-| StartsAt / EndsAt | DATETIME2(0) | Y | UTC window |
-| IsActive / IsDeleted | BIT | N | |
-| SaleProducts | | | PK `(SaleId, ProductId)` |
+| ProductImageId | INT IDENTITY | No | PK |
+| ProductId | INT | No | FK Products, delete cascades |
+| ImageUrl | NVARCHAR(500) | No | URL or path, not binary data |
+| AltText | NVARCHAR(200) | Yes | |
+| DisplayOrder | INT | No | Default 0; CK >= 0 |
+| IsPrimary | BIT | No | Default 0; filtered unique index per product |
+| CreatedAt | DATETIME2(0) | No | Default UTC now |
 
-## Inventory
+### ProductAttributeValues
 
-| Column | Type | Null | Notes |
+| Column | SQL Server type | Null | Key / rule |
 | --- | --- | --- | --- |
-| InventoryId | INT IDENTITY | PK | |
-| ProductVariantId | INT | N | Unique FK |
-| QuantityOnHand | INT | N | `>= 0` |
-| QuantityReserved | INT | N | `>= 0` and `<= QuantityOnHand` |
-| UpdatedAt | DATETIME2(0) | N | |
+| ProductAttributeValueId | INT IDENTITY | No | PK |
+| ProductId | INT | No | FK Products, delete cascades |
+| ProductAttributeId | INT | No | FK ProductAttributes |
+| AttributeValue | NVARCHAR(200) | No | |
+| (ProductId, ProductAttributeId) | — | — | UQ; one value per attribute per product |
 
-Available qty is not stored: `QuantityOnHand - QuantityReserved`.
+## Pricing and inventory
 
-## InventoryTransactions
+### Sales
 
-| Column | Type | Null | Notes |
+| Column | SQL Server type | Null | Key / rule |
 | --- | --- | --- | --- |
-| InventoryTransactionId | BIGINT IDENTITY | PK | |
-| InventoryId | INT | N | FK NO ACTION |
-| TransactionType | NVARCHAR(20) | N | Receipt, Sale, Adjustment, Reservation, Release |
-| QuantityChange | INT | N | Signed |
-| QuantityAfter | INT | N | `>= 0` |
-| ReferenceType / ReferenceId | NVARCHAR(40) / INT | Y | Order, admin, etc. |
-| Notes | NVARCHAR(400) | Y | |
-| CreatedAt | DATETIME2(0) | N | |
+| SaleId | INT IDENTITY | No | PK |
+| Name | NVARCHAR(150) | No | |
+| DiscountType | NVARCHAR(20) | No | Percentage or FixedAmount |
+| DiscountValue | DECIMAL(18,2) | No | Percentage 0-100; fixed amount > 0 |
+| StartsAt / EndsAt | DATETIME2(0) | Yes | Optional UTC window; end >= start when both set |
+| IsActive | BIT | No | Default 1 |
+| IsDeleted | BIT | No | Default 0 |
+| DeletedAt | DATETIME2(0) | Yes | |
+| CreatedAt | DATETIME2(0) | No | Default UTC now |
+| UpdatedAt | DATETIME2(0) | Yes | |
 
-## Customers
+### SaleProducts
 
-| Column | Type | Null | Notes |
+| Column | SQL Server type | Null | Key / rule |
 | --- | --- | --- | --- |
-| CustomerId | INT IDENTITY | PK | |
-| IdentityUserId | NVARCHAR(450) | Y | Filtered unique when not null; future Identity FK |
-| Email | NVARCHAR(256) | N | Unique |
-| FirstName / LastName | NVARCHAR(80) | Y | |
-| Phone | NVARCHAR(30) | Y | |
-| IsDeleted | BIT | N | |
-| DeletedAt | DATETIME2(0) | Y | |
-| CreatedAt / UpdatedAt | DATETIME2(0) | N / Y | |
+| SaleId | INT | No | PK part; FK Sales, delete cascades |
+| ProductId | INT | No | PK part; FK Products |
+| (SaleId, ProductId) | — | — | Composite PK |
 
-No password columns.
+### Inventory
 
-## CustomerAddresses
-
-Standard name/line/city/region/postal/country fields, `IsDefaultShipping`, `IsDefaultBilling`, soft delete.
-
-## Carts / CartItems
-
-| Column | Type | Null | Notes |
+| Column | SQL Server type | Null | Key / rule |
 | --- | --- | --- | --- |
-| CartId | INT IDENTITY | PK | |
-| CustomerId | INT | Y | Unique if not null |
-| GuestToken | UNIQUEIDENTIFIER | Y | Unique if not null |
-| CreatedAt / UpdatedAt | DATETIME2(0) | N | |
-| CartItem | | | Unique `(CartId, ProductVariantId)`; `Quantity > 0` |
-| Check | | | Exactly one of CustomerId / GuestToken |
+| InventoryId | INT IDENTITY | No | PK |
+| ProductVariantId | INT | No | FK ProductVariants; UQ (one row per variant) |
+| QuantityOnHand | INT | No | Default 0; CK >= 0 |
+| QuantityReserved | INT | No | Default 0; CK >= 0 and <= QuantityOnHand |
+| UpdatedAt | DATETIME2(0) | No | Default UTC now |
 
-## Orders
+Available quantity is calculated as `QuantityOnHand - QuantityReserved`; it is not stored.
 
-| Column | Type | Null | Notes |
+### InventoryTransactions
+
+| Column | SQL Server type | Null | Key / rule |
 | --- | --- | --- | --- |
-| OrderId | INT IDENTITY | PK | |
-| OrderNumber | NVARCHAR(32) | N | Unique |
-| CustomerId | INT | Y | FK NO ACTION |
-| GuestEmail | NVARCHAR(256) | Y | Required if no customer |
-| Status | NVARCHAR(20) | N | Pending, Paid, Processing, Shipped, Completed, Cancelled |
-| SubtotalAmount, DiscountAmount, ShippingAmount, TaxAmount, TotalAmount | DECIMAL(18,2) | N | `>= 0`; total consistent check |
-| PlacedAt | DATETIME2(0) | N | |
+| InventoryTransactionId | BIGINT IDENTITY | No | PK |
+| InventoryId | INT | No | FK Inventory |
+| TransactionType | NVARCHAR(20) | No | Receipt, Sale, Adjustment, Reservation, Release |
+| QuantityChange | INT | No | Signed stock change |
+| QuantityAfter | INT | No | CK >= 0 |
+| ReferenceType | NVARCHAR(40) | Yes | |
+| ReferenceId | INT | Yes | |
+| Notes | NVARCHAR(400) | Yes | |
+| CreatedAt | DATETIME2(0) | No | Default UTC now |
 
-## OrderItems
+## Customers, carts, and orders
 
-Snapshots: `ProductName`, `Sku`, `VariantDetails`, `Quantity`, `UnitPrice`, `DiscountAmount`, `LineTotal`. `ProductVariantId` nullable SET NULL.
+### Customers
 
-## Payments
+| Column | SQL Server type | Null | Key / rule |
+| --- | --- | --- | --- |
+| CustomerId | INT IDENTITY | No | PK |
+| IdentityUserId | NVARCHAR(450) | Yes | Filtered UQ when not null; future Identity FK |
+| Email | NVARCHAR(256) | No | UQ |
+| FirstName / LastName | NVARCHAR(80) | Yes | |
+| Phone | NVARCHAR(30) | Yes | |
+| IsDeleted | BIT | No | Default 0 |
+| DeletedAt | DATETIME2(0) | Yes | |
+| CreatedAt | DATETIME2(0) | No | Default UTC now |
+| UpdatedAt | DATETIME2(0) | Yes | |
 
-`Amount`, `Method` (Card, COD, Wallet, BankTransfer), `Provider`/`ProviderReference` (no PAN/CVV), `Status` (Pending, Authorized, Captured, Failed, Refunded), timestamps.
+### CustomerAddresses
 
-## Shipments
+| Column | SQL Server type | Null | Key / rule |
+| --- | --- | --- | --- |
+| CustomerAddressId | INT IDENTITY | No | PK |
+| CustomerId | INT | No | FK Customers, delete cascades |
+| FullName | NVARCHAR(160) | No | |
+| Line1 / Line2 | NVARCHAR(200) | No / Yes | |
+| City | NVARCHAR(100) | No | |
+| Region | NVARCHAR(100) | Yes | |
+| PostalCode | NVARCHAR(20) | Yes | |
+| Country | NVARCHAR(80) | No | Default Pakistan |
+| Phone | NVARCHAR(30) | Yes | |
+| IsDefaultShipping / IsDefaultBilling | BIT | No | Default 0 |
+| IsDeleted | BIT | No | Default 0 |
+| DeletedAt | DATETIME2(0) | Yes | |
+| CreatedAt | DATETIME2(0) | No | Default UTC now |
 
-`Carrier`, `TrackingNumber`, `Status` (Pending, Packed, Shipped, Delivered, Returned), `ShippedAt`, `DeliveredAt`.
+### Carts
 
-## NewsletterSubscriptions
+| Column | SQL Server type | Null | Key / rule |
+| --- | --- | --- | --- |
+| CartId | INT IDENTITY | No | PK |
+| CustomerId | INT | Yes | FK Customers, delete cascades; filtered UQ |
+| GuestToken | UNIQUEIDENTIFIER | Yes | Filtered UQ; generated securely by backend |
+| CreatedAt / UpdatedAt | DATETIME2(0) | No | Defaults UTC now |
+| Owner constraint | — | — | Exactly one of CustomerId and GuestToken is non-null |
 
-Unique `Email`, `Status` Subscribed/Unsubscribed, `SubscribedAt`, `UnsubscribedAt`.
+### CartItems
 
-## AuditLogs
+| Column | SQL Server type | Null | Key / rule |
+| --- | --- | --- | --- |
+| CartItemId | INT IDENTITY | No | PK |
+| CartId | INT | No | FK Carts, delete cascades |
+| ProductVariantId | INT | No | FK ProductVariants |
+| Quantity | INT | No | CK > 0 |
+| CreatedAt | DATETIME2(0) | No | Default UTC now |
+| UpdatedAt | DATETIME2(0) | Yes | |
+| (CartId, ProductVariantId) | — | — | UQ |
 
-`EntityName`, `EntityId`, `Action` (Insert/Update/Delete/Login), `IdentityUserId`, `ChangeSummary`, `CreatedAt`. No Identity FK yet.
+### Orders
 
-## Identity tables (not created)
+| Column | SQL Server type | Null | Key / rule |
+| --- | --- | --- | --- |
+| OrderId | INT IDENTITY | No | PK |
+| OrderNumber | NVARCHAR(32) | No | UQ |
+| CustomerId | INT | Yes | FK Customers; no cascade |
+| GuestEmail | NVARCHAR(256) | Yes | Required when CustomerId is null |
+| Status | NVARCHAR(20) | No | Pending, Paid, Processing, Shipped, Completed, Cancelled |
+| SubtotalAmount / DiscountAmount / ShippingAmount / TaxAmount / TotalAmount | DECIMAL(18,2) | No | Nonnegative; total = subtotal - discount + shipping + tax |
+| ShippingName | NVARCHAR(160) | Yes | Historical address snapshot |
+| ShippingLine1 | NVARCHAR(200) | Yes | |
+| ShippingCity / ShippingRegion | NVARCHAR(100) | Yes | |
+| ShippingPostalCode | NVARCHAR(20) | Yes | |
+| ShippingCountry | NVARCHAR(80) | Yes | |
+| PlacedAt | DATETIME2(0) | No | Default UTC now |
 
-`AspNetUsers`, `AspNetRoles`, `AspNetUserRoles`, claims/logins/tokens — created by ASP.NET Core Identity in Phase 2.
+### OrderItems
+
+| Column | SQL Server type | Null | Key / rule |
+| --- | --- | --- | --- |
+| OrderItemId | INT IDENTITY | No | PK |
+| OrderId | INT | No | FK Orders; no cascade |
+| ProductVariantId | INT | Yes | FK ProductVariants; SET NULL on variant deletion |
+| ProductName | NVARCHAR(200) | No | Historical snapshot |
+| Sku | NVARCHAR(64) | No | Historical snapshot |
+| VariantDetails | NVARCHAR(200) | Yes | Historical snapshot |
+| Quantity | INT | No | CK > 0 |
+| UnitPrice / DiscountAmount / LineTotal | DECIMAL(18,2) | No | Nonnegative; line total = unit price * quantity - discount |
+
+### Payments
+
+| Column | SQL Server type | Null | Key / rule |
+| --- | --- | --- | --- |
+| PaymentId | INT IDENTITY | No | PK |
+| OrderId | INT | No | FK Orders; no cascade |
+| Amount | DECIMAL(18,2) | No | CK > 0 |
+| Method | NVARCHAR(30) | No | Card, COD, Wallet, BankTransfer |
+| Provider | NVARCHAR(80) | Yes | |
+| ProviderReference | NVARCHAR(120) | Yes | No raw card data or credentials |
+| Status | NVARCHAR(20) | No | Pending, Authorized, Captured, Failed, Refunded |
+| CreatedAt | DATETIME2(0) | No | Default UTC now |
+| ProcessedAt | DATETIME2(0) | Yes | |
+
+### Shipments
+
+| Column | SQL Server type | Null | Key / rule |
+| --- | --- | --- | --- |
+| ShipmentId | INT IDENTITY | No | PK |
+| OrderId | INT | No | FK Orders; no cascade |
+| Carrier | NVARCHAR(80) | Yes | |
+| TrackingNumber | NVARCHAR(80) | Yes | |
+| Status | NVARCHAR(20) | No | Pending, Packed, Shipped, Delivered, Returned |
+| ShippedAt / DeliveredAt | DATETIME2(0) | Yes | |
+| CreatedAt | DATETIME2(0) | No | Default UTC now |
+
+## Other operational tables
+
+### NewsletterSubscriptions
+
+| Column | SQL Server type | Null | Key / rule |
+| --- | --- | --- | --- |
+| NewsletterSubscriptionId | INT IDENTITY | No | PK |
+| Email | NVARCHAR(256) | No | UQ |
+| Status | NVARCHAR(20) | No | Subscribed or Unsubscribed |
+| SubscribedAt | DATETIME2(0) | No | Default UTC now |
+| UnsubscribedAt | DATETIME2(0) | Yes | Required when status is Unsubscribed; null when Subscribed |
+
+### AuditLogs
+
+| Column | SQL Server type | Null | Key / rule |
+| --- | --- | --- | --- |
+| AuditLogId | BIGINT IDENTITY | No | PK |
+| EntityName | NVARCHAR(80) | No | |
+| EntityId | NVARCHAR(64) | Yes | |
+| Action | NVARCHAR(20) | No | Insert, Update, Delete, Login, Other |
+| IdentityUserId | NVARCHAR(450) | Yes | Identity user identifier; FK deferred until Identity exists |
+| ChangeSummary | NVARCHAR(1000) | Yes | |
+| CreatedAt | DATETIME2(0) | No | Default UTC now |
+
+## Identity-owned tables
+
+`AspNetUsers`, `AspNetRoles`, `AspNetUserRoles`, claims, logins, and tokens are
+created by ASP.NET Core Identity in Phase 2, not by these scripts. There are no
+parallel `Roles`, `AdminUsers`, or `AdminUserRoles` tables.

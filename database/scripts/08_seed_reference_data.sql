@@ -65,7 +65,7 @@ IF NOT EXISTS (SELECT 1 FROM dbo.ProductAttributes WHERE Slug = N'fragrance-fami
 IF NOT EXISTS (SELECT 1 FROM dbo.ProductAttributes WHERE Slug = N'fragrance-type')
     INSERT INTO dbo.ProductAttributes (Name, Slug) VALUES (N'Fragrance Type', N'fragrance-type');
 
-/* Categories â€” Men */
+/* Categories - Men */
 IF NOT EXISTS (SELECT 1 FROM dbo.Categories WHERE DepartmentId = @Men AND Slug = N'clothing')
     INSERT INTO dbo.Categories (DepartmentId, ParentCategoryId, Name, Slug, SortOrder)
     VALUES (@Men, NULL, N'Clothing', N'clothing', 1);
@@ -93,7 +93,7 @@ IF NOT EXISTS (SELECT 1 FROM dbo.Categories WHERE DepartmentId = @Men AND Slug =
     INSERT INTO dbo.Categories (DepartmentId, ParentCategoryId, Name, Slug, SortOrder)
     VALUES (@Men, @MenFootwear, N'Shoes', N'shoes', 1);
 
-/* Categories â€” Women */
+/* Categories - Women */
 IF NOT EXISTS (SELECT 1 FROM dbo.Categories WHERE DepartmentId = @Women AND Slug = N'clothing')
     INSERT INTO dbo.Categories (DepartmentId, ParentCategoryId, Name, Slug, SortOrder)
     VALUES (@Women, NULL, N'Clothing', N'clothing', 1);
@@ -111,7 +111,7 @@ IF NOT EXISTS (SELECT 1 FROM dbo.Categories WHERE DepartmentId = @Women AND Slug
     INSERT INTO dbo.Categories (DepartmentId, ParentCategoryId, Name, Slug, SortOrder)
     VALUES (@Women, @WomenFragrances, N'Perfumes', N'perfumes', 1);
 
-/* Categories â€” Kids */
+/* Categories - Kids */
 IF NOT EXISTS (SELECT 1 FROM dbo.Categories WHERE DepartmentId = @Kids AND Slug = N'clothing')
     INSERT INTO dbo.Categories (DepartmentId, ParentCategoryId, Name, Slug, SortOrder)
     VALUES (@Kids, NULL, N'Clothing', N'clothing', 1);

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-SQL Server catalog, commerce, and operational schema for a J.-inspired fashion store. This phase is database only. Backend and Angular are out of scope until approved.
+SQL Server catalog, commerce, and operational schema for a J.-inspired fashion store. The approved backend maps to this schema; the Angular frontend remains a later phase.
 
 ## Naming
 
@@ -50,9 +50,10 @@ SQL Server catalog, commerce, and operational schema for a J.-inspired fashion s
 
 | Entity | Approach |
 | --- | --- |
-| Departments, Colors, Sizes, ProductAttributes, Categories, Products, ProductVariants, Sales, Customers, CustomerAddresses, Newsletter | `IsActive` and/or `IsDeleted` + `DeletedAt` |
+| Departments, Colors, Sizes, ProductAttributes, Categories, Products, ProductVariants, Sales, Customers, CustomerAddresses | `IsActive` and/or `IsDeleted` + `DeletedAt` |
 | InventoryTransactions, OrderItems, Payments, AuditLogs | Retain forever; no soft delete |
 | Orders, Shipments | Status fields (`Cancelled`, etc.); no physical delete |
+| NewsletterSubscriptions | Retain row; `Status` and subscription timestamps record lifecycle |
 | Carts | Physical delete of abandoned carts is an application job; no soft delete required |
 
 ## Pricing (single source of truth)
@@ -88,7 +89,7 @@ SQL Server catalog, commerce, and operational schema for a J.-inspired fashion s
 
 - Currency is a single store currency (PKR conceptually; no multi-currency table).
 - Guest checkout is allowed (`Orders.CustomerId` nullable, `GuestEmail` required when no customer).
-- One open cart per customer; one cart per guest token.
+- One persistent cart per customer; one cart per guest token. The backend clears or merges cart items after checkout/login as appropriate.
 - Size types are `Clothing` and `Footwear` only.
 - Image binaries live on disk/CDN; the database stores URL/path only.
-- Server `DESKTOP-AVKQ6HC` is the authorized development instance; database name `TheClothingStore`.
+- The existing `TheClothingStore` database was verified online and read-write on `DESKTOP-AVKQ6HC` (SQL Server 2022 Developer Edition, `16.0.1210.3`, compatibility level 160). Scripts `00`-`10` completed successfully on 2026-10-18; the existing database was not dropped or reset. Other environments must select their own authorized SQL Server instance and authentication.
