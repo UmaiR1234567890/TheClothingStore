@@ -1,0 +1,254 @@
+.cart-page {
+  min-height: 55vh;
+  padding-block: clamp(2rem, 5vw, 4rem);
+}
+
+.cart-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 1.3rem;
+  padding-bottom: 1.2rem;
+}
+
+.cart-heading__count {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.cart-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.65fr);
+  align-items: start;
+  gap: 2rem;
+}
+
+.cart-lines {
+  display: grid;
+  gap: 0;
+}
+
+.cart-line {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr) auto;
+  gap: 1.15rem;
+  border-bottom: 1px solid var(--line);
+  padding-block: 1.15rem;
+}
+
+.cart-line__image {
+  display: grid;
+  aspect-ratio: 0.78;
+  place-items: center;
+  background:
+    radial-gradient(circle at 68% 20%, rgb(255 255 255 / 55%), transparent 25%),
+    linear-gradient(145deg, #e3ded3, #b8b8aa);
+}
+
+.cart-line:nth-child(2n) .cart-line__image {
+  background:
+    radial-gradient(circle at 23% 76%, rgb(255 255 255 / 42%), transparent 20%),
+    linear-gradient(145deg, #dfd3c8, #a98270);
+}
+
+.cart-line__image span {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid rgb(32 36 32 / 42%);
+  border-radius: 50%;
+  color: rgb(32 36 32 / 68%);
+  font-family: "Bodoni MT", Didot, Georgia, serif;
+  font-size: 1.5rem;
+}
+
+.cart-line__details h2 {
+  margin: 0.15rem 0 0.25rem;
+  font-family: "Bodoni MT", Didot, Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.cart-line__details p,
+.cart-line__sku,
+.cart-line__stock {
+  display: block;
+  margin: 0.25rem 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.cart-line__stock {
+  color: var(--success);
+}
+
+.cart-line__stock[role="status"] {
+  color: var(--danger);
+}
+
+.cart-line__controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.9rem;
+}
+
+.cart-line__controls .quantity-control {
+  min-height: 36px;
+  grid-template-columns: 30px 32px 30px;
+}
+
+.cart-line__controls .quantity-control output {
+  text-align: center;
+  font-size: 0.76rem;
+}
+
+.cart-line__controls .quantity-control button {
+  font-size: 0.9rem;
+}
+
+.cart-line__controls button:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.cart-line__price {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: end;
+  padding-top: 0.25rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.cart-line__price small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.cart-clear {
+  justify-self: start;
+  margin-top: 1rem;
+}
+
+.cart-summary {
+  position: sticky;
+  top: 1.2rem;
+  border: 1px solid var(--line);
+  padding: 1.3rem;
+  background: var(--surface);
+}
+
+.cart-summary h2 {
+  margin: 0.4rem 0 1.3rem;
+  font-family: "Bodoni MT", Didot, Georgia, serif;
+  font-size: 1.85rem;
+  font-weight: 500;
+}
+
+.cart-summary__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid var(--line);
+  padding-block: 0.9rem;
+  font-size: 0.82rem;
+}
+
+.cart-summary__note,
+.cart-summary__warning {
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.55;
+}
+
+.cart-summary__warning {
+  color: var(--danger);
+}
+
+.cart-summary__checkout {
+  width: 100%;
+  margin-top: 0.8rem;
+}
+
+.cart-summary__checkout.is-disabled {
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+.cart-summary__continue {
+  display: block;
+  width: fit-content;
+  border-bottom: 1px solid currentColor;
+  margin: 0.9rem auto 0;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.cart-empty {
+  display: grid;
+  min-height: 400px;
+  justify-items: center;
+  align-content: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.cart-empty__seal {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.cart-empty h2 {
+  margin: 0;
+  font-family: "Bodoni MT", Didot, Georgia, serif;
+  font-size: 2rem;
+  font-weight: 500;
+}
+
+.cart-empty p:not(.eyebrow) {
+  margin: 0 0 0.8rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 850px) {
+  .cart-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cart-summary {
+    position: static;
+  }
+}
+
+@media (max-width: 540px) {
+  .cart-line {
+    grid-template-columns: 84px minmax(0, 1fr);
+    gap: 0.8rem;
+  }
+
+  .cart-line__price {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 0;
+  }
+
+  .cart-line__details {
+    grid-column: 1 / -1;
+  }
+}

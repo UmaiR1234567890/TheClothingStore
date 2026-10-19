@@ -1,0 +1,113 @@
+.auth-form-card {
+  width: min(100%, 430px);
+}
+
+.auth-form-card--wide {
+  width: min(100%, 520px);
+}
+
+.auth-form-card__title {
+  margin: 0.6rem 0 0.5rem;
+  font-family: "Bodoni MT", Didot, Georgia, serif;
+  font-size: clamp(2.6rem, 6vw, 4rem);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+}
+
+.auth-form-card__intro {
+  margin: 0 0 1.5rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.auth-form-card form {
+  display: grid;
+  gap: 1rem;
+}
+
+.auth-form-card .notice {
+  margin-bottom: 1rem;
+}
+
+.auth-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.auth-field-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.auth-field-heading a,
+.auth-form-card__foot a {
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.password-control {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.password-control .control {
+  border: 0;
+}
+
+.password-control .control:focus {
+  box-shadow: none;
+}
+
+.password-control button {
+  border: 0;
+  padding: 0.6rem 0.75rem;
+  color: var(--accent);
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.69rem;
+  font-weight: 700;
+}
+
+.field-optional,
+.field-hint {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 450;
+}
+
+.auth-submit {
+  width: 100%;
+  margin-top: 0.4rem;
+}
+
+.auth-form-card__foot {
+  margin: 1.3rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.auth-home-link {
+  display: block;
+  width: fit-content;
+  border-bottom: 1px solid var(--line);
+  margin: 1.2rem auto 0;
+  padding-bottom: 0.2rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+@media (max-width: 520px) {
+  .auth-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

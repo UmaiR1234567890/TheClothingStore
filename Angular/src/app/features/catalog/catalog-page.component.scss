@@ -1,0 +1,257 @@
+.catalog-page {
+  padding-block: clamp(2.2rem, 5vw, 4.5rem);
+}
+
+.catalog-intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-bottom: 2rem;
+}
+
+.catalog-count,
+.catalog-toolbar__count {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.category-strip {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  border-block: 1px solid var(--line);
+  padding-block: 0.8rem;
+  scrollbar-width: thin;
+}
+
+.category-strip a {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.category-strip a:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.catalog-toolbar {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 1.3rem;
+}
+
+.catalog-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 0;
+  padding: 0.55rem 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.catalog-filter-toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.5;
+}
+
+.catalog-sort {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.catalog-sort select {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.7rem;
+  color: var(--ink);
+  background: var(--surface);
+  font-size: 0.75rem;
+}
+
+.catalog-layout {
+  display: grid;
+  grid-template-columns: 235px minmax(0, 1fr);
+  align-items: start;
+  gap: 1.5rem;
+}
+
+.filter-panel {
+  position: sticky;
+  top: 1rem;
+  border: 1px solid var(--line);
+  padding: 1rem;
+  background: var(--surface);
+}
+
+.filter-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.8rem;
+}
+
+.filter-panel__head h2 {
+  margin: 0;
+  font-family: "Bodoni MT", Didot, Georgia, serif;
+  font-size: 1.4rem;
+  font-weight: 500;
+}
+
+.filter-panel__head .text-button {
+  margin-left: 0;
+  font-size: 0.67rem;
+}
+
+.filter-group {
+  display: grid;
+  gap: 0.55rem;
+  border-bottom: 1px solid #e9e8e2;
+  padding-block: 1rem;
+}
+
+.filter-label {
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.filter-group small,
+.filter-note {
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.filter-note {
+  margin: 0.9rem 0;
+}
+
+.price-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.price-inputs .control,
+.filter-volume .control {
+  min-height: 40px;
+  padding: 0.5rem;
+  font-size: 0.74rem;
+}
+
+.filter-volume {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.filter-apply {
+  width: 100%;
+}
+
+.catalog-results {
+  min-width: 0;
+}
+
+.catalog-results .state-panel {
+  min-height: 340px;
+}
+
+.catalog-results .state-panel p {
+  margin: 0.25rem 0 1.2rem;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding-top: 2.2rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.filter-scrim {
+  display: none;
+}
+
+@media (max-width: 850px) {
+  .catalog-layout {
+    grid-template-columns: 190px minmax(0, 1fr);
+    gap: 0.8rem;
+  }
+
+  .catalog-layout .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .catalog-intro {
+    align-items: flex-end;
+  }
+
+  .catalog-count {
+    display: none;
+  }
+
+  .catalog-layout {
+    display: block;
+  }
+
+  .catalog-toolbar__count {
+    margin-right: auto;
+  }
+
+  .filter-panel {
+    position: fixed;
+    z-index: 70;
+    inset: 0 auto 0 0;
+    width: min(86vw, 340px);
+    overflow-y: auto;
+    transform: translateX(-105%);
+    transition: transform 180ms ease;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .filter-panel--open {
+    transform: translateX(0);
+  }
+
+  .filter-scrim {
+    position: fixed;
+    z-index: 60;
+    inset: 0;
+    display: block;
+    border: 0;
+    background: rgb(25 28 24 / 42%);
+  }
+}

@@ -1,0 +1,369 @@
+.product-page {
+  padding-block: 1.4rem 4rem;
+}
+
+.breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  padding-block: 0.6rem 1.4rem;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.breadcrumbs a:hover {
+  color: var(--accent);
+}
+
+.breadcrumbs span[aria-current="page"] {
+  color: var(--ink);
+}
+
+.product-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(330px, 0.88fr);
+  gap: clamp(2rem, 6vw, 6rem);
+  align-items: start;
+}
+
+.product-gallery__main {
+  position: relative;
+  display: grid;
+  min-height: min(70vw, 650px);
+  overflow: hidden;
+  place-items: center;
+  background:
+    radial-gradient(circle at 65% 21%, rgb(255 255 255 / 70%), transparent 24%),
+    linear-gradient(145deg, #e8e4db, #bdbdaf);
+}
+
+.product-gallery__main img {
+  width: 100%;
+  height: 100%;
+  max-height: 760px;
+  min-height: 520px;
+  object-fit: cover;
+}
+
+.product-gallery__fallback {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: center;
+  color: rgb(32 36 32 / 55%);
+  font-family: "Bodoni MT", Didot, Georgia, serif;
+  font-size: 2rem;
+}
+
+.product-gallery__fallback small {
+  font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+  font-size: 0.7rem;
+}
+
+.product-gallery__label {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  padding: 0.45rem 0.65rem;
+  color: var(--ink);
+  background: rgb(255 254 250 / 88%);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.product-gallery__thumbs {
+  display: flex;
+  gap: 0.6rem;
+  overflow-x: auto;
+  padding-top: 0.7rem;
+}
+
+.product-gallery__thumbs button {
+  width: 75px;
+  height: 90px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px solid transparent;
+  padding: 0;
+  background: var(--paper-deep);
+  cursor: pointer;
+}
+
+.product-gallery__thumbs button.is-selected {
+  border-color: var(--ink);
+}
+
+.product-gallery__thumbs img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-copy {
+  position: sticky;
+  top: 1.5rem;
+  padding-top: 1.2rem;
+}
+
+.product-copy h1 {
+  margin: 0.65rem 0 1rem;
+  font-family: "Bodoni MT", Didot, Georgia, serif;
+  font-size: clamp(2.4rem, 4vw, 4.6rem);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  line-height: 0.98;
+}
+
+.product-price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.product-price__current {
+  font-size: 1.15rem;
+  font-weight: 750;
+}
+
+.product-price__regular {
+  color: var(--muted);
+  font-size: 0.92rem;
+  text-decoration: line-through;
+}
+
+.product-price__badge {
+  color: var(--accent);
+  font-size: 0.69rem;
+  font-weight: 750;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.product-price__hint {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.product-description {
+  margin: 0 0 1.4rem;
+  color: var(--muted);
+  font-size: 0.89rem;
+  line-height: 1.75;
+}
+
+.option-group {
+  min-width: 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 0;
+  padding: 1.1rem 0;
+}
+
+.option-group legend {
+  width: 100%;
+  float: left;
+  margin-bottom: 0.7rem;
+  color: var(--ink);
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.option-group legend span {
+  margin-left: 0.5rem;
+  color: var(--muted);
+  font-weight: 450;
+}
+
+.option-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  clear: both;
+}
+
+.option-chip {
+  min-width: 52px;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.72rem;
+  color: var(--ink);
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.option-chip:hover:not(:disabled),
+.option-chip.is-selected {
+  border-color: var(--ink);
+  color: #fffefa;
+  background: var(--ink);
+}
+
+.option-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+  text-decoration: line-through;
+}
+
+.variant-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.8rem 0;
+  color: var(--success);
+  font-size: 0.77rem;
+  font-weight: 650;
+}
+
+.variant-status--out {
+  color: var(--danger);
+}
+
+.variant-status__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.variant-status__sku {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 450;
+}
+
+.purchase-row {
+  display: grid;
+  grid-template-columns: 125px minmax(0, 1fr);
+  gap: 0.7rem;
+  margin-bottom: 1rem;
+}
+
+.quantity-control {
+  display: grid;
+  min-height: 48px;
+  grid-template-columns: 38px 1fr 38px;
+  align-items: center;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.quantity-control button {
+  height: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+
+.quantity-control input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 0.84rem;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.quantity-control input::-webkit-outer-spin-button,
+.quantity-control input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.add-to-bag {
+  width: 100%;
+  min-height: 48px;
+}
+
+.product-attributes {
+  border-top: 1px solid var(--line);
+  margin-top: 1.6rem;
+  padding-top: 1.1rem;
+}
+
+.product-attributes h2 {
+  margin: 0 0 0.5rem;
+  font-family: "Bodoni MT", Didot, Georgia, serif;
+  font-size: 1.55rem;
+  font-weight: 500;
+}
+
+.product-attribute {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid #e8e6df;
+  padding: 0.7rem 0;
+  font-size: 0.78rem;
+}
+
+.product-attribute span {
+  color: var(--muted);
+}
+
+.product-attribute strong {
+  font-weight: 650;
+  text-align: right;
+}
+
+.related-section {
+  padding-block: 2rem 5rem;
+}
+
+.product-detail-skeleton {
+  display: grid;
+  min-height: 560px;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 3rem;
+}
+
+.product-detail-skeleton__image,
+.product-detail-skeleton__copy {
+  background: linear-gradient(110deg, #e8e5dd 8%, #f3f0e8 18%, #e8e5dd 33%);
+  background-size: 200% 100%;
+  animation: detail-skeleton 1.2s linear infinite;
+}
+
+@keyframes detail-skeleton {
+  to { background-position-x: -200%; }
+}
+
+@media (max-width: 850px) {
+  .product-detail {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+
+  .product-gallery__main {
+    min-height: 0;
+    aspect-ratio: 0.92;
+  }
+
+  .product-gallery__main img {
+    min-height: 0;
+  }
+
+  .product-copy {
+    position: static;
+    padding-top: 0;
+  }
+}
+
+@media (max-width: 540px) {
+  .purchase-row {
+    grid-template-columns: 105px minmax(0, 1fr);
+  }
+
+  .product-copy h1 {
+    font-size: 2.7rem;
+  }
+}

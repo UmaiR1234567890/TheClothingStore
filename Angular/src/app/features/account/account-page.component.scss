@@ -1,0 +1,209 @@
+.account-page {
+  padding-block: clamp(2rem, 5vw, 4rem);
+}
+
+.account-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 1.4rem;
+  margin-bottom: 1.4rem;
+}
+
+.account-heading .page-title {
+  margin-top: 0.35rem;
+}
+
+.account-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+}
+
+.account-nav a {
+  border-bottom: 1px solid transparent;
+  padding-bottom: 0.3rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.account-nav a.is-active,
+.account-nav a:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+.account-card {
+  display: grid;
+  max-width: 850px;
+  grid-template-columns: minmax(200px, 0.8fr) minmax(0, 1.2fr);
+  gap: 2rem;
+  border: 1px solid var(--line);
+  padding: clamp(1.2rem, 3vw, 2rem);
+  background: var(--surface);
+}
+
+.account-card__copy h2,
+.account-card__heading h2 {
+  margin: 0 0 0.5rem;
+  font-family: "Bodoni MT", Didot, Georgia, serif;
+  font-size: 1.8rem;
+  font-weight: 500;
+}
+
+.account-card__copy p {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.account-card__copy .account-email {
+  color: var(--ink);
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.account-card form {
+  display: grid;
+  gap: 1rem;
+}
+
+.account-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.account-card .btn {
+  width: fit-content;
+}
+
+.address-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.address-toolbar .page-intro {
+  font-size: 0.84rem;
+}
+
+.address-form {
+  display: block;
+  max-width: 760px;
+  margin-bottom: 1.5rem;
+}
+
+.address-form form,
+.address-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.account-card__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.7rem;
+}
+
+.address-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  color: var(--muted);
+  font-size: 0.77rem;
+}
+
+.address-checkboxes label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.address-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr));
+  gap: 0.9rem;
+}
+
+.address-card {
+  border: 1px solid var(--line);
+  padding: 1.2rem;
+  background: var(--surface);
+}
+
+.address-card__badges {
+  display: flex;
+  min-height: 1.2rem;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.address-card__badges span {
+  color: var(--accent);
+  font-size: 0.61rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.address-card h2 {
+  margin: 0.8rem 0 0.4rem;
+  font-size: 0.92rem;
+}
+
+.address-card p {
+  min-height: 7.5rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.address-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  border-top: 1px solid #eceae4;
+  padding-top: 0.8rem;
+}
+
+.text-button {
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  padding: 0;
+  color: var(--accent);
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.text-button--danger {
+  color: var(--danger);
+}
+
+@media (max-width: 700px) {
+  .account-heading,
+  .address-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .account-card {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .account-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

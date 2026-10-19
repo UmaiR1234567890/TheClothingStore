@@ -1,0 +1,121 @@
+:host {
+  display: block;
+}
+
+.product-card {
+  min-width: 0;
+}
+
+.product-card__media {
+  position: relative;
+  display: grid;
+  aspect-ratio: 0.79;
+  overflow: hidden;
+  place-items: center;
+  background:
+    radial-gradient(circle at 73% 18%, rgb(255 255 255 / 58%), transparent 27%),
+    linear-gradient(145deg, #e7e1d4, #c9c3b4 60%, #b1b3a9);
+}
+
+.product-card:nth-child(3n + 2) .product-card__media {
+  background:
+    radial-gradient(circle at 20% 76%, rgb(255 255 255 / 44%), transparent 23%),
+    linear-gradient(140deg, #e2d6cc, #bd9d8b 58%, #827468);
+}
+
+.product-card:nth-child(3n) .product-card__media {
+  background:
+    radial-gradient(circle at 72% 20%, rgb(255 255 255 / 42%), transparent 24%),
+    linear-gradient(140deg, #d8ded7, #9aa597 62%, #606c61);
+}
+
+.product-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 500ms cubic-bezier(0.2, 0.65, 0.2, 1);
+}
+
+.product-card__media:hover img {
+  transform: scale(1.035);
+}
+
+.product-card__placeholder {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: center;
+  padding: 1rem;
+  color: rgb(32 36 32 / 62%);
+  font-family: "Bodoni MT", Didot, Georgia, serif;
+  font-size: clamp(1rem, 1.6vw, 1.3rem);
+  text-align: center;
+}
+
+.placeholder-mark {
+  display: grid;
+  width: 4rem;
+  height: 4rem;
+  place-items: center;
+  border: 1px solid rgb(32 36 32 / 40%);
+  border-radius: 50%;
+  font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.15em;
+}
+
+.product-card__badge,
+.product-card__availability {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.4rem 0.55rem;
+  color: #fffefa;
+  background: var(--accent);
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.product-card__availability {
+  top: auto;
+  bottom: 0.75rem;
+  background: var(--ink);
+}
+
+.product-card__details {
+  padding-top: 0.8rem;
+}
+
+.product-card__brand {
+  margin: 0 0 0.25rem;
+  color: var(--muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.product-card__name {
+  display: inline-block;
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.product-card__name:hover {
+  color: var(--accent);
+}
+
+.product-card__price {
+  margin: 0.35rem 0 0;
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.product-card__price-missing {
+  color: var(--muted);
+  font-weight: 450;
+}
