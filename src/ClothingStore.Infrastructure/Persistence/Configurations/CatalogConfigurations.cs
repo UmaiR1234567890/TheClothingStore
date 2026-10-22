@@ -179,7 +179,9 @@ internal sealed class ProductImageConfiguration : IEntityTypeConfiguration<Produ
         builder.Property(x => x.IsPrimary).HasDefaultValue(false);
         builder.Property(x => x.CreatedAt).HasColumnType("datetime2(0)").HasDefaultValueSql("SYSUTCDATETIME()");
         builder.HasIndex(x => new { x.ProductId, x.DisplayOrder }).HasDatabaseName("IX_ProductImages_ProductId");
-        builder.HasIndex(x => x.ProductId)
+        builder.HasIndex(x => new { x.ProductId, x.ColorId, x.DisplayOrder })
+            .HasDatabaseName("IX_ProductImages_Product_Color_DisplayOrder");
+        builder.HasIndex(x => new { x.ProductId, x.ColorId })
             .IsUnique()
             .HasDatabaseName("UX_ProductImages_Primary")
             .HasFilter("[IsPrimary] = 1");
@@ -188,6 +190,11 @@ internal sealed class ProductImageConfiguration : IEntityTypeConfiguration<Produ
             .HasForeignKey(x => x.ProductId)
             .OnDelete(DeleteBehavior.Cascade)
             .HasConstraintName("FK_ProductImages_Products");
+        builder.HasOne(x => x.Color)
+            .WithMany(x => x.ProductImages)
+            .HasForeignKey(x => x.ColorId)
+            .OnDelete(DeleteBehavior.NoAction)
+            .HasConstraintName("FK_ProductImages_Colors");
     }
 }
 

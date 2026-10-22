@@ -41,6 +41,14 @@ export interface ProductImageWriteRequest {
   altText: string | null;
   displayOrder: number;
   isPrimary: boolean;
+  colorId: number | null;
+}
+
+export interface ProductImageUploadMetadata {
+  altText: string | null;
+  displayOrder: number;
+  isPrimary: boolean;
+  colorId: number | null;
 }
 
 export interface DepartmentWriteRequest {

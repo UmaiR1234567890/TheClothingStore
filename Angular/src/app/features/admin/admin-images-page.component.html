@@ -1,0 +1,109 @@
+<section class="admin-page">
+  <div class="admin-page-heading">
+    <div><p class="eyebrow">Products / Images</p><h1 class="page-title">Image references.</h1></div>
+    <a class="text-link" routerLink="/admin/products">← Product list</a>
+  </div>
+  <nav class="admin-setup-steps" aria-label="Product setup">
+    <a class="admin-setup-step" [routerLink]="['/admin/products', productId(), 'edit']">1. Product</a>
+    <a class="admin-setup-step" [routerLink]="['/admin/products', productId(), 'variants']">2. Variants (optional)</a>
+    <span class="admin-setup-step admin-setup-step--active" aria-current="step">3. Images</span>
+  </nav>
+  @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
+  @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
+  @if (loading()) { <div class="state-panel"><span class="spinner" aria-label="Loading image references"></span></div> }
+  @else {
+    @if (product(); as item) {
+    <div class="admin-context-card"><strong>{{ item.name }}</strong><small>{{ item.slug }}</small></div>
+    <p class="muted-copy">Uploads are saved under the storefront's product image folder and linked to this product. Choose a color to make a gallery specific to that color.</p>
+    <div class="admin-image-grid">
+      @for (image of item.images; track image.productImageId) {
+        <article class="admin-image-card">
+          @if (isImageAvailable(image.productImageId)) {
+            <img [src]="imageSource(image.imageUrl)" [alt]="image.altText || item.name" (error)="markImageUnavailable(image.productImageId)">
+          } @else {
+            <span class="admin-image-preview admin-image-placeholder" aria-hidden="true">T</span>
+          }
+          <div class="admin-image-card__badges">
+            <span class="admin-badge">{{ image.colorName || 'All colors' }}</span>
+            <span class="admin-badge" [class.admin-badge--inactive]="!image.isPrimary">{{ image.isPrimary ? 'Primary' : 'Gallery' }}</span>
+          </div>
+          <small>{{ image.altText || 'No alternative text' }} · Order {{ image.displayOrder }}</small>
+          <div class="admin-inline-actions">
+            @if (!image.isPrimary) { <button type="button" (click)="setPrimary(image)">Set primary</button> }
+            <button type="button" (click)="edit(image)">Edit reference</button>
+            <button type="button" (click)="remove(image)">Remove</button>
+          </div>
+        </article>
+      } @empty {
+        <div class="state-panel"><h2>No images</h2><p>Add a URL or path reference below.</p></div>
+      }
+    </div>
+
+    <form class="admin-form-card" [formGroup]="form" (ngSubmit)="save()">
+      <h2>{{ editingId() ? 'Edit image reference' : 'Add image reference' }}</h2>
+      <p class="muted-copy">Upload an image for one color, or choose “All colors” to use it as a shared fallback. Each color gallery supports up to five images.</p>
+      @if (editingId()) {
+        <div class="field">
+          <label for="image-url">Stored image path</label>
+          <input id="image-url" class="control" formControlName="imageUrl" readonly>
+          <small>To replace this file, cancel and upload a new image reference.</small>
+        </div>
+      } @else {
+        <div
+          class="admin-image-upload"
+          [class.admin-image-upload--dragging]="draggingFile()"
+          (dragover)="onFileDragOver($event)"
+          (dragleave)="onFileDragLeave($event)"
+          (drop)="onFileDrop($event)">
+          @if (previewUrl(); as preview) {
+            <img class="admin-image-upload__preview" [src]="preview" alt="Selected image preview">
+          } @else {
+            <span class="admin-image-upload__icon" aria-hidden="true">+</span>
+          }
+          <div>
+            <strong>{{ selectedFile()?.name || 'Drop an image here' }}</strong>
+            <small>{{ selectedFile() ? selectedFileSize() : 'JPEG, PNG, or WebP · up to 8 MB' }}</small>
+          </div>
+          <label class="btn btn-outline btn-small" for="image-upload">Browse images</label>
+          <input
+            id="image-upload"
+            class="sr-only"
+            type="file"
+            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+            (change)="onFileSelected($event)">
+          @if (selectedFile()) {
+            <button class="text-button" type="button" (click)="clearSelectedFile()">Remove selected file</button>
+          }
+        </div>
+      }
+      <div class="admin-form-grid">
+        <div class="field"><label for="image-alt">Alternative text</label><input id="image-alt" class="control" formControlName="altText"></div>
+        <div class="field"><label for="image-order">Display order</label><input id="image-order" class="control" type="number" min="0" formControlName="displayOrder"></div>
+      </div>
+      <div class="field">
+        <label for="image-color">Color</label>
+        <select id="image-color" class="control" formControlName="colorId">
+          <option [ngValue]="null">All colors / shared fallback</option>
+          @for (color of colorOptions(); track color.colorId) {
+            <option [ngValue]="color.colorId">{{ color.name }}</option>
+          }
+        </select>
+        @if (colorOptions().length === 0) {
+          <small>Add a color variant before creating color-specific images.</small>
+        }
+        @if (imageLimitReached()) {
+          <small class="field-error" role="status">This color gallery already has five images. Edit or remove one before adding another.</small>
+        }
+      </div>
+      <label class="admin-check-row"><input type="checkbox" formControlName="isPrimary"> Set as primary image</label>
+      <div class="admin-form-actions">
+        <button class="btn btn-primary" type="submit" [disabled]="!canSaveImage()">{{ saving() ? 'Saving…' : editingId() ? 'Save image' : 'Add image' }}</button>
+        @if (editingId()) { <button class="btn btn-outline" type="button" (click)="reset()">Cancel edit</button> }
+      </div>
+    </form>
+    <div class="admin-form-actions admin-product-setup-actions">
+      <a class="btn btn-primary" routerLink="/admin/products">Finish and return to product list</a>
+    </div>
+    }
+  }
+</section>

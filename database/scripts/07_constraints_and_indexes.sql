@@ -24,10 +24,24 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Carts_GuestToken' AND
         WHERE GuestToken IS NOT NULL;
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_ProductImages_Primary' AND object_id = OBJECT_ID(N'dbo.ProductImages'))
-    CREATE UNIQUE INDEX UX_ProductImages_Primary
-        ON dbo.ProductImages (ProductId)
-        WHERE IsPrimary = 1;
+IF COL_LENGTH(N'dbo.ProductImages', N'ColorId') IS NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_ProductImages_Primary' AND object_id = OBJECT_ID(N'dbo.ProductImages'))
+        CREATE UNIQUE INDEX UX_ProductImages_Primary
+            ON dbo.ProductImages (ProductId)
+            WHERE IsPrimary = 1;
+END
+ELSE
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_ProductImages_Primary' AND object_id = OBJECT_ID(N'dbo.ProductImages'))
+        CREATE UNIQUE INDEX UX_ProductImages_Primary
+            ON dbo.ProductImages (ProductId, ColorId)
+            WHERE IsPrimary = 1;
+
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_ProductImages_Product_Color_DisplayOrder' AND object_id = OBJECT_ID(N'dbo.ProductImages'))
+        CREATE INDEX IX_ProductImages_Product_Color_DisplayOrder
+            ON dbo.ProductImages (ProductId, ColorId, DisplayOrder);
+END
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Categories_ParentCategoryId' AND object_id = OBJECT_ID(N'dbo.Categories'))

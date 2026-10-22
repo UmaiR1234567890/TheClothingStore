@@ -5,25 +5,7 @@ import { RouterLink, RouterOutlet } from '@angular/router';
   selector: 'tcs-auth-layout',
   standalone: true,
   imports: [RouterOutlet, RouterLink],
-  template: `
-    <main class="auth-shell">
-      <section class="auth-editorial" aria-label="The Clothing Store">
-        <a class="auth-wordmark" routerLink="/">
-          <span class="auth-wordmark__small">THE</span>
-          <span class="auth-wordmark__main">CLOTHING STORE</span>
-        </a>
-        <div class="auth-editorial__copy">
-          <p class="eyebrow">A considered wardrobe</p>
-          <h1>Wear what<br>moves you.</h1>
-          <p>Find pieces to make your everyday feel like your own.</p>
-        </div>
-        <span class="auth-editorial__seal" aria-hidden="true">TCS / 01</span>
-      </section>
-      <section class="auth-panel">
-        <router-outlet />
-      </section>
-    </main>
-  `,
+  templateUrl: './auth-layout.component.html',
   styles: [`
     .auth-shell { display:grid; min-height:100vh; grid-template-columns:minmax(320px, .9fr) minmax(360px, 1.1fr); background:var(--surface); }
     .auth-editorial { position:relative; display:flex; min-height:100vh; flex-direction:column; justify-content:space-between; overflow:hidden; padding:clamp(2rem,5vw,5rem); color:#f8f5ed; background:radial-gradient(circle at 75% 28%, rgb(196 143 115 / 40%), transparent 26%), linear-gradient(150deg,#4d5146,#777365 52%,#a37a63); }

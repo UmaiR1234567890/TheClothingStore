@@ -6,6 +6,22 @@ export interface DepartmentDto {
   isActive: boolean;
 }
 
+export interface ColorOptionDto {
+  colorId: number;
+  name: string;
+  hexCode: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface SizeOptionDto {
+  sizeId: number;
+  sizeType: string;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
 export interface CategoryDto {
   categoryId: number;
   departmentId: number;
@@ -24,6 +40,8 @@ export interface ProductImageDto {
   altText: string | null;
   displayOrder: number;
   isPrimary: boolean;
+  colorId: number | null;
+  colorName: string | null;
 }
 
 export interface ProductAttributeDto {

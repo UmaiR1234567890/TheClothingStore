@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+using ClothingStore.Api;
 using ClothingStore.Application.Contracts;
 using ClothingStore.Application.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -8,7 +10,9 @@ namespace ClothingStore.Api.Controllers;
 [ApiController]
 [Authorize(Policy = "Admin")]
 [Route("api/v1/admin")]
-public sealed class AdminCatalogController(ICatalogAdminService catalog) : ControllerBase
+public sealed class AdminCatalogController(
+    ICatalogAdminService catalog,
+    IProductImageFileStore imageFiles) : ControllerBase
 {
     [HttpGet("products")]
     public async Task<ActionResult<ApiResponse<PagedResult<AdminProductCardDto>>>> GetProducts(
@@ -103,6 +107,34 @@ public sealed class AdminCatalogController(ICatalogAdminService catalog) : Contr
         return StatusCode(StatusCodes.Status201Created, ApiResponse<ProductImageDto>.Ok(image, "Image reference created."));
     }
 
+    [HttpPost("products/{productId:int}/images/upload")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<ActionResult<ApiResponse<ProductImageDto>>> UploadImage(
+        int productId,
+        [FromForm] ProductImageUploadForm request,
+        CancellationToken cancellationToken)
+    {
+        var file = await imageFiles.SaveAsync(request.File, cancellationToken);
+        try
+        {
+            var image = await catalog.CreateImageAsync(productId, new ProductImageWriteRequest
+            {
+                ImageUrl = file.ImageUrl,
+                AltText = request.AltText,
+                ColorId = request.ColorId,
+                DisplayOrder = request.DisplayOrder,
+                IsPrimary = request.IsPrimary
+            }, cancellationToken);
+            return StatusCode(StatusCodes.Status201Created, ApiResponse<ProductImageDto>.Ok(image, "Image uploaded."));
+        }
+        catch
+        {
+            imageFiles.Delete(file);
+            throw;
+        }
+    }
+
     [HttpPut("images/{id:int}")]
     public async Task<ActionResult<ApiResponse<ProductImageDto>>> UpdateImage(
         int id,
@@ -129,6 +161,14 @@ public sealed class AdminCatalogController(ICatalogAdminService catalog) : Contr
     [HttpGet("departments")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<DepartmentDto>>>> GetDepartments(CancellationToken cancellationToken) =>
         Ok(ApiResponse<IReadOnlyList<DepartmentDto>>.Ok(await catalog.GetAdminDepartmentsAsync(cancellationToken)));
+
+    [HttpGet("colors")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ColorOptionDto>>>> GetColors(CancellationToken cancellationToken) =>
+        Ok(ApiResponse<IReadOnlyList<ColorOptionDto>>.Ok(await catalog.GetAdminColorsAsync(cancellationToken)));
+
+    [HttpGet("sizes")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<SizeOptionDto>>>> GetSizes(CancellationToken cancellationToken) =>
+        Ok(ApiResponse<IReadOnlyList<SizeOptionDto>>.Ok(await catalog.GetAdminSizesAsync(cancellationToken)));
 
     [HttpPost("departments")]
     public async Task<ActionResult<ApiResponse<DepartmentDto>>> CreateDepartment(
@@ -246,4 +286,20 @@ public sealed class AdminCatalogController(ICatalogAdminService catalog) : Contr
         await catalog.SetAttributeDefinitionStatusAsync(id, active, cancellationToken);
         return Ok(ApiResponse<object>.Ok(new { productAttributeId = id, request.Status }));
     }
+}
+
+public sealed class ProductImageUploadForm
+{
+    [Required]
+    public IFormFile File { get; init; } = null!;
+
+    [StringLength(200)]
+    public string? AltText { get; init; }
+
+    public int? ColorId { get; init; }
+
+    [Range(0, int.MaxValue)]
+    public int DisplayOrder { get; init; }
+
+    public bool IsPrimary { get; init; }
 }

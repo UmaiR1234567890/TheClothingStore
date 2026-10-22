@@ -9,77 +9,7 @@ import { parseApiFailure } from '../../core/services/api-error.service';
   selector: 'tcs-order-detail-page',
   standalone: true,
   imports: [CurrencyPipe, DatePipe, RouterLink],
-  template: `
-    <section class="account-page container">
-      @if (loading()) {
-        <div class="state-panel"><span class="spinner" aria-label="Loading order"></span></div>
-      } @else if (error()) {
-        <div class="state-panel state-panel--error" role="alert"><h1 class="page-title">Order unavailable.</h1><p>{{ error() }}</p></div>
-      } @else {
-        @if (order(); as current) {
-        <nav class="breadcrumbs" aria-label="Breadcrumb">
-          <a routerLink="/account/orders">Order history</a><span>/</span><span>{{ current.orderNumber }}</span>
-        </nav>
-        <div class="order-detail-heading">
-          <div>
-            <p class="eyebrow">Order {{ current.orderNumber }}</p>
-            <h1 class="page-title">Your order.</h1>
-            <p class="page-intro">Placed {{ current.placedAt | date:'medium' }}</p>
-          </div>
-          <span class="status-pill" [attr.data-status]="current.status.toLowerCase()">{{ current.status }}</span>
-        </div>
-
-        <div class="order-detail-layout">
-          <section class="order-detail-card">
-            <h2>Items</h2>
-            @for (item of current.items; track $index) {
-              <article class="snapshot-line">
-                <div>
-                  <strong>{{ item.productName }}</strong>
-                  <p>{{ item.variantDetails || 'Standard option' }} · SKU {{ item.sku }}</p>
-                  <small>Quantity {{ item.quantity }} · {{ item.unitPrice | currency:'PKR':'code':'1.0-2' }} each</small>
-                </div>
-                <span>{{ item.lineTotal | currency:'PKR':'code':'1.0-2' }}</span>
-              </article>
-            }
-            <dl class="order-totals">
-              <div><dt>Subtotal</dt><dd>{{ current.subtotalAmount | currency:'PKR':'code':'1.0-2' }}</dd></div>
-              <div><dt>Discount</dt><dd>− {{ current.discountAmount | currency:'PKR':'code':'1.0-2' }}</dd></div>
-              <div><dt>Shipping</dt><dd>{{ current.shippingAmount | currency:'PKR':'code':'1.0-2' }}</dd></div>
-              <div><dt>Tax</dt><dd>{{ current.taxAmount | currency:'PKR':'code':'1.0-2' }}</dd></div>
-              <div class="order-totals__grand"><dt>Total</dt><dd>{{ current.totalAmount | currency:'PKR':'code':'1.0-2' }}</dd></div>
-            </dl>
-          </section>
-
-          <aside class="order-detail-side">
-            <section class="order-detail-card">
-              <h2>Payment</h2>
-              @for (payment of current.payments; track payment.paymentId) {
-                <div class="side-row"><span>{{ payment.method }}</span><strong>{{ payment.status }}</strong></div>
-              } @empty {
-                <p class="muted-copy">No payment record is required or available.</p>
-              }
-              <p class="muted-copy">Payment status is confirmed by the store, not by this page.</p>
-            </section>
-            <section class="order-detail-card">
-              <h2>Delivery</h2>
-              @if (current.shippingName) { <strong>{{ current.shippingName }}</strong> }
-              @if (current.shippingLine1) { <p>{{ current.shippingLine1 }}</p> }
-              @if (current.shippingCity) { <p>{{ current.shippingCity }}@if (current.shippingRegion) {, {{ current.shippingRegion }}}</p> }
-              @if (current.shippingPostalCode) { <p>{{ current.shippingPostalCode }}</p> }
-              @if (current.shippingCountry) { <p>{{ current.shippingCountry }}</p> }
-              @if (current.shipments.length > 0) {
-                <a class="text-link" [routerLink]="['/account/orders', current.orderId, 'tracking']">View tracking <span aria-hidden="true">→</span></a>
-              } @else {
-                <p class="muted-copy">Tracking information is not available yet.</p>
-              }
-            </section>
-          </aside>
-        </div>
-        }
-      }
-    </section>
-  `,
+  templateUrl: './order-detail-page.component.html',
   styleUrl: './orders-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

@@ -1,0 +1,79 @@
+<section class="account-page container">
+  <div class="account-heading">
+    <div><p class="eyebrow">Your account</p><h1 class="page-title">Profile.</h1></div>
+    <nav class="account-nav" aria-label="Account navigation">
+      <a class="is-active" routerLink="/account/profile">Profile</a>
+      <a routerLink="/account/addresses">Addresses</a>
+      <a routerLink="/account/orders">Orders</a>
+    </nav>
+  </div>
+
+  @if (loading()) {
+    <div class="state-panel"><span class="spinner" aria-label="Loading profile"></span></div>
+  } @else if (error() && !profile()) {
+    <div class="state-panel state-panel--error" role="alert"><h2>Profile unavailable</h2><p>{{ error() }}</p></div>
+  } @else {
+    <div class="account-card">
+      <div class="account-card__copy">
+        <h2>Your details</h2>
+        <p>Email is managed by your sign-in account. Contact support to change it.</p>
+        <p class="account-email">{{ profile()?.email }}</p>
+      </div>
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="account-form-grid">
+          <div class="field">
+            <label for="profile-first">First name</label>
+            <input id="profile-first" class="control" formControlName="firstName" autocomplete="given-name">
+            @if (form.controls.firstName.touched && form.controls.firstName.invalid) { <span class="field-error">First name is required.</span> }
+          </div>
+          <div class="field">
+            <label for="profile-last">Last name</label>
+            <input id="profile-last" class="control" formControlName="lastName" autocomplete="family-name">
+            @if (form.controls.lastName.touched && form.controls.lastName.invalid) { <span class="field-error">Last name is required.</span> }
+          </div>
+        </div>
+        <div class="field">
+          <label for="profile-phone">Phone <span class="field-optional">Optional</span></label>
+          <input id="profile-phone" class="control" type="tel" formControlName="phone" autocomplete="tel">
+        </div>
+        @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
+        @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
+        <button class="btn btn-primary" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Saving…' : 'Save changes' }}
+        </button>
+      </form>
+    </div>
+    <section class="account-card account-password-card">
+      <div class="account-card__copy">
+        <h2>Change password</h2>
+        <p>Passwords are sent only to the API and are never stored by the storefront.</p>
+      </div>
+      <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+        <div class="field">
+          <label for="current-password">Current password</label>
+          <input id="current-password" class="control" type="password" formControlName="currentPassword" autocomplete="current-password">
+        </div>
+        <div class="field">
+          <label for="new-password">New password</label>
+          <input id="new-password" class="control" type="password" formControlName="newPassword" autocomplete="new-password">
+          <small class="field-hint">At least 10 characters; include upper- and lowercase, a number, and a symbol.</small>
+          @if (passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.invalid) {
+            <span class="field-error">Use a password that meets the requirements.</span>
+          }
+        </div>
+        <div class="field">
+          <label for="confirm-new-password">Confirm new password</label>
+          <input id="confirm-new-password" class="control" type="password" formControlName="confirmPassword" autocomplete="new-password">
+          @if (passwordForm.controls.confirmPassword.touched && passwordForm.hasError('passwordMismatch')) {
+            <span class="field-error">Passwords must match.</span>
+          }
+        </div>
+        @if (passwordError()) { <p class="notice notice-error" role="alert">{{ passwordError() }}</p> }
+        @if (passwordMessage()) { <p class="notice notice-success" role="status">{{ passwordMessage() }}</p> }
+        <button class="btn btn-outline" type="submit" [disabled]="passwordSaving()">
+          {{ passwordSaving() ? 'Updating…' : 'Update password' }}
+        </button>
+      </form>
+    </section>
+  }
+</section>

@@ -9,77 +9,7 @@ import { parseApiFailure } from '../../core/services/api-error.service';
   selector: 'tcs-admin-categories-page',
   standalone: true,
   imports: [ReactiveFormsModule],
-  template: `
-    <section class="admin-page">
-      <div class="admin-page-heading">
-        <div><p class="eyebrow">Catalog / Taxonomy</p><h1 class="page-title">Categories.</h1></div>
-        <button class="btn btn-primary" type="button" (click)="createMode()">Add category</button>
-      </div>
-      @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
-      @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
-      @if (loading()) { <div class="state-panel"><span class="spinner" aria-label="Loading categories"></span></div> }
-      @else {
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead><tr><th>Category</th><th>Department</th><th>Parent</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody>
-              @for (category of categories(); track category.categoryId) {
-                <tr>
-                  <td><strong>{{ category.name }}</strong><small>{{ category.slug }} · #{{ category.categoryId }}</small></td>
-                  <td>{{ departmentName(category.departmentId) }}</td>
-                  <td>{{ parentName(category.parentCategoryId) }}</td>
-                  <td><span class="admin-badge" [class.admin-badge--inactive]="!category.isActive || category.isDeleted">{{ category.isDeleted ? 'Deleted' : category.isActive ? 'Active' : 'Inactive' }}</span></td>
-                  <td><div class="admin-inline-actions">
-                    <button type="button" (click)="edit(category)">Edit</button>
-                    @if (!category.isDeleted) {
-                      <button type="button" (click)="setStatus(category, category.isActive ? 'Inactive' : 'Active')">{{ category.isActive ? 'Deactivate' : 'Activate' }}</button>
-                      <button type="button" (click)="remove(category)">Soft delete</button>
-                    }
-                  </div></td>
-                </tr>
-              } @empty { <tr><td colspan="5">No categories found.</td></tr> }
-            </tbody>
-          </table>
-        </div>
-      }
-
-      @if (editing()) {
-        <form class="admin-form-card" [formGroup]="form" (ngSubmit)="save()">
-          <h2>{{ editingId() ? 'Edit category' : 'Create category' }}</h2>
-          <div class="admin-form-grid">
-            <div class="field">
-              <label for="category-department">Department</label>
-              <select id="category-department" class="control" formControlName="departmentId" (change)="clearInvalidParent()">
-                <option [ngValue]="null">Choose department</option>
-                @for (department of departments(); track department.departmentId) {
-                  <option [ngValue]="department.departmentId">{{ department.name }}</option>
-                }
-              </select>
-            </div>
-            <div class="field">
-              <label for="category-parent">Parent category <span class="field-optional">Optional</span></label>
-              <select id="category-parent" class="control" formControlName="parentCategoryId">
-                <option [ngValue]="null">Top-level category</option>
-                @for (parent of parentOptions(); track parent.categoryId) {
-                  <option [ngValue]="parent.categoryId">{{ parent.name }}</option>
-                }
-              </select>
-            </div>
-          </div>
-          <div class="admin-form-grid">
-            <div class="field"><label for="category-name">Name</label><input id="category-name" class="control" formControlName="name"></div>
-            <div class="field"><label for="category-slug">Slug</label><input id="category-slug" class="control" formControlName="slug"></div>
-          </div>
-          <div class="field"><label for="category-order">Sort order</label><input id="category-order" class="control" type="number" min="0" formControlName="sortOrder"></div>
-          <p class="muted-copy">The server validates that the parent is in the same department and does not create a cycle.</p>
-          <div class="admin-form-actions">
-            <button class="btn btn-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save category' }}</button>
-            <button class="btn btn-outline" type="button" (click)="cancel()">Cancel</button>
-          </div>
-        </form>
-      }
-    </section>
-  `,
+  templateUrl: './admin-categories-page.component.html',
   styleUrl: './admin-pages.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

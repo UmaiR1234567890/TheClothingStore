@@ -1,0 +1,92 @@
+<section class="admin-page">
+  <div class="admin-page-heading">
+    <div><p class="eyebrow">Catalog / Products</p><h1 class="page-title">{{ productId() ? 'Edit product.' : 'Create product.' }}</h1></div>
+    <a class="text-link" routerLink="/admin/products">← Product list</a>
+  </div>
+  <nav class="admin-setup-steps" aria-label="Product setup">
+    <span class="admin-setup-step admin-setup-step--active" aria-current="step">1. Product</span>
+    @if (productId(); as id) {
+      <a class="admin-setup-step" [routerLink]="['/admin/products', id, 'variants']">2. Variants (optional)</a>
+      <a class="admin-setup-step" [routerLink]="['/admin/products', id, 'images']">3. Images (optional)</a>
+    } @else {
+      <span class="admin-setup-step admin-setup-step--disabled">2. Variants (optional)</span>
+      <span class="admin-setup-step admin-setup-step--disabled">3. Images (optional)</span>
+    }
+  </nav>
+  @if (loadError()) { <div class="notice notice-error" role="alert">{{ loadError() }}</div> }
+  @if (loading()) { <div class="state-panel"><span class="spinner" aria-label="Loading product"></span></div> }
+  @else {
+    @if (error()) { <div class="notice notice-error" role="alert">{{ error() }}</div> }
+    @if (message()) { <div class="notice notice-success" role="status">{{ message() }}</div> }
+    <form class="admin-form-card" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <h2>Product information</h2>
+      <div class="admin-form-grid">
+        <div class="field"><label for="product-name">Name</label><input id="product-name" class="control" formControlName="name"></div>
+        <div class="field"><label for="product-slug">Slug</label><input id="product-slug" class="control" formControlName="slug"></div>
+      </div>
+      <div class="admin-form-grid">
+        <div class="field"><label for="product-brand">Brand</label><input id="product-brand" class="control" formControlName="brand"></div>
+        <div class="field">
+          <label for="product-status">Status</label>
+          <select id="product-status" class="control" formControlName="status">
+            <option value="Draft">Draft</option><option value="Active">Active</option><option value="Inactive">Inactive</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label for="product-description">Description</label><textarea id="product-description" class="control" rows="5" formControlName="description"></textarea></div>
+      @if (form.controls.name.touched && form.controls.name.invalid) { <span class="field-error">Enter a product name (2-200 characters).</span> }
+      @if (form.controls.slug.touched && form.controls.slug.invalid) { <span class="field-error">Enter a product slug (2-220 characters).</span> }
+
+      <section class="admin-form-section">
+        <div><h2>Departments</h2><p>Choose one or more active departments.</p></div>
+        @if (referenceError()) { <p class="field-error">{{ referenceError() }}</p> }
+        <div class="admin-checklist">
+          @for (department of departments(); track department.departmentId) {
+            <label><input type="checkbox" [checked]="hasDepartment(department.departmentId)" (change)="toggleDepartment(department.departmentId, $event)">{{ department.name }}</label>
+          }
+        </div>
+      </section>
+
+      <section class="admin-form-section">
+        <div><h2>Categories</h2><p>Categories must belong to a selected department.</p></div>
+        <div class="admin-checklist">
+          @for (category of availableCategories(); track category.categoryId) {
+            <label><input type="checkbox" [checked]="hasCategory(category.categoryId)" (change)="toggleCategory(category.categoryId, $event)">{{ category.name }} <small>{{ departmentName(category.departmentId) }}</small></label>
+          }
+          @if (availableCategories().length === 0) { <span class="muted-copy">Select a department to see categories.</span> }
+        </div>
+      </section>
+
+      <section class="admin-form-section">
+        <div class="admin-form-section__head">
+          <div><h2>Descriptive attributes</h2><p>Examples: fabric, fit, material or fragrance family.</p></div>
+        </div>
+        <div class="admin-form-grid">
+          <div class="field">
+            <label for="attribute-definition">Attribute</label>
+            <select id="attribute-definition" class="control" [formControl]="attributeSlug">
+              <option value="">Choose an attribute</option>
+              @for (attribute of attributes(); track attribute.productAttributeId) {
+                <option [value]="attribute.slug">{{ attribute.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="field"><label for="attribute-value">Value</label><input id="attribute-value" class="control" [formControl]="attributeValue" placeholder="e.g. Cotton"></div>
+        </div>
+        <button class="btn btn-outline btn-small" type="button" (click)="addAttribute()" [disabled]="!attributeSlug.value || !attributeValue.value.trim()">Add attribute</button>
+        <div class="admin-attribute-list">
+          @for (attribute of attributeDrafts(); track attribute.slug) {
+            <div><span><strong>{{ attribute.slug }}</strong> · {{ attribute.value }}</span><button class="text-button" type="button" (click)="removeAttribute(attribute.slug)">Remove</button></div>
+          }
+        </div>
+      </section>
+
+      <div class="admin-form-actions">
+        <button class="btn btn-primary" type="submit" [disabled]="saving() || departments().length === 0">
+          {{ saving() ? 'Saving…' : 'Save and continue to variants' }}
+        </button>
+        <a class="btn btn-outline" routerLink="/admin/products">Cancel</a>
+      </div>
+    </form>
+  }
+</section>

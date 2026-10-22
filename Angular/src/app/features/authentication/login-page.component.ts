@@ -11,55 +11,7 @@ import { parseApiFailure } from '../../core/services/api-error.service';
   selector: 'tcs-login-page',
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink],
-  template: `
-    <div class="auth-form-card">
-      <p class="eyebrow">Welcome back</p>
-      <h1 class="auth-form-card__title">Sign in.</h1>
-      <p class="auth-form-card__intro">Your considered collection is waiting.</p>
-
-      @if (error()) {
-        <p class="notice notice-error" role="alert">{{ error() }}</p>
-      }
-      @if (cartNotice()) {
-        <p class="notice" role="status">{{ cartNotice() }}</p>
-      }
-
-      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-        <div class="field">
-          <label for="login-email">Email address</label>
-          <input id="login-email" class="control" type="email" formControlName="email" autocomplete="email">
-          @if (form.controls.email.touched && form.controls.email.invalid) {
-            <span class="field-error">Enter a valid email address.</span>
-          }
-        </div>
-        <div class="field">
-          <div class="auth-field-heading">
-            <label for="login-password">Password</label>
-            <a routerLink="/forgot-password">Forgot password?</a>
-          </div>
-          <div class="password-control">
-            <input
-              id="login-password"
-              class="control"
-              [type]="showPassword() ? 'text' : 'password'"
-              formControlName="password"
-              autocomplete="current-password">
-            <button type="button" (click)="togglePassword()">
-              {{ showPassword() ? 'Hide' : 'Show' }}
-            </button>
-          </div>
-          @if (form.controls.password.touched && form.controls.password.invalid) {
-            <span class="field-error">Enter your password.</span>
-          }
-        </div>
-        <button class="btn btn-primary auth-submit" type="submit" [disabled]="loading()">
-          {{ loading() ? 'Signing in…' : 'Sign in' }}
-        </button>
-      </form>
-      <p class="auth-form-card__foot">New to the store? <a routerLink="/register">Create an account</a></p>
-      <a class="auth-home-link" routerLink="/">Continue browsing</a>
-    </div>
-  `,
+  templateUrl: './login-page.component.html',
   styleUrl: './authentication-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

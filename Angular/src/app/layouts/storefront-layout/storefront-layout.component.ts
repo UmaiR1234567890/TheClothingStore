@@ -7,13 +7,7 @@ import { SiteHeaderComponent } from '../../shared/components/site-header.compone
   selector: 'tcs-storefront-layout',
   standalone: true,
   imports: [RouterOutlet, SiteHeaderComponent, SiteFooterComponent],
-  template: `
-    <tcs-site-header />
-    <main id="main-content">
-      <router-outlet />
-    </main>
-    <tcs-site-footer />
-  `,
+  templateUrl: './storefront-layout.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StorefrontLayoutComponent {}

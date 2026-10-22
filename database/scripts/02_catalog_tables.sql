@@ -114,6 +114,7 @@ BEGIN
     (
         ProductImageId INT IDENTITY(1, 1) NOT NULL,
         ProductId INT NOT NULL,
+        ColorId INT NULL,
         ImageUrl NVARCHAR(500) NOT NULL,
         AltText NVARCHAR(200) NULL,
         DisplayOrder INT NOT NULL CONSTRAINT DF_ProductImages_DisplayOrder DEFAULT (0),
@@ -121,6 +122,7 @@ BEGIN
         CreatedAt DATETIME2(0) NOT NULL CONSTRAINT DF_ProductImages_CreatedAt DEFAULT (SYSUTCDATETIME()),
         CONSTRAINT PK_ProductImages PRIMARY KEY CLUSTERED (ProductImageId),
         CONSTRAINT FK_ProductImages_Products FOREIGN KEY (ProductId) REFERENCES dbo.Products (ProductId) ON DELETE CASCADE,
+        CONSTRAINT FK_ProductImages_Colors FOREIGN KEY (ColorId) REFERENCES dbo.Colors (ColorId),
         CONSTRAINT CK_ProductImages_DisplayOrder CHECK (DisplayOrder >= 0)
     );
 END

@@ -16,6 +16,7 @@ Cardinalities use “1” and “N”. Delete actions are SQL Server FK actions.
 | Colors | ProductVariants | 1:N | `ColorId` | NO ACTION |
 | Sizes | ProductVariants | 1:N | `SizeId` | NO ACTION |
 | Products | ProductImages | 1:N | `ProductId` | CASCADE |
+| Colors | ProductImages | 1:N | nullable `ColorId` | NO ACTION |
 | Products | ProductAttributeValues | 1:N | `ProductId` | CASCADE |
 | ProductAttributes | ProductAttributeValues | 1:N | `ProductAttributeId` | NO ACTION |
 

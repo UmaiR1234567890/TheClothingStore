@@ -7,49 +7,7 @@ import { ProductCardDto } from '../../core/models/catalog.models';
   selector: 'tcs-product-card',
   standalone: true,
   imports: [CurrencyPipe, RouterLink],
-  template: `
-    <article class="product-card">
-      <a class="product-card__media" [routerLink]="['/products', product.slug]" [attr.aria-label]="'View ' + product.name">
-        @if (product.primaryImageUrl && !imageFailed) {
-          <img
-            [src]="imageSource(product.primaryImageUrl)"
-            [alt]="product.name"
-            loading="lazy"
-            (error)="imageFailed = true">
-        } @else {
-          <span class="product-card__placeholder" aria-hidden="true">
-            <span class="placeholder-mark">TCS</span>
-            <span>{{ product.name }}</span>
-          </span>
-        }
-        @if (product.onSale) {
-          <span class="product-card__badge">On sale</span>
-        }
-        @if (!product.isAvailable) {
-          <span class="product-card__availability">Currently unavailable</span>
-        }
-      </a>
-      <div class="product-card__details">
-        @if (product.brand) {
-          <p class="product-card__brand">{{ product.brand }}</p>
-        }
-        <a class="product-card__name" [routerLink]="['/products', product.slug]">
-          {{ product.name }}
-        </a>
-        <p class="product-card__price">
-          @if (product.minPrice !== null && product.maxPrice !== null) {
-            @if (product.minPrice === product.maxPrice) {
-              {{ product.minPrice | currency:'PKR':'code':'1.0-2' }}
-            } @else {
-              <span>From {{ product.minPrice | currency:'PKR':'code':'1.0-2' }}</span>
-            }
-          } @else {
-            <span class="product-card__price-missing">Price unavailable</span>
-          }
-        </p>
-      </div>
-    </article>
-  `,
+  templateUrl: './product-card.component.html',
   styleUrl: './product-card.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

@@ -12,7 +12,7 @@ error states instead of switching to sample data.
 | --- | --- |
 | Public departments/categories | Departments, hierarchical department categories, category detail, and category product routes |
 | Catalog | Product query, search, sale/new/featured collections, URL filters, server sorting, and pagination |
-| Product detail | Images, attributes, variant identity/options, effective/regular prices, availability, server add-to-cart |
+| Product detail | Color-specific/shared image galleries, attributes, variant identity/options, effective/regular prices, availability, server add-to-cart |
 | Cart | Guest cookie/authenticated cart, add/update/remove/clear, server totals, guest-cart merge after login |
 | Authentication | Register/login/current-user/logout, backend roles, protected routes, password change |
 | Customer account | Profile and address CRUD/default address, order history/detail/tracking |
@@ -23,10 +23,9 @@ error states instead of switching to sample data.
 
 ## Known API gaps and frontend behavior
 
-- Identity tables are absent from the current database. The backend's proposed
-  Identity schema has not been applied, so registration/login, authenticated
-  customer data, and role-protected admin operations are not verified against
-  the live database. The frontend does not run migrations or create test users.
+- Identity tables and a development Admin account are provisioned in the local
+  database. Admin login and protected read routes were smoke-tested; the
+  frontend does not run migrations or create users in other environments.
 - Password reset endpoints return 503 until email delivery is configured. The
   UI sends real requests and shows the server error; it never reports a fake
   reset success.
@@ -36,15 +35,17 @@ error states instead of switching to sample data.
 - Shipping and tax currently calculate to zero in backend configuration. The
   checkout summary uses the validation response and does not calculate a
   trusted payable total locally.
-- There is no wishlist endpoint, customer order-cancellation endpoint, image
-  upload endpoint, or public size/color reference/facet endpoint. Wishlist and
-  customer cancellation are omitted; image administration accepts only
-  URL/path references. The catalog supports price, sale, availability,
-  volume, and attribute filters but does not invent size/color choices.
+- There is no wishlist endpoint, customer order-cancellation endpoint, or
+  public size/color reference/facet endpoint. Wishlist and customer
+  cancellation are omitted. Admin image upload accepts JPEG/PNG/WebP files up
+  to 8 MB, assigns an optional `colorId`, and supports up to five images per
+  product/color. Uploaded files go to the configured local image directory;
+  the development proxy sends `/images/products/*` to the API's static file
+  route. Production must serve the same relative path from persistent storage.
+  Admin variant forms use protected color/size lookup endpoints.
 - Cart lines do not include an image URL or product slug. Cart rows use a
   branded non-product placeholder rather than guessing a catalog image.
-- Admin variants require numeric color/size IDs because lookup endpoints are
-  missing. Existing `SaleDto` records do not include eligible product IDs, so
+- Existing `SaleDto` records do not include eligible product IDs, so
   the frontend avoids updating existing sale eligibility. It still supports
   creating, enabling/disabling, and deleting promotions.
 - Legal/policy/contact details were not supplied. Supporting pages explicitly
@@ -72,25 +73,29 @@ error states instead of switching to sample data.
 
 ## Verification
 
-- Production build: `npm run build` passed. Initial bundle: 317.08 kB raw,
+- Production build: `npm run build` passed. Initial bundle: 317.13 kB raw,
   below the configured 500 kB warning budget; lazy feature chunks are emitted.
 - Unit tests: `npm test -- --watch=false --browsers=ChromeHeadless` passed
-  (17 tests). Tests use `HttpTestingController`; no real order, payment,
-  inventory adjustment, or admin mutation is used.
-- Live read-only API smoke passed against the local development API:
+  (21 tests), including selected-color gallery/fallback behavior. Service tests
+  use `HttpTestingController`.
+- Backend verification: solution build passed with temporary output; 14 unit
+  and 5 integration tests passed. The standard output path was locked by the
+  Visual Studio API process, which was left running.
+- Before the content reset, live read-only API smoke passed against the local
+  development API:
   `/health/ready`, `/departments`, `/categories`, `/products`,
   `/products/featured`, `/products/new-arrivals`, `/products/on-sale`, and
   `/sales/active` all returned HTTP 200 with successful envelopes. Page and
-  collection responses contained items. No cart, checkout, payment, or admin
-  mutation was called.
-- The Angular development proxy was also checked against the running API:
-  `/api/v1/departments` and paginated `/api/v1/products` returned HTTP 200
-  through `localhost:4200`. The API process was stopped after these read-only
-  checks; the open storefront preview will therefore show normal API-unavailable
-  states until the backend is started again.
-- Authentication, guest-cart persistence/merge, and role-protected admin
-  flows were not verified against SQL because Identity tables/users/roles are
-  not provisioned in the current database.
+  collection responses contained items; these catalog requests were read-only.
+- The local reset script was subsequently executed with reference data retained.
+  Product, variant, inventory, image-reference, customer, cart, order, payment,
+  shipment, newsletter, and audit tables are now empty. The Admin login and
+  reference data remain; physical image files were not deleted.
+- After reset, Admin login still returns the `Admin` role. Dashboard, colors,
+  and sizes endpoints return HTTP 200; the Admin product list is empty as
+  expected. Earlier product/image upload and guest-cart flows passed API smoke
+  tests, and their database test records were cleared by the reset. No new
+  order or payment was created.
 - Lint: not configured in this workspace.
 - E2E and responsive screenshot automation: not configured. Use the checklist
   below for a safe test environment.
@@ -107,9 +112,9 @@ order or payment.
 3. Open a product; verify images/fallback, attributes, variant-specific price
    and stock; add a valid variant; reject unavailable variants.
 4. View the guest cart; update quantity, remove an item, and clear the bag.
-5. If Identity tables and a test account are provisioned, test registration,
-   invalid login, valid login, guest-cart merge, profile, password change,
-   addresses, and logout.
+5. Use the provisioned local Admin for protected dashboard/product/image
+   management; test customer registration, profile, guest-cart merge, password
+   change, addresses, and logout separately if those flows are in scope.
 6. Validate guest COD checkout without placing an order, then complete only in
    an isolated test database. Confirm the server response is the only success
    state and retry with the same idempotency key if the outcome is uncertain.

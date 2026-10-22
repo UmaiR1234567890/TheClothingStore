@@ -1,0 +1,88 @@
+<section class="admin-page">
+  <div class="admin-page-heading">
+    <div><p class="eyebrow">Products / Variants</p><h1 class="page-title">Variant options.</h1></div>
+    <a class="text-link" [routerLink]="['/admin/products', productId(), 'edit']">← Edit product</a>
+  </div>
+  <nav class="admin-setup-steps" aria-label="Product setup">
+    <a class="admin-setup-step" [routerLink]="['/admin/products', productId(), 'edit']">1. Product</a>
+    <span class="admin-setup-step admin-setup-step--active" aria-current="step">2. Variants</span>
+    <a class="admin-setup-step" [routerLink]="['/admin/products', productId(), 'images']">3. Images</a>
+  </nav>
+  @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
+  @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
+  @if (loading()) { <div class="state-panel"><span class="spinner" aria-label="Loading variants"></span></div> }
+  @else {
+    @if (product(); as item) {
+    <div class="admin-context-card">
+      <span class="admin-badge">{{ item.status }}</span>
+      <strong>{{ item.name }}</strong><small>{{ item.slug }}</small>
+    </div>
+    <p class="muted-copy">Variants are optional. Add the color/size combinations you sell, or skip this step and continue to images.</p>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>SKU</th><th>Options</th><th>Price</th><th>Available</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          @for (variant of item.variants; track variant.productVariantId) {
+            <tr>
+              <td><strong>{{ variant.sku }}</strong></td>
+              <td>{{ optionText(variant) }}</td>
+              <td>{{ variant.regularPrice | currency:'PKR':'code':'1.0-2' }}</td>
+              <td>{{ variant.quantityAvailable }}</td>
+              <td><span class="admin-badge" [class.admin-badge--inactive]="!variant.isActive || variant.isDeleted">{{ variant.isDeleted ? 'Deleted' : variant.isActive ? 'Active' : 'Inactive' }}</span></td>
+              <td><div class="admin-inline-actions">
+                <button type="button" (click)="edit(variant)">Edit</button>
+                @if (!variant.isDeleted) { <button type="button" (click)="setStatus(variant, variant.isActive ? 'Inactive' : 'Active')">{{ variant.isActive ? 'Deactivate' : 'Activate' }}</button> }
+              </div></td>
+            </tr>
+          } @empty {
+            <tr><td colspan="6">No variants have been added.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <form class="admin-form-card" [formGroup]="form" (ngSubmit)="save()">
+      <h2>{{ editingId() ? 'Edit variant' : 'Add variant' }}</h2>
+      <p class="muted-copy">Choose from the active store colors and sizes. Perfume variants use volume instead.</p>
+      <div class="admin-form-grid">
+        <div class="field"><label for="variant-sku">SKU</label><input id="variant-sku" class="control" formControlName="sku" maxlength="64" placeholder="e.g. TCS-SHIRT-BLK-M"></div>
+        <div class="field"><label for="variant-price">Regular price (PKR)</label><input id="variant-price" class="control" type="number" min="0" step="0.01" formControlName="regularPrice"></div>
+      </div>
+      @if (!isPerfume()) {
+        <div class="admin-form-grid">
+          <div class="field">
+            <label for="variant-color">Color <span class="field-optional">Optional</span></label>
+            <select id="variant-color" class="control" formControlName="colorId">
+              <option [ngValue]="null">No color</option>
+              @for (color of colors(); track color.colorId) {
+                <option [ngValue]="color.colorId">{{ color.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label for="variant-size">Size <span class="field-optional">Optional</span></label>
+            <select id="variant-size" class="control" formControlName="sizeId">
+              <option [ngValue]="null">No size</option>
+              @for (size of availableSizes(); track size.sizeId) {
+                <option [ngValue]="size.sizeId">{{ size.name }}</option>
+              }
+            </select>
+          </div>
+        </div>
+      } @else {
+        <div class="field"><label for="variant-volume">Volume (ml)</label><input id="variant-volume" class="control" type="number" min="1" formControlName="volumeMl"></div>
+      }
+      @if (editingId()) {
+        <label class="admin-check-row"><input type="checkbox" formControlName="isActive"> Active for sale</label>
+      }
+      @if (form.controls.sku.touched && form.controls.sku.invalid) { <span class="field-error">SKU is required and must be 64 characters or fewer.</span> }
+      <div class="admin-form-actions">
+        <button class="btn btn-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Saving…' : editingId() ? 'Save variant' : 'Add variant' }}</button>
+        @if (editingId()) { <button class="btn btn-outline" type="button" (click)="resetForm()">Cancel edit</button> }
+      </div>
+    </form>
+    <div class="admin-form-actions admin-product-setup-actions">
+      <a class="btn btn-primary" [routerLink]="['/admin/products', productId(), 'images']">Continue to images (variants may be skipped)</a>
+    </div>
+    }
+  }
+</section>

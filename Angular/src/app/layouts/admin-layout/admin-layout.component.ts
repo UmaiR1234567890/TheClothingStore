@@ -7,52 +7,7 @@ import { AuthService } from '../../core/auth/auth.service';
   selector: 'tcs-admin-layout',
   standalone: true,
   imports: [AsyncPipe, RouterOutlet, RouterLink, RouterLinkActive],
-  template: `
-    <div class="admin-shell">
-      <aside class="admin-sidebar" [class.admin-sidebar--open]="menuOpen()">
-        <a class="admin-brand" routerLink="/admin">
-          <span>THE CLOTHING STORE</span>
-          <small>BACK OFFICE</small>
-        </a>
-        <nav aria-label="Administration">
-          <a routerLink="/admin" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="is-active">
-            <span>01</span> Overview
-          </a>
-          <a routerLink="/admin/products" routerLinkActive="is-active"><span>02</span> Products</a>
-          <a routerLink="/admin/categories" routerLinkActive="is-active"><span>03</span> Categories</a>
-          <a routerLink="/admin/attributes" routerLinkActive="is-active"><span>04</span> Attributes</a>
-          <a routerLink="/admin/sales" routerLinkActive="is-active"><span>05</span> Promotions</a>
-          <a routerLink="/admin/inventory" routerLinkActive="is-active"><span>06</span> Inventory</a>
-          <a routerLink="/admin/orders" routerLinkActive="is-active"><span>07</span> Orders</a>
-          <a routerLink="/admin/shipments" routerLinkActive="is-active"><span>08</span> Shipments</a>
-          <a routerLink="/admin/payments" routerLinkActive="is-active"><span>09</span> Payments</a>
-          <a routerLink="/admin/customers" routerLinkActive="is-active"><span>10</span> Customers</a>
-        </nav>
-        <a class="admin-sidebar__store" routerLink="/">← Return to storefront</a>
-      </aside>
-      <div class="admin-main">
-        <header class="admin-topbar">
-          <button class="admin-menu-toggle" type="button" (click)="toggleMenu()" aria-label="Toggle admin navigation">
-            <span></span><span></span><span></span>
-          </button>
-          <div>
-            <span class="admin-topbar__eyebrow">The Clothing Store</span>
-            <strong>Administration</strong>
-          </div>
-          @if (auth.user$ | async; as user) {
-            <span class="admin-topbar__user">{{ user.email }}</span>
-          }
-          <button class="admin-topbar__logout" type="button" (click)="signOut()">Sign out</button>
-        </header>
-        <main class="admin-content">
-          <router-outlet />
-        </main>
-      </div>
-      @if (menuOpen()) {
-        <button class="admin-scrim" type="button" aria-label="Close navigation" (click)="menuOpen.set(false)"></button>
-      }
-    </div>
-  `,
+  templateUrl: './admin-layout.component.html',
   styles: [`
     .admin-shell { min-height:100vh; color:var(--ink); background:#eef0ec; }
     .admin-sidebar { position:fixed; z-index:50; inset:0 auto 0 0; display:flex; width:248px; flex-direction:column; padding:1.4rem 1rem; color:#e9e9e2; background:#202420; }

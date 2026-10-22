@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
+using ClothingStore.Api;
 using ClothingStore.Api.Middleware;
 using ClothingStore.Api.OpenApi;
 using ClothingStore.Infrastructure.Extensions;
@@ -8,12 +9,14 @@ using ClothingStore.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddClothingStoreInfrastructure(builder.Configuration);
+builder.Services.AddSingleton<IProductImageFileStore, LocalProductImageFileStore>();
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
     {
@@ -132,6 +135,13 @@ builder.Services.AddRateLimiter(options =>
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+var productImageStorage = app.Services.GetRequiredService<IProductImageFileStore>();
+Directory.CreateDirectory(productImageStorage.StorageRoot);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(productImageStorage.StorageRoot),
+    RequestPath = "/images/products"
+});
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -146,9 +156,29 @@ app.MapControllers();
 
 if (args.Length == 2 && args[0] == "--provision-admin")
 {
+    if (!app.Environment.IsDevelopment())
+        throw new InvalidOperationException("Administrator provisioning is limited to the Development environment.");
+
     await using var scope = app.Services.CreateAsyncScope();
     var provisioner = scope.ServiceProvider.GetRequiredService<IAdminProvisioningService>();
     await provisioner.ProvisionAsync(args[1], ReadHiddenPassword(), CancellationToken.None);
+    Console.WriteLine("Administrator role is provisioned.");
+    return;
+}
+
+if (args.Length == 2 && args[0] == "--provision-admin-env")
+{
+    if (!app.Environment.IsDevelopment())
+        throw new InvalidOperationException("Administrator provisioning is limited to the Development environment.");
+
+    var password = Environment.GetEnvironmentVariable("TCS_ADMIN_BOOTSTRAP_PASSWORD");
+    if (string.IsNullOrWhiteSpace(password))
+        throw new InvalidOperationException("Set TCS_ADMIN_BOOTSTRAP_PASSWORD for this one-time provisioning process.");
+    Environment.SetEnvironmentVariable("TCS_ADMIN_BOOTSTRAP_PASSWORD", null);
+
+    await using var scope = app.Services.CreateAsyncScope();
+    var provisioner = scope.ServiceProvider.GetRequiredService<IAdminProvisioningService>();
+    await provisioner.ProvisionAsync(args[1], password, CancellationToken.None);
     Console.WriteLine("Administrator role is provisioned.");
     return;
 }

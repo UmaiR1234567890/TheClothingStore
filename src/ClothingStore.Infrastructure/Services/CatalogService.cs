@@ -257,7 +257,7 @@ internal sealed class CatalogService(
             .Where(x => x.Status == "Active" && !x.IsDeleted)
             .Include(x => x.ProductDepartments).ThenInclude(x => x.Department)
             .Include(x => x.ProductCategories).ThenInclude(x => x.Category)
-            .Include(x => x.Images)
+            .Include(x => x.Images).ThenInclude(x => x.Color)
             .Include(x => x.AttributeValues).ThenInclude(x => x.ProductAttribute)
             .Include(x => x.Variants).ThenInclude(x => x.Inventory)
             .Include(x => x.Variants).ThenInclude(x => x.Color)
@@ -314,7 +314,7 @@ internal sealed class CatalogService(
             .Take(size)
             .Include(x => x.ProductDepartments).ThenInclude(x => x.Department)
             .Include(x => x.Variants).ThenInclude(x => x.Inventory)
-            .Include(x => x.Images)
+            .Include(x => x.Images).ThenInclude(x => x.Color)
             .AsSplitQuery()
             .ToListAsync(cancellationToken);
 
@@ -411,9 +411,18 @@ internal sealed class CatalogService(
             .DistinctBy(x => x.DepartmentId)
             .ToArray();
         var images = product.Images
-            .OrderByDescending(x => x.IsPrimary)
+            .OrderBy(x => x.ColorId.HasValue)
+            .ThenBy(x => x.Color?.SortOrder ?? 0)
+            .ThenByDescending(x => x.IsPrimary)
             .ThenBy(x => x.DisplayOrder)
-            .Select(x => new ProductImageDto(x.ProductImageId, x.ImageUrl, x.AltText, x.DisplayOrder, x.IsPrimary))
+            .Select(x => new ProductImageDto(
+                x.ProductImageId,
+                x.ImageUrl,
+                x.AltText,
+                x.DisplayOrder,
+                x.IsPrimary,
+                x.ColorId,
+                x.Color == null ? null : x.Color.Name))
             .ToArray();
         var attributes = product.AttributeValues
             .Where(x => x.ProductAttribute.IsActive)
@@ -461,7 +470,12 @@ internal sealed class CatalogService(
             product.Name,
             product.Slug,
             product.Brand,
-            product.Images.OrderByDescending(x => x.IsPrimary).ThenBy(x => x.DisplayOrder).FirstOrDefault()?.ImageUrl,
+            product.Images
+                .OrderBy(x => x.ColorId.HasValue)
+                .ThenBy(x => x.Color?.SortOrder ?? 0)
+                .ThenByDescending(x => x.IsPrimary)
+                .ThenBy(x => x.DisplayOrder)
+                .FirstOrDefault()?.ImageUrl,
             variantPrices.Length == 0 ? null : variantPrices.Min(x => x.Amount),
             variantPrices.Length == 0 ? null : variantPrices.Max(x => x.Amount),
             variantPrices.Any(x => x.IsOnSale),

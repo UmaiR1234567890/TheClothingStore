@@ -1075,16 +1075,22 @@ namespace ClothingStore.Infrastructure.Persistence.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("ColorId")
+                        .HasColumnType("int");
+
                     b.HasKey("ProductImageId")
                         .HasName("PK_ProductImages");
 
-                    b.HasIndex("ProductId")
+                    b.HasIndex("ProductId", "ColorId")
                         .IsUnique()
                         .HasDatabaseName("UX_ProductImages_Primary")
                         .HasFilter("[IsPrimary] = 1");
 
                     b.HasIndex("ProductId", "DisplayOrder")
                         .HasDatabaseName("IX_ProductImages_ProductId");
+
+                    b.HasIndex("ProductId", "ColorId", "DisplayOrder")
+                        .HasDatabaseName("IX_ProductImages_Product_Color_DisplayOrder");
 
                     b.ToTable("ProductImages", "dbo", t =>
                         {
@@ -1765,12 +1771,20 @@ namespace ClothingStore.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("ClothingStore.Domain.Entities.ProductImage", b =>
                 {
+                    b.HasOne("ClothingStore.Domain.Entities.Color", "Color")
+                        .WithMany("ProductImages")
+                        .HasForeignKey("ColorId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("FK_ProductImages_Colors");
+
                     b.HasOne("ClothingStore.Domain.Entities.Product", "Product")
                         .WithMany("Images")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK_ProductImages_Products");
+
+                    b.Navigation("Color");
 
                     b.Navigation("Product");
                 });
@@ -1902,6 +1916,8 @@ namespace ClothingStore.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ClothingStore.Domain.Entities.Color", b =>
                 {
                     b.Navigation("ProductVariants");
+
+                    b.Navigation("ProductImages");
                 });
 
             modelBuilder.Entity("ClothingStore.Domain.Entities.Customer", b =>

@@ -1,0 +1,142 @@
+<section class="catalog-page container">
+  <div class="catalog-intro">
+    <div class="catalog-intro__copy">
+      <p class="eyebrow">{{ searchMode() ? 'Search the collection' : 'The Clothing Store' }}</p>
+      <h1 class="page-title">{{ title() }}</h1>
+      @if (searchMode() && currentSearch()) {
+        <p class="page-intro">Results for “{{ currentSearch() }}”.</p>
+      } @else if (category()) {
+        <p class="page-intro">Explore {{ category()?.name }} and the pieces around it.</p>
+      } @else if (departmentName()) {
+        <p class="page-intro">A considered edit for {{ departmentName()?.toLowerCase() }}.</p>
+      } @else {
+        <p class="page-intro">Explore the current collection.</p>
+      }
+    </div>
+    @if (page()) {
+      <span class="catalog-count">{{ page()!.totalCount }} {{ page()!.totalCount === 1 ? 'piece' : 'pieces' }}</span>
+    }
+  </div>
+
+  @if (departmentCategories().length > 0) {
+    <nav class="category-strip" aria-label="Shop categories">
+      @for (item of departmentCategories(); track item.categoryId) {
+        @if (item.parentCategoryId === null) {
+          <a [routerLink]="['/category', item.categoryId, item.slug]">{{ item.name }}</a>
+        }
+      }
+    </nav>
+  }
+
+  <div class="catalog-toolbar">
+    <button class="catalog-filter-toggle" type="button" aria-controls="catalog-filter-panel" (click)="toggleFilters()" [attr.aria-expanded]="filtersOpen()">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10m-7 6h4" /></svg>
+      Filters
+    </button>
+    <span class="catalog-toolbar__count">{{ page()?.totalCount ?? 0 }} results</span>
+    <label class="catalog-sort">
+      <span>Sort</span>
+      <select [value]="sortBy()" (change)="onSortEvent($event)">
+        <option value="newest">Newest</option>
+        <option value="popular">Most ordered</option>
+        <option value="price-asc">Price: low to high</option>
+        <option value="price-desc">Price: high to low</option>
+        <option value="name">Name</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="catalog-layout">
+    <aside id="catalog-filter-panel" class="filter-panel" [class.filter-panel--open]="filtersOpen()" aria-label="Product filters">
+      <div class="filter-panel__head">
+        <h2>Refine your edit</h2>
+        <button class="text-button" type="button" (click)="clearFilters()">Clear all</button>
+      </div>
+      <form [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+        <div class="filter-group">
+          <span class="filter-label">Price range (PKR)</span>
+          <div class="price-inputs">
+            <label>
+              <span class="sr-only">Minimum price</span>
+              <input class="control" type="number" min="0" step="1" formControlName="minPrice" placeholder="From">
+            </label>
+            <label>
+              <span class="sr-only">Maximum price</span>
+              <input class="control" type="number" min="0" step="1" formControlName="maxPrice" placeholder="To">
+            </label>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label" for="on-sale">Sale status</label>
+          <select class="control" id="on-sale" formControlName="onSale">
+            <option value="any">Any</option>
+            <option value="true">On sale</option>
+            <option value="false">Not on sale</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label" for="availability">Availability</label>
+          <select class="control" id="availability" formControlName="available">
+            <option value="any">Any</option>
+            <option value="true">In stock</option>
+            <option value="false">Out of stock</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label" for="volume">Perfume volume</label>
+          <div class="filter-volume">
+            <input class="control" id="volume" type="number" min="1" step="1" formControlName="volumeMl" placeholder="e.g. 50">
+            <span>ml</span>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label" for="attribute">Product attribute</label>
+          <input class="control" id="attribute" formControlName="attribute" placeholder="fabric:Cotton">
+          <small>Use the API format slug:value.</small>
+        </div>
+        <p class="filter-note">
+          Color and size IDs are accepted by the API, but it does not expose global color/size filter lists.
+          Choose exact options on each product page.
+        </p>
+        <button class="btn btn-primary filter-apply" type="submit">Apply filters</button>
+      </form>
+    </aside>
+
+    @if (filtersOpen()) {
+      <button class="filter-scrim" type="button" aria-label="Close filters" (click)="filtersOpen.set(false)"></button>
+    }
+
+    <section class="catalog-results" aria-live="polite">
+      @if (loading()) {
+        <div class="product-grid">
+          @for (item of skeletons; track item) { <div class="product-skeleton"></div> }
+        </div>
+      } @else if (error()) {
+        <div class="state-panel state-panel--error" role="alert">
+          <h2>We could not load this collection.</h2>
+          <p>{{ error() }}</p>
+          <button class="btn btn-outline" type="button" (click)="reload()">Try again</button>
+        </div>
+      } @else if (page()?.items?.length) {
+        <div class="product-grid">
+          @for (product of page()!.items; track product.productId) {
+            <tcs-product-card [product]="product" />
+          }
+        </div>
+        @if (page()!.totalPages > 1) {
+          <nav class="pagination" aria-label="Product pages">
+            <button class="btn btn-outline btn-small" type="button" [disabled]="pageNumber() <= 1" (click)="changePage(pageNumber() - 1)">Previous</button>
+            <span>Page {{ pageNumber() }} of {{ page()!.totalPages }}</span>
+            <button class="btn btn-outline btn-small" type="button" [disabled]="pageNumber() >= page()!.totalPages" (click)="changePage(pageNumber() + 1)">Next</button>
+          </nav>
+        }
+      } @else {
+        <div class="state-panel">
+          <h2>No pieces found.</h2>
+          <p>Try clearing a filter or changing your search.</p>
+          <button class="btn btn-outline" type="button" (click)="clearFilters()">Clear filters</button>
+        </div>
+      }
+    </section>
+  </div>
+</section>

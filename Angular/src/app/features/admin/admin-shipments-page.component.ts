@@ -11,53 +11,7 @@ import { parseApiFailure } from '../../core/services/api-error.service';
   selector: 'tcs-admin-shipments-page',
   standalone: true,
   imports: [DatePipe, ReactiveFormsModule],
-  template: `
-    <section class="admin-page">
-      <div class="admin-page-heading">
-        <div><p class="eyebrow">Operations / Fulfillment</p><h1 class="page-title">Shipments.</h1></div>
-      </div>
-      @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
-      @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
-      @if (loading()) { <div class="state-panel"><span class="spinner" aria-label="Loading shipments"></span></div> }
-      @else {
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead><tr><th>Shipment</th><th>Order</th><th>Carrier</th><th>Tracking</th><th>Status</th><th>Dates</th><th>Next step</th></tr></thead>
-            <tbody>
-              @for (shipment of shipments()?.items ?? []; track shipment.shipmentId) {
-                <tr>
-                  <td>#{{ shipment.shipmentId }}</td>
-                  <td>#{{ shipment.orderId }}</td>
-                  <td>{{ shipment.carrier || '—' }}</td>
-                  <td>{{ shipment.trackingNumber || '—' }}</td>
-                  <td><span class="admin-badge">{{ shipment.status }}</span></td>
-                  <td><small>{{ shipment.shippedAt ? (shipment.shippedAt | date:'shortDate') : 'Not shipped' }}</small></td>
-                  <td>
-                    @if (nextStatuses(shipment).length > 0) {
-                      <select class="admin-filter" (change)="changeStatus(shipment, $event)" aria-label="Change shipment status">
-                        <option value="">Choose…</option>
-                        @for (status of nextStatuses(shipment); track status) { <option [value]="status">{{ status }}</option> }
-                      </select>
-                    } @else { <span class="muted-copy">No transition</span> }
-                  </td>
-                </tr>
-              } @empty { <tr><td colspan="7">No shipments have been created.</td></tr> }
-            </tbody>
-          </table>
-        </div>
-        <form class="admin-form-card" [formGroup]="form" (ngSubmit)="create()">
-          <p class="eyebrow">Fulfillment</p><h2>Create a shipment</h2>
-          <p class="muted-copy">New shipments start Pending. Shipment progress does not change payment status.</p>
-          <div class="admin-form-grid">
-            <div class="field"><label for="shipment-order">Order ID</label><input id="shipment-order" class="control" type="number" min="1" formControlName="orderId"></div>
-            <div class="field"><label for="shipment-carrier">Carrier</label><input id="shipment-carrier" class="control" formControlName="carrier"></div>
-          </div>
-          <div class="field"><label for="shipment-tracking">Tracking number</label><input id="shipment-tracking" class="control" formControlName="trackingNumber"></div>
-          <button class="btn btn-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Creating…' : 'Create shipment' }}</button>
-        </form>
-      }
-    </section>
-  `,
+  templateUrl: './admin-shipments-page.component.html',
   styleUrl: './admin-pages.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

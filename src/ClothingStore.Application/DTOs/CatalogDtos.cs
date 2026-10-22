@@ -21,6 +21,8 @@ public sealed class ProductQuery
 }
 
 public sealed record DepartmentDto(int DepartmentId, string Name, string Slug, int SortOrder, bool IsActive);
+public sealed record ColorOptionDto(int ColorId, string Name, string? HexCode, int SortOrder, bool IsActive);
+public sealed record SizeOptionDto(int SizeId, string SizeType, string Name, int SortOrder, bool IsActive);
 public sealed record CategoryDto(
     int CategoryId,
     int DepartmentId,
@@ -31,7 +33,14 @@ public sealed record CategoryDto(
     int ProductCount,
     bool IsActive,
     bool IsDeleted);
-public sealed record ProductImageDto(int ProductImageId, string ImageUrl, string? AltText, int DisplayOrder, bool IsPrimary);
+public sealed record ProductImageDto(
+    int ProductImageId,
+    string ImageUrl,
+    string? AltText,
+    int DisplayOrder,
+    bool IsPrimary,
+    int? ColorId,
+    string? ColorName);
 public sealed record ProductAttributeDto(string Name, string Slug, string Value);
 public sealed record ProductAttributeDefinitionDto(int ProductAttributeId, string Name, string Slug, bool IsActive);
 public sealed record VariantOptionDto(int? ColorId, string? ColorName, int? SizeId, string? SizeName, string? SizeType, int? VolumeMl);
@@ -152,6 +161,7 @@ public sealed class ProductImageWriteRequest
     public string ImageUrl { get; init; } = string.Empty;
     [StringLength(200)]
     public string? AltText { get; init; }
+    public int? ColorId { get; init; }
     [Range(0, int.MaxValue)]
     public int DisplayOrder { get; init; }
     public bool IsPrimary { get; init; }

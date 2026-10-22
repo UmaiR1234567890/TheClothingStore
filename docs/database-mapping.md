@@ -19,6 +19,7 @@ The database has 25 tables in `dbo`:
 | Customer / cart | `Customers`, `CustomerAddresses`, `Carts`, `CartItems` | Customer profile uses `CustomerId`; carts have exactly one of `CustomerId` or `GuestToken`; lines reference variants. |
 | Orders / fulfillment | `Orders`, `OrderItems`, `Payments`, `Shipments` | Order items snapshot product name, SKU, variant text, quantity, price and discount. Payment and shipment are separate order children. |
 | Operations | `NewsletterSubscriptions`, `AuditLogs` | Unique newsletter email; audit actor is a nullable, unconstrained Identity user ID. |
+| Identity | `AspNetUsers`, `AspNetRoles`, and related `AspNet*` tables | ASP.NET Core Identity is separately provisioned; local development has an Admin role/user. |
 
 ## Relationships and delete behavior
 
@@ -51,8 +52,8 @@ The database has 25 tables in `dbo`:
 | `Shipments.OrderId` | `Orders.OrderId` | NO ACTION |
 
 There is no SQL FK from `Customers.IdentityUserId` or
-`AuditLogs.IdentityUserId` to Identity. There are 25 FKs total, all enabled and
-trusted in the audited database.
+`AuditLogs.IdentityUserId` to Identity. The 25 commerce FKs are enabled and
+trusted; the optional Identity schema adds its standard Identity-owned FKs.
 
 ## Keys, checks, and indexes
 
@@ -69,7 +70,7 @@ use `(ProductId, DepartmentId)`, `(ProductId, CategoryId)`, and
 `Orders(OrderNumber)`, and `NewsletterSubscriptions(Email)`. Filtered unique
 indexes enforce non-null uniqueness for `Customers.IdentityUserId`,
 `Carts.CustomerId`, `Carts.GuestToken`, and one primary `ProductImages` row per
-product. The corresponding declared names are `UX_Departments_Name`,
+product/color gallery (NULL `ColorId` is the shared gallery). The corresponding declared names are `UX_Departments_Name`,
 `UX_Departments_Slug`, `UX_Colors_Name`, `UX_Sizes_Type_Name`,
 `UX_ProductAttributes_Name`, `UX_ProductAttributes_Slug`,
 `UX_Categories_Department_Slug`, `UX_Products_Slug`,
@@ -97,7 +98,7 @@ amounts, amount arithmetic, guest/customer order ownership, and lifecycle
 timestamp consistency.
 The live database reports no disabled or untrusted CHECK constraints.
 
-**Indexes from script `07`:** all 24 names and key definitions are present in
+**Indexes from script `07`:** all 25 names and key definitions are present in
 the live database:
 
 | Index | Key / include / filter |
@@ -105,7 +106,7 @@ the live database:
 | `UX_Customers_IdentityUserId` | unique `(IdentityUserId)` where not null |
 | `UX_Carts_CustomerId` | unique `(CustomerId)` where not null |
 | `UX_Carts_GuestToken` | unique `(GuestToken)` where not null |
-| `UX_ProductImages_Primary` | unique `(ProductId)` where `IsPrimary = 1` |
+| `UX_ProductImages_Primary` | unique `(ProductId, ColorId)` where `IsPrimary = 1` |
 | `IX_Categories_ParentCategoryId` | `(ParentCategoryId)` |
 | `IX_ProductDepartments_DepartmentId` | `(DepartmentId, ProductId)` |
 | `IX_ProductCategories_CategoryId` | `(CategoryId, ProductId)` |
@@ -114,6 +115,7 @@ the live database:
 | `IX_ProductVariants_ColorId` | `(ColorId, ProductId)` where `ColorId IS NOT NULL` |
 | `IX_ProductVariants_SizeId` | `(SizeId, ProductId)` where `SizeId IS NOT NULL` |
 | `IX_ProductImages_ProductId` | `(ProductId, DisplayOrder)` |
+| `IX_ProductImages_Product_Color_DisplayOrder` | `(ProductId, ColorId, DisplayOrder)` |
 | `IX_ProductAttributeValues_AttributeId` | `(ProductAttributeId, ProductId)` include `AttributeValue` |
 | `IX_SaleProducts_ProductId` | `(ProductId)` |
 | `IX_Sales_ActiveWindow` | `(IsActive, StartsAt, EndsAt)` where `IsDeleted = 0` |
@@ -152,7 +154,7 @@ composite PKs `(ProductId, DepartmentId)`, `(ProductId, CategoryId)`, and
 
 | Requirement | Existing support | Backend boundary / required action |
 | --- | --- | --- |
-| Identity login, password hashes, roles | No Identity tables exist; no parallel `Roles` / `AdminUsers` tables exist. | `ClothingStoreDbContext` uses ASP.NET Core Identity with the commerce tables explicitly excluded from migrations. A reviewed, additive Identity-only migration script is at `database/proposed/identity-initial.sql`; it has not been applied. |
+| Identity login, password hashes, roles | ASP.NET Core Identity tables are provisioned locally; no parallel `Roles` / `AdminUsers` tables exist. | `ClothingStoreDbContext` uses ASP.NET Core Identity with the commerce tables explicitly excluded from migrations. The additive Identity schema is at `database/proposed/identity-initial.sql`; provision an Admin role per development environment. |
 | Customer profile link | `Customers.IdentityUserId NVARCHAR(450) NULL` with a filtered unique index. | Map Identity string ID. The FK is absent; add it only after Identity tables are deployed and existing IDs are validated. |
 | Audit actor | `AuditLogs.IdentityUserId NVARCHAR(450) NULL`, no FK. | Record the Identity subject ID; keep audit writes independent of Identity deletion. |
 | Guest/customer carts | `Carts` has `GuestToken UNIQUEIDENTIFIER`, optional customer FK, owner CHECK, and filtered unique owner indexes. | Generate guest tokens server-side; use cookie; merge under a transaction and verify each variant. |
@@ -166,9 +168,11 @@ composite PKs `(ProductId, DepartmentId)`, `(ProductId, CategoryId)`, and
 | Admin auditing | `AuditLogs` exists with actor, action, entity, timestamp and summary. | Write audit records in the same transaction as important admin changes; never log secrets. |
 | Categories/default addresses | Category parent self-reference is protected, but same-department ancestry and cycles are not database-enforced. Address default flags have no filtered unique constraints. | Validate category ancestry and serialize default-address changes in the service; consider filtered unique indexes if database-level enforcement is required. |
 
-The live database has no user, role, Identity, idempotency, email-provider, or
-payment-provider tables/configuration beyond the commerce schema described here.
-The generated Identity migration creates only the seven standard `AspNet*`
-tables plus `__EFMigrationsHistory`; it is a proposal and has not been applied.
-No commerce schema change is proposed or applied. Checkout currently uses zero
-shipping and tax because no shipping-rate or tax-rule tables/configuration exist.
+The local database has the seven standard `AspNet*` tables plus
+`__EFMigrationsHistory`, and a development Admin role/user. The local content
+reset cleared catalog and transactional rows while retaining reference data;
+scripts `15`-`18` remain available to reseed sample image galleries and test
+inventory. The database has no idempotency, email-provider, or payment-provider
+tables/configuration beyond the commerce schema described here. Checkout
+currently uses zero shipping and tax because no shipping-rate or tax-rule
+tables/configuration exist.

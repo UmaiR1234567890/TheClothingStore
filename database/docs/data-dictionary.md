@@ -124,10 +124,11 @@ All timestamps are UTC `DATETIME2(0)` unless stated otherwise.
 | --- | --- | --- | --- |
 | ProductImageId | INT IDENTITY | No | PK |
 | ProductId | INT | No | FK Products, delete cascades |
+| ColorId | INT | Yes | FK Colors; NULL means shared product-level image |
 | ImageUrl | NVARCHAR(500) | No | URL or path, not binary data |
 | AltText | NVARCHAR(200) | Yes | |
 | DisplayOrder | INT | No | Default 0; CK >= 0 |
-| IsPrimary | BIT | No | Default 0; filtered unique index per product |
+| IsPrimary | BIT | No | Default 0; filtered unique index per product/color |
 | CreatedAt | DATETIME2(0) | No | Default UTC now |
 
 ### ProductAttributeValues

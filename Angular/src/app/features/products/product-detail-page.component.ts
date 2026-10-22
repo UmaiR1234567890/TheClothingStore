@@ -12,6 +12,7 @@ import { parseApiFailure } from '../../core/services/api-error.service';
 import { PageTitleService } from '../../core/services/page-title.service';
 import { ProductCardComponent } from '../../shared/components/product-card.component';
 import { findVariant } from '../../shared/utils/variant-selection';
+import { defaultColorIdForProduct, imagesForColor } from '../../shared/utils/product-image-gallery';
 
 interface OptionValue {
   id: number;
@@ -22,200 +23,7 @@ interface OptionValue {
   selector: 'tcs-product-detail-page',
   standalone: true,
   imports: [CurrencyPipe, RouterLink, ProductCardComponent],
-  template: `
-    <section class="product-page container">
-      @if (loading()) {
-        <div class="product-detail-skeleton">
-          <div class="product-detail-skeleton__image"></div>
-          <div class="product-detail-skeleton__copy"></div>
-        </div>
-      } @else if (error()) {
-        <div class="state-panel state-panel--error" role="alert">
-          <h1>Product unavailable</h1>
-          <p>{{ error() }}</p>
-          <a class="btn btn-outline" routerLink="/">Back to the collection</a>
-        </div>
-      } @else {
-        @if (product(); as item) {
-        <nav class="breadcrumbs" aria-label="Breadcrumb">
-          <a routerLink="/">Home</a><span>/</span>
-          @if (item.departments.length > 0) {
-            <a [routerLink]="['/', item.departments[0].slug]">{{ item.departments[0].name }}</a><span>/</span>
-          }
-          @if (item.categories.length > 0) {
-            <a [routerLink]="['/category', item.categories[0].categoryId, item.categories[0].slug]">{{ item.categories[0].name }}</a><span>/</span>
-          }
-          <span aria-current="page">{{ item.name }}</span>
-        </nav>
-
-        <div class="product-detail">
-          <div class="product-gallery">
-            <div class="product-gallery__main">
-              @if (activeImage() && !imageFailed()) {
-                <img [src]="imageSource(activeImage()!.imageUrl)" [alt]="activeImage()!.altText || item.name" (error)="imageFailed.set(true)">
-              } @else {
-                <div class="product-gallery__fallback" aria-label="Product image unavailable">
-                  <span>TCS</span><small>Image preview unavailable</small>
-                </div>
-              }
-              @if (activeImage()?.isPrimary) {
-                <span class="product-gallery__label">The detail</span>
-              }
-            </div>
-            @if (item.images.length > 1) {
-              <div class="product-gallery__thumbs" aria-label="Product images">
-                @for (image of item.images; track image.productImageId) {
-                  <button
-                    type="button"
-                    [class.is-selected]="activeImage()?.productImageId === image.productImageId"
-                    [attr.aria-label]="image.altText || 'View product image'"
-                    [attr.aria-pressed]="activeImage()?.productImageId === image.productImageId"
-                    (click)="activeImage.set(image); imageFailed.set(false)">
-                    <img [src]="imageSource(image.imageUrl)" [alt]="image.altText || item.name" loading="lazy">
-                  </button>
-                }
-              </div>
-            }
-          </div>
-
-          <div class="product-copy">
-            <p class="eyebrow">{{ item.brand || (item.departments.length > 0 ? item.departments[0].name : 'The Clothing Store') }}</p>
-            <h1>{{ item.name }}</h1>
-            @if (selectedVariant(); as variant) {
-              <div class="product-price">
-                @if (variant.onSale) {
-                  <span class="product-price__current">{{ variant.effectivePrice | currency:'PKR':'code':'1.0-2' }}</span>
-                  <span class="product-price__regular">{{ variant.regularPrice | currency:'PKR':'code':'1.0-2' }}</span>
-                  <span class="product-price__badge">Offer</span>
-                } @else {
-                  <span class="product-price__current">{{ variant.effectivePrice | currency:'PKR':'code':'1.0-2' }}</span>
-                }
-              </div>
-            } @else if (item.variants.length > 0) {
-              <p class="product-price__hint">Choose an option to see its price.</p>
-            }
-
-            @if (item.description) {
-              <p class="product-description">{{ item.description }}</p>
-            }
-
-            @if (colorOptions().length > 0) {
-              <fieldset class="option-group">
-                <legend>Color <span>{{ selectedColorLabel() || '— choose —' }}</span></legend>
-                <div class="option-list">
-                  @for (option of colorOptions(); track option.id) {
-                    <button
-                      type="button"
-                      class="option-chip"
-                      [class.is-selected]="selectedColorId() === option.id"
-                      [attr.aria-pressed]="selectedColorId() === option.id"
-                      (click)="selectColor(option.id)">
-                      {{ option.label }}
-                    </button>
-                  }
-                </div>
-              </fieldset>
-            }
-
-            @if (sizeOptions().length > 0) {
-              <fieldset class="option-group">
-                <legend>Size <span>{{ selectedSizeLabel() || '— choose —' }}</span></legend>
-                <div class="option-list option-list--sizes">
-                  @for (option of sizeOptions(); track option.id) {
-                    <button
-                      type="button"
-                      class="option-chip"
-                      [class.is-selected]="selectedSizeId() === option.id"
-                      [disabled]="!hasOptionCombination(option.id, 'size')"
-                      [attr.aria-pressed]="selectedSizeId() === option.id"
-                      (click)="selectSize(option.id)">
-                      {{ option.label }}
-                    </button>
-                  }
-                </div>
-              </fieldset>
-            }
-
-            @if (volumeOptions().length > 0) {
-              <fieldset class="option-group">
-                <legend>Volume <span>{{ selectedVolume() ? selectedVolume() + ' ml' : '— choose —' }}</span></legend>
-                <div class="option-list option-list--sizes">
-                  @for (volume of volumeOptions(); track volume) {
-                    <button
-                      type="button"
-                      class="option-chip"
-                      [class.is-selected]="selectedVolume() === volume"
-                      [attr.aria-pressed]="selectedVolume() === volume"
-                      (click)="selectVolume(volume)">
-                      {{ volume }} ml
-                    </button>
-                  }
-                </div>
-              </fieldset>
-            }
-
-            @if (selectedVariant(); as variant) {
-              <div class="variant-status" [class.variant-status--out]="!variant.isAvailable" aria-live="polite">
-                <span class="variant-status__dot"></span>
-                {{ variant.isAvailable ? variant.quantityAvailable + ' available' : 'Currently out of stock' }}
-                <span class="variant-status__sku">SKU {{ variant.sku }}</span>
-              </div>
-              <div class="purchase-row">
-                <label class="quantity-control">
-                  <span class="sr-only">Quantity</span>
-                  <button type="button" aria-label="Decrease quantity" [disabled]="quantity() <= 1" (click)="decreaseQuantity()">−</button>
-                  <input type="number" min="1" [max]="Math.max(1, variant.quantityAvailable)" [value]="quantity()" (change)="setQuantity($event)">
-                  <button type="button" aria-label="Increase quantity" [disabled]="quantity() >= variant.quantityAvailable" (click)="increaseQuantity(variant.quantityAvailable)">+</button>
-                </label>
-                <button
-                  type="button"
-                  class="btn btn-accent add-to-bag"
-                  [disabled]="!variant.isAvailable || adding()"
-                  (click)="addToCart(variant)">
-                  {{ adding() ? 'Adding…' : variant.isAvailable ? 'Add to bag' : 'Unavailable' }}
-                </button>
-              </div>
-              @if (cartMessage()) {
-                <p class="notice notice-success" role="status">{{ cartMessage() }}</p>
-              }
-              @if (cartError()) {
-                <p class="notice notice-error" role="alert">{{ cartError() }}</p>
-              }
-            } @else if (item.variants.length === 1) {
-              <p class="variant-status">This option is unavailable.</p>
-            } @else {
-              <p class="variant-status">Select the available options to continue.</p>
-            }
-
-            <div class="product-attributes">
-              <h2>Details</h2>
-              @for (attribute of item.attributes; track attribute.slug) {
-                <div class="product-attribute">
-                  <span>{{ attribute.name }}</span><strong>{{ attribute.value }}</strong>
-                </div>
-              } @empty {
-                <p class="product-description">Product details will be updated as they become available.</p>
-              }
-            </div>
-          </div>
-        </div>
-        }
-      }
-    </section>
-
-    @if (related().length > 0) {
-      <section class="related-section container">
-        <div class="section-heading">
-          <div><p class="eyebrow">Continue exploring</p><h2 class="section-title">You may also like.</h2></div>
-        </div>
-        <div class="product-grid">
-          @for (product of related(); track product.productId) {
-            <tcs-product-card [product]="product" />
-          }
-        </div>
-      </section>
-    }
-  `,
+  templateUrl: './product-detail-page.component.html',
   styleUrl: './product-detail-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -223,6 +31,7 @@ export class ProductDetailPageComponent implements OnInit {
   readonly product = signal<ProductDetailDto | null>(null);
   readonly activeImage = signal<ProductDetailDto['images'][number] | null>(null);
   readonly imageFailed = signal(false);
+  readonly zoomed = signal(false);
   readonly selectedColorId = signal<number | null>(null);
   readonly selectedSizeId = signal<number | null>(null);
   readonly selectedVolume = signal<number | null>(null);
@@ -234,6 +43,8 @@ export class ProductDetailPageComponent implements OnInit {
   readonly cartError = signal('');
   readonly related = signal<ProductCardDto[]>([]);
   readonly selectedVariant = computed(() => this.matchingVariant());
+  readonly visibleImages = computed(() =>
+    imagesForColor(this.product()?.images ?? [], this.selectedColorId()));
   readonly colorOptions = computed(() => uniqueOptions(this.product()?.variants.map((variant) => ({
     id: variant.options.colorId,
     label: variant.options.colorName,
@@ -281,9 +92,8 @@ export class ProductDetailPageComponent implements OnInit {
       if (product) {
         this.pageTitles.set(product.name, product.description ?? `${product.name} from The Clothing Store.`);
       }
-      this.activeImage.set(product?.images[0] ?? null);
       this.imageFailed.set(false);
-      this.selectedColorId.set(null);
+      this.selectedColorId.set(defaultColorIdForProduct(product?.images ?? [], product?.variants ?? []));
       this.selectedSizeId.set(null);
       this.selectedVolume.set(null);
       this.quantity.set(1);
@@ -291,6 +101,8 @@ export class ProductDetailPageComponent implements OnInit {
       if (product?.variants.length === 1) {
         this.selectVariant(product.variants[0]);
       }
+      this.activeImage.set(this.visibleImages()[0] ?? null);
+      this.zoomed.set(false);
       if (product?.categories.length) {
         this.loadRelated(product.categories[0].categoryId, product.productId);
       } else {
@@ -312,6 +124,9 @@ export class ProductDetailPageComponent implements OnInit {
     if (this.selectedSizeId() !== null && !this.hasOptionCombination(this.selectedSizeId()!, 'size')) {
       this.selectedSizeId.set(null);
     }
+    this.activeImage.set(this.visibleImages()[0] ?? null);
+    this.imageFailed.set(false);
+    this.zoomed.set(false);
     this.resetQuantity();
   }
 
@@ -370,6 +185,20 @@ export class ProductDetailPageComponent implements OnInit {
 
   imageSource(path: string): string {
     return /^https?:\/\//i.test(path) || path.startsWith('/') ? path : `/${path}`;
+  }
+
+  galleryCaption(altText: string | null): string | null {
+    const view = altText?.match(/ - (Front|Back|Side) view/i)?.[1];
+    if (!view) {
+      return null;
+    }
+    return altText?.toLowerCase().includes('placeholder')
+      ? `${view} - placeholder`
+      : view;
+  }
+
+  toggleZoom(): void {
+    this.zoomed.update((zoomed) => !zoomed);
   }
 
   private matchingVariant(): ProductVariantDto | null {

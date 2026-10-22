@@ -27,12 +27,28 @@ npm start
 ```
 
 Open `http://localhost:4200`. The Angular dev-server proxy forwards `/api/*`
-and `/images/*` to `http://localhost:5077`, the backend's HTTP development
-profile. Start the API from the repository root in a second terminal:
+and `/images/products/*` to `http://localhost:5077`, the backend's HTTP
+development profile. Existing image files live in `public/images/products/`;
+admin uploads are written there and served by the API so they appear without a
+dev-server restart. Start the API from the repository root in a second terminal:
 
 ```sh
 dotnet run --project src/ClothingStore.Api
 ```
+
+Product galleries can use up to five image references per color. The product
+detail page selects the primary color gallery on load, switches galleries with
+the color selection, falls back to shared product images when needed, and
+supports hover/click zoom. The admin image page supports drag-and-drop or file
+selection for JPEG, PNG, and WebP images (up to 8 MB); files are saved under
+`public/images/products/` and their relative paths are stored in the database.
+For production, configure `ProductImages:StoragePath` to a persistent shared
+image directory and route `/images/products/*` to that directory or API.
+Colors and sizes for variant forms come from protected admin lookup endpoints.
+Existing databases need scripts `15_product_images_by_color.sql` and
+`16_assign_mens_shirt_color_images.sql` for the sample color galleries. Script
+`17_add_front_back_side_mens_shirt_images.sql` adds Front/Back/Side entries;
+Back and Side are explicitly labeled placeholders until real photos are added.
 
 The local API URL comes from its launch profile. If you use a different port,
 update `proxy.conf.json`; services continue to use the single configurable API
@@ -56,10 +72,12 @@ configured yet; a manual E2E checklist is in
   `src/environments/environment.ts` and
   `src/environments/environment.production.ts`. They contain no credentials.
 - Production uses the relative `/api/v1` path; configure a same-origin reverse
-  proxy for `/api/v1/*` and `/images/*`. Configure SPA history fallback for
-  product, category, account, and admin routes.
-- Product images are API-returned URLs or paths. The backend serves any image
-  files; the frontend provides an accessible fallback when a path is missing.
+  proxy for `/api/v1/*` and serve `/images/*` from the deployed static assets.
+  Configure SPA history fallback for product, category, account, and admin
+  routes.
+- Product image URLs/paths come from the API. Relative paths must have matching
+  files under `public/`; the frontend provides an accessible fallback when a
+  file is missing.
 - This workspace is client-rendered only. Angular SSR is not configured, so
   server-side rendering and full search-engine indexing are not claimed.
 - Keep signing keys, SQL connection strings, Identity setup, and other secrets
@@ -85,9 +103,9 @@ confirmation.
 
 ## Current API limitations
 
-- The current database does not yet contain the ASP.NET Core Identity tables.
-  Registration, login, customer profile, and admin-role flows require the
-  backend Identity schema and configured users/roles.
+- The local database has ASP.NET Core Identity tables and a provisioned
+  development Admin. Other environments need the additive Identity schema and
+  their own configured users/roles before protected admin flows are available.
 - Password recovery currently returns HTTP 503 because email delivery is not
   configured.
 - COD is the only payment method. No online provider, card form, webhook, or

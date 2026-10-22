@@ -50,14 +50,7 @@ const pages: Record<string, InformationContent> = {
   selector: 'tcs-information-page',
   standalone: true,
   imports: [RouterLink],
-  template: `
-    <section class="information-page container">
-      <p class="eyebrow">{{ content().eyebrow }}</p>
-      <h1 class="page-title">{{ content().title }}</h1>
-      <p class="page-intro">{{ content().text }}</p>
-      <a class="text-link" routerLink="/">Return to the collection <span aria-hidden="true">→</span></a>
-    </section>
-  `,
+  templateUrl: './information-page.component.html',
   styles: [`
     .information-page { display:flex; min-height:48vh; flex-direction:column; align-items:flex-start; justify-content:center; gap:1rem; padding-block:4rem; }
     .information-page .page-title { max-width:850px; }

@@ -14,6 +14,7 @@ import {
   PaymentStatusUpdateRequest,
   ProductAttributeDefinitionDto,
   ProductAttributeDefinitionWriteRequest,
+  ProductImageUploadMetadata,
   ProductImageWriteRequest,
   ProductWriteRequest,
   SaleWriteRequest,
@@ -23,11 +24,13 @@ import {
 } from '../models/admin.models';
 import {
   CategoryDto,
+  ColorOptionDto,
   DepartmentDto,
   ProductDetailDto,
   ProductImageDto,
   ProductVariantDto,
   SaleDto,
+  SizeOptionDto,
 } from '../models/catalog.models';
 import { OrderDto, PaymentDto, ShipmentDto } from '../models/commerce.models';
 
@@ -87,8 +90,30 @@ export class AdminApiService {
     return this.api.patch<object>(`/admin/images/${id}/primary`, null);
   }
 
+  uploadImage(productId: number, file: File, metadata: ProductImageUploadMetadata): Observable<ProductImageDto> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    if (metadata.altText) {
+      form.append('altText', metadata.altText);
+    }
+    if (metadata.colorId !== null) {
+      form.append('colorId', String(metadata.colorId));
+    }
+    form.append('displayOrder', String(metadata.displayOrder));
+    form.append('isPrimary', String(metadata.isPrimary));
+    return this.api.post<ProductImageDto>(`/admin/products/${productId}/images/upload`, form);
+  }
+
   getDepartments(): Observable<DepartmentDto[]> {
     return this.api.get<DepartmentDto[]>('/admin/departments');
+  }
+
+  getColors(): Observable<ColorOptionDto[]> {
+    return this.api.get<ColorOptionDto[]>('/admin/colors');
+  }
+
+  getSizes(): Observable<SizeOptionDto[]> {
+    return this.api.get<SizeOptionDto[]>('/admin/sizes');
   }
 
   createDepartment(request: DepartmentWriteRequest): Observable<DepartmentDto> {

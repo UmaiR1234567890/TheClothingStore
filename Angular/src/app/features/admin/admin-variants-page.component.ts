@@ -2,9 +2,9 @@ import { CurrencyPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { ProductVariantDto } from '../../core/models/catalog.models';
+import { forkJoin } from 'rxjs';
+import { ColorOptionDto, ProductDetailDto, ProductVariantDto, SizeOptionDto } from '../../core/models/catalog.models';
 import { VariantWriteRequest } from '../../core/models/admin.models';
-import { ProductDetailDto } from '../../core/models/catalog.models';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { parseApiFailure } from '../../core/services/api-error.service';
 
@@ -12,76 +12,15 @@ import { parseApiFailure } from '../../core/services/api-error.service';
   selector: 'tcs-admin-variants-page',
   standalone: true,
   imports: [CurrencyPipe, ReactiveFormsModule, RouterLink],
-  template: `
-    <section class="admin-page">
-      <div class="admin-page-heading">
-        <div><p class="eyebrow">Products / Variants</p><h1 class="page-title">Variant options.</h1></div>
-        <a class="text-link" [routerLink]="['/admin/products', productId(), 'edit']">← Edit product</a>
-      </div>
-      @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
-      @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
-      @if (loading()) { <div class="state-panel"><span class="spinner" aria-label="Loading variants"></span></div> }
-      @else {
-        @if (product(); as item) {
-        <div class="admin-context-card">
-          <span class="admin-badge">{{ item.status }}</span>
-          <strong>{{ item.name }}</strong><small>{{ item.slug }}</small>
-        </div>
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead><tr><th>SKU</th><th>Options</th><th>Price</th><th>Available</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody>
-              @for (variant of item.variants; track variant.productVariantId) {
-                <tr>
-                  <td><strong>{{ variant.sku }}</strong></td>
-                  <td>{{ optionText(variant) }}</td>
-                  <td>{{ variant.regularPrice | currency:'PKR':'code':'1.0-2' }}</td>
-                  <td>{{ variant.quantityAvailable }}</td>
-                  <td><span class="admin-badge" [class.admin-badge--inactive]="!variant.isActive || variant.isDeleted">{{ variant.isDeleted ? 'Deleted' : variant.isActive ? 'Active' : 'Inactive' }}</span></td>
-                  <td><div class="admin-inline-actions">
-                    <button type="button" (click)="edit(variant)">Edit</button>
-                    @if (!variant.isDeleted) { <button type="button" (click)="setStatus(variant, variant.isActive ? 'Inactive' : 'Active')">{{ variant.isActive ? 'Deactivate' : 'Activate' }}</button> }
-                  </div></td>
-                </tr>
-              } @empty {
-                <tr><td colspan="6">No variants have been added.</td></tr>
-              }
-            </tbody>
-          </table>
-        </div>
-        <form class="admin-form-card" [formGroup]="form" (ngSubmit)="save()">
-          <h2>{{ editingId() ? 'Edit variant' : 'Add variant' }}</h2>
-          <p class="muted-copy">The API has no color/size reference-list endpoint; enter IDs from the approved reference data. Perfume variants use volume instead.</p>
-          <div class="admin-form-grid">
-            <div class="field"><label for="variant-sku">SKU</label><input id="variant-sku" class="control" formControlName="sku" maxlength="64"></div>
-            <div class="field"><label for="variant-price">Regular price (PKR)</label><input id="variant-price" class="control" type="number" min="0" step="0.01" formControlName="regularPrice"></div>
-          </div>
-          <div class="admin-form-grid">
-            <div class="field"><label for="variant-color">Color ID <span class="field-optional">Optional</span></label><input id="variant-color" class="control" type="number" min="1" formControlName="colorId"></div>
-            <div class="field"><label for="variant-size">Size ID <span class="field-optional">Optional</span></label><input id="variant-size" class="control" type="number" min="1" formControlName="sizeId"></div>
-          </div>
-          <div class="admin-form-grid">
-            <div class="field"><label for="variant-volume">Volume (ml) <span class="field-optional">Perfume only</span></label><input id="variant-volume" class="control" type="number" min="1" formControlName="volumeMl"></div>
-            @if (editingId()) {
-              <label class="admin-check-row"><input type="checkbox" formControlName="isActive"> Active for sale</label>
-            }
-          </div>
-          @if (form.controls.sku.touched && form.controls.sku.invalid) { <span class="field-error">SKU is required and must be 64 characters or fewer.</span> }
-          <div class="admin-form-actions">
-            <button class="btn btn-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Saving…' : editingId() ? 'Save variant' : 'Add variant' }}</button>
-            @if (editingId()) { <button class="btn btn-outline" type="button" (click)="resetForm()">Cancel edit</button> }
-          </div>
-        </form>
-        }
-      }
-    </section>
-  `,
+  templateUrl: './admin-variants-page.component.html',
   styleUrl: './admin-pages.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminVariantsPageComponent implements OnInit {
   readonly productId = signal<number>(0);
   readonly product = signal<ProductDetailDto | null>(null);
+  readonly colors = signal<ColorOptionDto[]>([]);
+  readonly sizes = signal<SizeOptionDto[]>([]);
   readonly editingId = signal<number | null>(null);
   readonly loading = signal(true);
   readonly saving = signal(false);
@@ -115,9 +54,21 @@ export class AdminVariantsPageComponent implements OnInit {
   load(): void {
     this.loading.set(true);
     this.error.set('');
-    this.admin.getProduct(this.productId()).subscribe({
-      next: (product) => {
+    forkJoin({
+      product: this.admin.getProduct(this.productId()),
+      colors: this.admin.getColors(),
+      sizes: this.admin.getSizes(),
+    }).subscribe({
+      next: ({ product, colors, sizes }) => {
         this.product.set(product);
+        this.colors.set(colors.filter((color) => color.isActive));
+        this.sizes.set(sizes.filter((size) => size.isActive));
+        if (this.isPerfume()) {
+          this.form.controls.volumeMl.addValidators(Validators.required);
+        } else {
+          this.form.controls.volumeMl.removeValidators(Validators.required);
+        }
+        this.form.controls.volumeMl.updateValueAndValidity({ emitEvent: false });
         this.loading.set(false);
       },
       error: (failure: unknown) => {
@@ -125,6 +76,21 @@ export class AdminVariantsPageComponent implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  isPerfume(): boolean {
+    return this.product()?.categories.some((category) => category.slug.toLowerCase() === 'perfumes') ?? false;
+  }
+
+  availableSizes(): SizeOptionDto[] {
+    if (this.isPerfume()) {
+      return [];
+    }
+    const categories = this.product()?.categories.map((category) => category.slug.toLowerCase()) ?? [];
+    const requiredType = categories.some((slug) => slug === 'footwear' || slug === 'shoes')
+      ? 'Footwear'
+      : 'Clothing';
+    return this.sizes().filter((size) => size.sizeType === requiredType);
   }
 
   edit(variant: ProductVariantDto): void {

@@ -107,6 +107,8 @@ public interface ICatalogAdminService
     Task DeleteImageAsync(int imageId, CancellationToken cancellationToken);
     Task SetPrimaryImageAsync(int imageId, CancellationToken cancellationToken);
     Task<IReadOnlyList<DepartmentDto>> GetAdminDepartmentsAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<ColorOptionDto>> GetAdminColorsAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<SizeOptionDto>> GetAdminSizesAsync(CancellationToken cancellationToken);
     Task<DepartmentDto> CreateDepartmentAsync(DepartmentWriteRequest request, CancellationToken cancellationToken);
     Task<DepartmentDto> UpdateDepartmentAsync(int id, DepartmentWriteRequest request, CancellationToken cancellationToken);
     Task SetDepartmentStatusAsync(int id, bool active, CancellationToken cancellationToken);

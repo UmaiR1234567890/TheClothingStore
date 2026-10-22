@@ -1,0 +1,55 @@
+<section class="admin-page">
+  <div class="admin-page-heading">
+    <div><p class="eyebrow">Operations / Orders</p><h1 class="page-title">Order desk.</h1></div>
+    <span class="admin-page-heading__note">Status changes are checked by the API.</span>
+  </div>
+  <div class="admin-toolbar">
+    <span class="muted-copy">{{ result()?.totalCount ?? 0 }} orders</span>
+    <label class="orders-filter">
+      <span>Status</span>
+      <select class="admin-filter" [value]="status()" (change)="setStatusFilter($event)">
+        <option value="">All statuses</option>
+        @for (item of statusOptions; track item) { <option [value]="item">{{ item }}</option> }
+      </select>
+    </label>
+  </div>
+  @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
+  @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
+  @if (loading()) { <div class="state-panel"><span class="spinner" aria-label="Loading orders"></span></div> }
+  @else if (result()?.items?.length) {
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Order</th><th>Placed</th><th>Customer</th><th>Payment</th><th>Total</th><th>Status</th><th>Change status</th></tr></thead>
+        <tbody>
+          @for (order of result()!.items; track order.orderId) {
+            <tr>
+              <td><a [routerLink]="['/admin/orders', order.orderId]">{{ order.orderNumber }}</a><small>{{ order.items.length }} item lines</small></td>
+              <td>{{ order.placedAt | date:'short' }}</td>
+              <td>{{ order.guestEmail || order.shippingName || 'Registered customer' }}</td>
+              <td>{{ paymentStatus(order) }}</td>
+              <td>{{ order.totalAmount | currency:'PKR':'code':'1.0-2' }}</td>
+              <td><span class="admin-badge" [class.admin-badge--inactive]="order.status === 'Cancelled'">{{ order.status }}</span></td>
+              <td>
+                @if (nextStatuses(order).length > 0) {
+                  <select class="admin-filter" [value]="''" (change)="updateStatus(order, $event)" aria-label="Change order status">
+                    <option value="">Choose…</option>
+                    @for (next of nextStatuses(order); track next) { <option [value]="next">{{ next }}</option> }
+                  </select>
+                } @else { <span class="muted-copy">No transition</span> }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (result()!.totalPages > 1) {
+      <nav class="pagination" aria-label="Order pages">
+        <button class="btn btn-outline btn-small" type="button" [disabled]="pageNumber() <= 1" (click)="load(pageNumber() - 1)">Previous</button>
+        <span>Page {{ pageNumber() }} of {{ result()!.totalPages }}</span>
+        <button class="btn btn-outline btn-small" type="button" [disabled]="pageNumber() >= result()!.totalPages" (click)="load(pageNumber() + 1)">Next</button>
+      </nav>
+    }
+  } @else if (!error()) {
+    <div class="state-panel"><h2>No orders found</h2></div>
+  }
+</section>

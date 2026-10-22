@@ -1,0 +1,25 @@
+<section class="admin-page">
+  <div class="admin-page-heading">
+    <div><p class="eyebrow">Customers / Record</p><h1 class="page-title">Customer details.</h1></div>
+    <a class="text-link" routerLink="/admin/customers">← Customers</a>
+  </div>
+  @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
+  @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
+  @if (loading()) { <div class="state-panel"><span class="spinner" aria-label="Loading customer"></span></div> }
+  @else {
+    @if (customer(); as item) {
+    <div class="admin-detail-grid">
+      <section class="admin-form-card">
+        <span class="admin-badge" [class.admin-badge--inactive]="item.isDeleted">{{ item.isDeleted ? 'Inactive' : 'Active' }}</span>
+        <h2>{{ item.firstName || 'Customer' }} {{ item.lastName || '' }}</h2>
+        <p class="muted-copy">Customer #{{ item.customerId }}</p>
+        <div class="customer-detail-row"><span>Email</span><strong>{{ item.email }}</strong></div>
+        <div class="customer-detail-row"><span>Phone</span><strong>{{ item.phone || 'Not provided' }}</strong></div>
+        <div class="customer-detail-row"><span>Created</span><strong>{{ item.createdAt | date:'medium' }}</strong></div>
+        <p class="muted-copy">Authentication credentials and private Identity fields are not exposed here.</p>
+        <button class="btn btn-outline" type="button" (click)="toggle()">{{ item.isDeleted ? 'Reactivate customer' : 'Deactivate customer' }}</button>
+      </section>
+    </div>
+    }
+  }
+</section>

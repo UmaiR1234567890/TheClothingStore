@@ -5,7 +5,7 @@
     "changeOrigin": true,
     "logLevel": "warn"
   },
-  "/images": {
+  "/images/products": {
     "target": "http://localhost:5077",
     "secure": false,
     "changeOrigin": true,

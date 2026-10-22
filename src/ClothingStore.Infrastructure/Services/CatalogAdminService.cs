@@ -30,7 +30,7 @@ internal sealed class CatalogAdminService(
         var count = await query.CountAsync(cancellationToken);
         var products = await query.OrderByDescending(x => x.CreatedAt)
             .Skip((page - 1) * size).Take(size)
-            .Include(x => x.Images)
+            .Include(x => x.Images).ThenInclude(x => x.Color)
             .Include(x => x.Variants).ThenInclude(x => x.Inventory)
             .ToListAsync(cancellationToken);
         var variants = products.SelectMany(x => x.Variants).ToArray();
@@ -48,7 +48,12 @@ internal sealed class CatalogAdminService(
                 x.Brand,
                 x.Status,
                 x.IsDeleted,
-                x.Images.OrderByDescending(i => i.IsPrimary).ThenBy(i => i.DisplayOrder).FirstOrDefault()?.ImageUrl,
+                x.Images
+                    .OrderBy(i => i.ColorId.HasValue)
+                    .ThenByDescending(i => i.IsPrimary)
+                    .ThenBy(i => i.Color?.SortOrder ?? int.MaxValue)
+                    .ThenBy(i => i.DisplayOrder)
+                    .FirstOrDefault()?.ImageUrl,
                 priceRows.Length == 0 ? null : priceRows.Min(v => v.Amount),
                 priceRows.Length == 0 ? null : priceRows.Max(v => v.Amount),
                 productVariants.Count);
@@ -236,12 +241,14 @@ internal sealed class CatalogAdminService(
         var exists = await db.Products.AnyAsync(x => x.ProductId == productId && !x.IsDeleted, cancellationToken);
         if (!exists)
             throw new ServiceException(404, "product_not_found", "Product was not found.");
+        await ValidateImageColorAsync(productId, request.ColorId, null, cancellationToken);
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         if (request.IsPrimary)
-            await SetNoOtherPrimaryAsync(productId, null, cancellationToken);
+            await SetNoOtherPrimaryAsync(productId, request.ColorId, null, cancellationToken);
         var image = new ProductImage
         {
             ProductId = productId,
+            ColorId = request.ColorId,
             ImageUrl = request.ImageUrl.Trim(),
             AltText = Normalize(request.AltText),
             DisplayOrder = request.DisplayOrder,
@@ -249,6 +256,8 @@ internal sealed class CatalogAdminService(
         };
         db.ProductImages.Add(image);
         await SaveWithConflictTranslationAsync(cancellationToken);
+        if (image.ColorId.HasValue)
+            await db.Entry(image).Reference(x => x.Color).LoadAsync(cancellationToken);
         audit.Record("ProductImages", image.ProductImageId.ToString(), "Insert", $"Added image to product {productId}.");
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
@@ -263,13 +272,17 @@ internal sealed class CatalogAdminService(
         var image = await db.ProductImages.SingleOrDefaultAsync(x => x.ProductImageId == imageId, cancellationToken);
         if (image is null)
             throw new ServiceException(404, "image_not_found", "Image was not found.");
+        await ValidateImageColorAsync(image.ProductId, request.ColorId, imageId, cancellationToken);
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         if (request.IsPrimary)
-            await SetNoOtherPrimaryAsync(image.ProductId, imageId, cancellationToken);
+            await SetNoOtherPrimaryAsync(image.ProductId, request.ColorId, imageId, cancellationToken);
+        image.ColorId = request.ColorId;
         image.ImageUrl = request.ImageUrl.Trim();
         image.AltText = Normalize(request.AltText);
         image.DisplayOrder = request.DisplayOrder;
         image.IsPrimary = request.IsPrimary;
+        if (image.ColorId.HasValue)
+            await db.Entry(image).Reference(x => x.Color).LoadAsync(cancellationToken);
         audit.Record("ProductImages", imageId.ToString(), "Update", "Updated product image metadata.");
         await SaveWithConflictTranslationAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
@@ -292,7 +305,7 @@ internal sealed class CatalogAdminService(
         if (image is null)
             throw new ServiceException(404, "image_not_found", "Image was not found.");
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        await SetNoOtherPrimaryAsync(image.ProductId, imageId, cancellationToken);
+        await SetNoOtherPrimaryAsync(image.ProductId, image.ColorId, imageId, cancellationToken);
         image.IsPrimary = true;
         audit.Record("ProductImages", imageId.ToString(), "Update", "Selected primary product image.");
         await SaveWithConflictTranslationAsync(cancellationToken);
@@ -303,6 +316,20 @@ internal sealed class CatalogAdminService(
         await db.Departments.AsNoTracking()
             .OrderBy(x => x.SortOrder).ThenBy(x => x.Name)
             .Select(x => new DepartmentDto(x.DepartmentId, x.Name, x.Slug, x.SortOrder, x.IsActive))
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<ColorOptionDto>> GetAdminColorsAsync(CancellationToken cancellationToken) =>
+        await db.Colors.AsNoTracking()
+            .Where(x => x.IsActive)
+            .OrderBy(x => x.SortOrder).ThenBy(x => x.Name)
+            .Select(x => new ColorOptionDto(x.ColorId, x.Name, x.HexCode, x.SortOrder, x.IsActive))
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<SizeOptionDto>> GetAdminSizesAsync(CancellationToken cancellationToken) =>
+        await db.Sizes.AsNoTracking()
+            .Where(x => x.IsActive)
+            .OrderBy(x => x.SizeType).ThenBy(x => x.SortOrder).ThenBy(x => x.Name)
+            .Select(x => new SizeOptionDto(x.SizeId, x.SizeType, x.Name, x.SortOrder, x.IsActive))
             .ToListAsync(cancellationToken);
 
     public async Task<DepartmentDto> CreateDepartmentAsync(DepartmentWriteRequest request, CancellationToken cancellationToken)
@@ -499,7 +526,7 @@ internal sealed class CatalogAdminService(
         var product = await db.Products
             .Include(x => x.ProductDepartments).ThenInclude(x => x.Department)
             .Include(x => x.ProductCategories).ThenInclude(x => x.Category)
-            .Include(x => x.Images)
+            .Include(x => x.Images).ThenInclude(x => x.Color)
             .Include(x => x.AttributeValues).ThenInclude(x => x.ProductAttribute)
             .Include(x => x.Variants).ThenInclude(x => x.Inventory)
             .Include(x => x.Variants).ThenInclude(x => x.Color)
@@ -619,9 +646,50 @@ internal sealed class CatalogAdminService(
         return EffectivePriceResolver.ToDto(variant, price);
     }
 
-    private async Task SetNoOtherPrimaryAsync(int productId, int? exceptImageId, CancellationToken cancellationToken)
+    private async Task ValidateImageColorAsync(
+        int productId,
+        int? colorId,
+        int? exceptImageId,
+        CancellationToken cancellationToken)
     {
-        var query = db.ProductImages.Where(x => x.ProductId == productId && x.IsPrimary);
+        if (colorId.HasValue &&
+            !await db.ProductVariants.AnyAsync(
+                x => x.ProductId == productId &&
+                     x.ColorId == colorId.Value &&
+                     x.IsActive &&
+                     !x.IsDeleted,
+                cancellationToken))
+        {
+            throw new ServiceException(
+                400,
+                "image_color_not_available",
+                "The selected color must be used by an active variant of this product.");
+        }
+
+        var imageCount = await db.ProductImages.CountAsync(
+            x => x.ProductId == productId &&
+                 x.ColorId == colorId &&
+                 (!exceptImageId.HasValue || x.ProductImageId != exceptImageId.Value),
+            cancellationToken);
+        if (imageCount >= 5)
+        {
+            throw new ServiceException(
+                400,
+                "image_limit_per_color",
+                "A product can have at most five images in each color gallery.");
+        }
+    }
+
+    private async Task SetNoOtherPrimaryAsync(
+        int productId,
+        int? colorId,
+        int? exceptImageId,
+        CancellationToken cancellationToken)
+    {
+        var query = db.ProductImages.Where(x =>
+            x.ProductId == productId &&
+            x.ColorId == colorId &&
+            x.IsPrimary);
         if (exceptImageId.HasValue)
             query = query.Where(x => x.ProductImageId != exceptImageId.Value);
         await query.ExecuteUpdateAsync(x => x.SetProperty(y => y.IsPrimary, false), cancellationToken);
@@ -661,7 +729,11 @@ internal sealed class CatalogAdminService(
                 x.Category.IsActive, x.Category.IsDeleted)).ToArray(),
             product.ProductDepartments.Select(x => new DepartmentDto(
                 x.Department.DepartmentId, x.Department.Name, x.Department.Slug, x.Department.SortOrder, x.Department.IsActive)).ToArray(),
-            product.Images.OrderByDescending(x => x.IsPrimary).ThenBy(x => x.DisplayOrder)
+            product.Images
+                .OrderBy(x => x.ColorId.HasValue)
+                .ThenBy(x => x.Color?.SortOrder ?? int.MaxValue)
+                .ThenByDescending(x => x.IsPrimary)
+                .ThenBy(x => x.DisplayOrder)
                 .Select(ToImageDto).ToArray(),
             product.AttributeValues.Select(x => new ProductAttributeDto(
                 x.ProductAttribute.Name, x.ProductAttribute.Slug, x.AttributeValue)).ToArray(),
@@ -669,7 +741,14 @@ internal sealed class CatalogAdminService(
     }
 
     private static ProductImageDto ToImageDto(ProductImage image) =>
-        new(image.ProductImageId, image.ImageUrl, image.AltText, image.DisplayOrder, image.IsPrimary);
+        new(
+            image.ProductImageId,
+            image.ImageUrl,
+            image.AltText,
+            image.DisplayOrder,
+            image.IsPrimary,
+            image.ColorId,
+            image.Color?.Name);
 
     private static DepartmentDto ToDepartmentDto(Department item) =>
         new(item.DepartmentId, item.Name, item.Slug, item.SortOrder, item.IsActive);

@@ -10,58 +10,7 @@ import { parseApiFailure } from '../../core/services/api-error.service';
   selector: 'tcs-admin-payments-page',
   standalone: true,
   imports: [CurrencyPipe, DatePipe, ReactiveFormsModule],
-  template: `
-    <section class="admin-page">
-      <div class="admin-page-heading">
-        <div><p class="eyebrow">Operations / Payments</p><h1 class="page-title">Payment records.</h1></div>
-      </div>
-      <p class="notice">Only COD is enabled. Mark cash as collected only after the store has verified receipt.</p>
-      @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
-      @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
-      @if (loading()) { <div class="state-panel"><span class="spinner" aria-label="Loading payments"></span></div> }
-      @else {
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead><tr><th>Payment</th><th>Order</th><th>Method/provider</th><th>Amount</th><th>Status</th><th>Created</th><th>Action</th></tr></thead>
-            <tbody>
-              @for (payment of payments()?.items ?? []; track payment.paymentId) {
-                <tr>
-                  <td>#{{ payment.paymentId }}</td>
-                  <td>#{{ payment.orderId }}</td>
-                  <td>{{ payment.method }}<small>{{ payment.provider || 'No provider configured' }}</small></td>
-                  <td>{{ payment.amount | currency:'PKR':'code':'1.0-2' }}</td>
-                  <td><span class="admin-badge" [class.admin-badge--inactive]="payment.status !== 'Captured'">{{ payment.status }}</span></td>
-                  <td>{{ payment.createdAt | date:'short' }}</td>
-                  <td>
-                    @if (payment.method === 'COD' && payment.status === 'Pending') {
-                      <button class="text-button" type="button" (click)="selectPayment(payment)">Record collection</button>
-                    } @else { <span class="muted-copy">—</span> }
-                  </td>
-                </tr>
-              } @empty { <tr><td colspan="7">No payment records found.</td></tr> }
-            </tbody>
-          </table>
-        </div>
-      }
-
-      @if (selectedPayment(); as payment) {
-        <section class="admin-form-card">
-          <p class="eyebrow">Cash on delivery · Order #{{ payment.orderId }}</p>
-          <h2>Record cash collection.</h2>
-          <p class="muted-copy">{{ payment.amount | currency:'PKR':'code':'1.0-2' }} stays pending until the administrator confirms collection.</p>
-          <div class="field">
-            <label for="cash-reason">Collection reason / reference</label>
-            <textarea id="cash-reason" class="control" rows="3" [formControl]="reason" placeholder="Describe how collection was verified"></textarea>
-          </div>
-          @if (reason.touched && reason.invalid) { <span class="field-error">Enter a reason of at least 3 characters.</span> }
-          <div class="admin-form-actions">
-            <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="confirmCollection()">{{ saving() ? 'Saving…' : 'Confirm COD collected' }}</button>
-            <button class="btn btn-outline" type="button" (click)="selectedPayment.set(null)">Cancel</button>
-          </div>
-        </section>
-      }
-    </section>
-  `,
+  templateUrl: './admin-payments-page.component.html',
   styleUrl: './admin-pages.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

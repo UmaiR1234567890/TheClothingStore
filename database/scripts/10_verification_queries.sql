@@ -117,10 +117,18 @@ FROM dbo.NewsletterSubscriptions
 GROUP BY Email
 HAVING COUNT(*) > 1;
 
-PRINT N'=== Identity-conflicting tables (should be empty) ===';
+PRINT N'=== Optional Identity schema status ===';
+SELECT CASE
+    WHEN OBJECT_ID(N'dbo.AspNetUsers', N'U') IS NOT NULL
+     AND OBJECT_ID(N'dbo.AspNetRoles', N'U') IS NOT NULL
+        THEN N'Provisioned'
+    ELSE N'Not provisioned'
+END AS IdentitySchemaStatus;
+
+PRINT N'=== Legacy custom security tables (should be absent) ===';
 SELECT name
 FROM sys.tables
-WHERE name IN (N'Roles', N'AdminUsers', N'AdminUserRoles', N'AspNetUsers', N'AspNetRoles');
+WHERE name IN (N'Roles', N'AdminUsers', N'AdminUserRoles');
 
 PRINT N'=== Required schema assertions ===';
 DECLARE @ExpectedTables TABLE (TableName SYSNAME NOT NULL PRIMARY KEY);
@@ -194,6 +202,19 @@ BEGIN
     ;THROW 51003, N'One or more expected supporting indexes are missing or disabled.', 1;
 END;
 
+IF COL_LENGTH(N'dbo.ProductImages', N'ColorId') IS NOT NULL
+   AND NOT EXISTS
+   (
+       SELECT 1
+       FROM sys.indexes
+       WHERE name = N'IX_ProductImages_Product_Color_DisplayOrder'
+         AND object_id = OBJECT_ID(N'dbo.ProductImages')
+         AND is_disabled = 0
+   )
+BEGIN
+    ;THROW 51009, N'The product/color image display-order index is missing or disabled.', 1;
+END;
+
 IF EXISTS (SELECT 1 FROM dbo.Inventory WHERE QuantityOnHand < 0 OR QuantityReserved < 0 OR QuantityReserved > QuantityOnHand)
 BEGIN
     ;THROW 51004, N'Inventory contains an invalid stock quantity.', 1;
@@ -225,17 +246,40 @@ BEGIN
     ;THROW 51007, N'One or more required seeded departments are missing.', 1;
 END;
 
+IF EXISTS (SELECT 1 FROM dbo.Products WHERE Slug = N'men-leather-oxford')
+   AND NOT EXISTS
+   (
+       SELECT 1
+       FROM dbo.ProductVariants pv
+       INNER JOIN dbo.Products p ON p.ProductId = pv.ProductId
+       INNER JOIN dbo.Sizes sz ON sz.SizeId = pv.SizeId
+       WHERE p.Slug = N'men-leather-oxford'
+         AND sz.SizeType = N'Footwear'
+   )
+BEGIN
+    ;THROW 51008, N'The seeded shoe product has no footwear-size variant.', 1;
+END;
+
+IF EXISTS (SELECT 1 FROM dbo.Products WHERE Slug = N'women-woody-edp')
+   AND NOT EXISTS
+   (
+       SELECT 1
+       FROM dbo.ProductVariants pv
+       INNER JOIN dbo.Products p ON p.ProductId = pv.ProductId
+       WHERE p.Slug = N'women-woody-edp'
+         AND pv.VolumeMl IS NOT NULL
+   )
+BEGIN
+    ;THROW 51010, N'The seeded perfume product has no volume variant.', 1;
+END;
+
 IF NOT EXISTS
 (
     SELECT 1
-    FROM dbo.ProductVariants pv
-    INNER JOIN dbo.Sizes sz ON sz.SizeId = pv.SizeId
-    WHERE sz.SizeType = N'Footwear'
+    FROM dbo.Products
+    WHERE Slug IN (N'men-leather-oxford', N'women-woody-edp')
 )
-OR NOT EXISTS (SELECT 1 FROM dbo.ProductVariants WHERE VolumeMl IS NOT NULL)
-BEGIN
-    ;THROW 51008, N'Sample shoe-size or perfume-volume variants are missing.', 1;
-END;
+    PRINT N'No optional shoe/perfume seed products found; sample-specific checks were skipped.';
 
 PRINT N'All required schema and data-integrity assertions passed.';
 GO

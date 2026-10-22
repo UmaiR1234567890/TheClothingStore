@@ -103,7 +103,10 @@ Page size is 1-100. Filters/pagination execute on the server.
 `ProductCardDto`: `productId`, `name`, `slug`, nullable `brand` and
 `primaryImageUrl`, nullable `minPrice`/`maxPrice`, `onSale`, `isAvailable`.
 `ProductDetailDto` includes product fields, `status`, `isDeleted`, `createdAt`,
-categories, departments, images, attributes, and variants.
+categories, departments, images, attributes, and variants. `ProductImageDto`
+includes nullable `colorId` and `colorName`; `null` denotes a shared
+product-level image, while a color-specific image belongs to that color and
+can be shown across all its size variants.
 `ProductVariantDto`: `productVariantId`, `sku`, `options`, `isActive`,
 `isDeleted`, `regularPrice`, `effectivePrice`, `onSale`,
 `quantityAvailable`, `isAvailable`.
@@ -175,7 +178,9 @@ All `/admin/*` operations require the `Admin` Identity role.
 | GET, PUT `/admin/products/{id}` | Admin product details; update with `ProductWriteRequest` |
 | PATCH, DELETE `/admin/products/{id}/status` or `/admin/products/{id}` | Status is Active/Draft/Inactive; DELETE soft-deletes |
 | POST `/admin/products/{productId}/variants`; PUT/PATCH `/admin/variants/{id}` | `VariantWriteRequest`; `/status` accepts Active/Inactive |
-| POST `/admin/products/{productId}/images`; PUT/DELETE/PATCH `/admin/images/{id}` | URL/path image reference; `/primary` chooses primary |
+| GET `/admin/colors`; GET `/admin/sizes` | Active reference data for variant dropdowns |
+| POST `/admin/products/{productId}/images/upload` | Multipart `file` plus `altText`, optional `colorId`, `displayOrder`, and `isPrimary`; JPEG/PNG/WebP up to 8 MB |
+| POST `/admin/products/{productId}/images`; PUT/DELETE/PATCH `/admin/images/{id}` | URL/path reference management; optional `colorId` assigns a color gallery; up to five images per product/color; `/primary` selects the group's primary |
 | GET, POST `/admin/departments`; PUT/PATCH `/admin/departments/{id}` | `DepartmentWriteRequest`; `/status` accepts Active/Inactive |
 | GET, POST `/admin/categories`; PUT/PATCH/DELETE `/admin/categories/{id}` | `CategoryWriteRequest`; soft delete; validates parent cycles |
 | GET, POST `/admin/attributes`; PUT/PATCH `/admin/attributes/{id}` | `ProductAttributeDefinitionWriteRequest`; `/status` accepts Active/Inactive |
@@ -203,11 +208,13 @@ is applied per `[Authorize]` endpoint; it does not mark public routes protected.
   them. The frontend can create promotions and change status, but does not
   overwrite an existing sale's eligibility without the server returning that
   information.
-- Product image management stores URL/path references; no upload route exists.
+- Product image uploads store files in the configured product image directory
+  and persist relative URL references. The API does not serve local files;
+  Angular or the deployment's static-file host must serve `/images/*`.
 - There is no wishlist endpoint or customer order-cancellation endpoint.
-- Identity tables are not currently in the live database. The proposed
-  additive Identity schema remains unapplied, so authenticated flows require
-  Identity provisioning before live verification.
+- Identity tables and a development Admin account are provisioned in the local
+  database. Other environments require the additive Identity schema and
+  environment-specific user/role provisioning.
 - Password-reset requests return 503 until email delivery is configured. COD
   is the only payment method; shipping and tax are currently zero in backend
   configuration.

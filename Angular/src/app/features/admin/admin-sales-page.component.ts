@@ -10,66 +10,7 @@ import { parseApiFailure } from '../../core/services/api-error.service';
   selector: 'tcs-admin-sales-page',
   standalone: true,
   imports: [CurrencyPipe, DatePipe, ReactiveFormsModule],
-  template: `
-    <section class="admin-page">
-      <div class="admin-page-heading">
-        <div><p class="eyebrow">Pricing / Promotions</p><h1 class="page-title">Current offers.</h1></div>
-        <button class="btn btn-primary" type="button" (click)="createMode()">Create promotion</button>
-      </div>
-      <div class="notice">
-        Effective prices use the lowest active eligible sale. The API does not return eligible product IDs on sale records, so existing promotion eligibility cannot be safely edited from this screen.
-      </div>
-      @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
-      @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
-      @if (loading()) { <div class="state-panel"><span class="spinner" aria-label="Loading promotions"></span></div> }
-      @else {
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead><tr><th>Promotion</th><th>Discount</th><th>Schedule</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody>
-              @for (sale of sales(); track sale.saleId) {
-                <tr>
-                  <td><strong>{{ sale.name }}</strong><small>#{{ sale.saleId }}</small></td>
-                  <td>{{ discountLabel(sale) }}</td>
-                  <td><small>{{ sale.startsAt ? (sale.startsAt | date:'mediumDate') : 'No start' }} — {{ sale.endsAt ? (sale.endsAt | date:'mediumDate') : 'No end' }}</small></td>
-                  <td><span class="admin-badge" [class.admin-badge--inactive]="!sale.isActive">{{ sale.isActive ? 'Active' : 'Inactive' }}</span></td>
-                  <td><div class="admin-inline-actions">
-                    <button type="button" (click)="toggle(sale)">{{ sale.isActive ? 'Deactivate' : 'Activate' }}</button>
-                    <button type="button" (click)="remove(sale)">Soft delete</button>
-                  </div></td>
-                </tr>
-              } @empty { <tr><td colspan="5">No promotions found.</td></tr> }
-            </tbody>
-          </table>
-        </div>
-      }
-
-      @if (editing()) {
-        <form class="admin-form-card" [formGroup]="form" (ngSubmit)="create()">
-          <h2>Create promotion</h2>
-          <div class="admin-form-grid">
-            <div class="field"><label for="sale-name">Name</label><input id="sale-name" class="control" formControlName="name"></div>
-            <div class="field">
-              <label for="sale-type">Discount type</label>
-              <select id="sale-type" class="control" formControlName="discountType"><option value="Percentage">Percentage</option><option value="FixedAmount">Fixed amount (PKR)</option></select>
-            </div>
-          </div>
-          <div class="admin-form-grid">
-            <div class="field"><label for="sale-value">Discount value</label><input id="sale-value" class="control" type="number" min="0.01" step="0.01" formControlName="discountValue"></div>
-            <div class="field"><label for="sale-products">Eligible product IDs</label><input id="sale-products" class="control" formControlName="productIds" placeholder="e.g. 1, 2, 3"><small>Enter product IDs returned by the admin product list, separated by commas.</small></div>
-          </div>
-          <div class="admin-form-grid">
-            <div class="field"><label for="sale-start">Starts at</label><input id="sale-start" class="control" type="datetime-local" formControlName="startsAt"></div>
-            <div class="field"><label for="sale-end">Ends at</label><input id="sale-end" class="control" type="datetime-local" formControlName="endsAt"></div>
-          </div>
-          <div class="admin-form-actions">
-            <button class="btn btn-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Create promotion' }}</button>
-            <button class="btn btn-outline" type="button" (click)="editing.set(false)">Cancel</button>
-          </div>
-        </form>
-      }
-    </section>
-  `,
+  templateUrl: './admin-sales-page.component.html',
   styleUrl: './admin-pages.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

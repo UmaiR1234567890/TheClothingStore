@@ -24,6 +24,7 @@ public sealed class Color
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public ICollection<ProductVariant> ProductVariants { get; set; } = new List<ProductVariant>();
+    public ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
 }
 
 public sealed class Size
@@ -129,12 +130,14 @@ public sealed class ProductImage
 {
     public int ProductImageId { get; set; }
     public int ProductId { get; set; }
+    public int? ColorId { get; set; }
     public string ImageUrl { get; set; } = string.Empty;
     public string? AltText { get; set; }
     public int DisplayOrder { get; set; }
     public bool IsPrimary { get; set; }
     public DateTime CreatedAt { get; set; }
     public Product Product { get; set; } = null!;
+    public Color? Color { get; set; }
 }
 
 public sealed class ProductAttributeValue

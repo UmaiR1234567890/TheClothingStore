@@ -8,51 +8,7 @@ import { parseApiFailure } from '../../core/services/api-error.service';
   selector: 'tcs-admin-attributes-page',
   standalone: true,
   imports: [ReactiveFormsModule],
-  template: `
-    <section class="admin-page">
-      <div class="admin-page-heading">
-        <div><p class="eyebrow">Catalog / Product details</p><h1 class="page-title">Attributes.</h1></div>
-        <button class="btn btn-primary" type="button" (click)="createMode()">Add attribute</button>
-      </div>
-      <p class="page-intro">Definitions such as fabric, fit, material, or fragrance family. Product values remain descriptive and separate from variant options.</p>
-      @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
-      @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
-      @if (loading()) { <div class="state-panel"><span class="spinner" aria-label="Loading attributes"></span></div> }
-      @else {
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead><tr><th>Name</th><th>Slug</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody>
-              @for (attribute of attributes(); track attribute.productAttributeId) {
-                <tr>
-                  <td><strong>{{ attribute.name }}</strong></td><td>{{ attribute.slug }}</td>
-                  <td><span class="admin-badge" [class.admin-badge--inactive]="!attribute.isActive">{{ attribute.isActive ? 'Active' : 'Inactive' }}</span></td>
-                  <td><div class="admin-inline-actions">
-                    <button type="button" (click)="edit(attribute)">Edit</button>
-                    <button type="button" (click)="setStatus(attribute, attribute.isActive ? 'Inactive' : 'Active')">{{ attribute.isActive ? 'Deactivate' : 'Activate' }}</button>
-                  </div></td>
-                </tr>
-              } @empty { <tr><td colspan="4">No attribute definitions found.</td></tr> }
-            </tbody>
-          </table>
-        </div>
-      }
-
-      @if (editing()) {
-        <form class="admin-form-card" [formGroup]="form" (ngSubmit)="save()">
-          <h2>{{ editingId() ? 'Edit definition' : 'Create definition' }}</h2>
-          <div class="admin-form-grid">
-            <div class="field"><label for="attribute-name">Name</label><input id="attribute-name" class="control" formControlName="name"></div>
-            <div class="field"><label for="attribute-slug">Slug</label><input id="attribute-slug" class="control" formControlName="slug"></div>
-          </div>
-          <div class="admin-form-actions">
-            <button class="btn btn-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save definition' }}</button>
-            <button class="btn btn-outline" type="button" (click)="editing.set(false)">Cancel</button>
-          </div>
-        </form>
-      }
-    </section>
-  `,
+  templateUrl: './admin-attributes-page.component.html',
   styleUrl: './admin-pages.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
