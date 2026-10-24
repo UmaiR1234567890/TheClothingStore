@@ -16,6 +16,7 @@
     <div class="admin-context-card">
       <span class="admin-badge">{{ item.status }}</span>
       <strong>{{ item.name }}</strong><small>{{ item.slug }}</small>
+      <span class="muted-copy">{{ item.variants.length }} variant{{ item.variants.length === 1 ? '' : 's' }}</span>
     </div>
     <p class="muted-copy">Variants are optional. Add the color/size combinations you sell, or skip this step and continue to images.</p>
     <div class="admin-table-wrap">
@@ -27,7 +28,23 @@
               <td><strong>{{ variant.sku }}</strong></td>
               <td>{{ optionText(variant) }}</td>
               <td>{{ variant.regularPrice | currency:'PKR':'code':'1.0-2' }}</td>
-              <td>{{ variant.quantityAvailable }}</td>
+              <td>
+                <div class="stock-edit">
+                  <input
+                    class="control"
+                    type="number"
+                    min="0"
+                    step="1"
+                    [value]="stockDraft(variant)"
+                    (input)="updateStockDraft(variant, $event)"
+                    [attr.aria-label]="'Stock for ' + variant.sku">
+                  <button
+                    class="btn btn-outline"
+                    type="button"
+                    [disabled]="stockSavingId() !== null || stockDraft(variant) === variant.quantityAvailable"
+                    (click)="saveStock(variant)">Set</button>
+                </div>
+              </td>
               <td><span class="admin-badge" [class.admin-badge--inactive]="!variant.isActive || variant.isDeleted">{{ variant.isDeleted ? 'Deleted' : variant.isActive ? 'Active' : 'Inactive' }}</span></td>
               <td><div class="admin-inline-actions">
                 <button type="button" (click)="edit(variant)">Edit</button>
@@ -40,46 +57,124 @@
         </tbody>
       </table>
     </div>
-    <form class="admin-form-card" [formGroup]="form" (ngSubmit)="save()">
-      <h2>{{ editingId() ? 'Edit variant' : 'Add variant' }}</h2>
-      <p class="muted-copy">Choose from the active store colors and sizes. Perfume variants use volume instead.</p>
-      <div class="admin-form-grid">
-        <div class="field"><label for="variant-sku">SKU</label><input id="variant-sku" class="control" formControlName="sku" maxlength="64" placeholder="e.g. TCS-SHIRT-BLK-M"></div>
-        <div class="field"><label for="variant-price">Regular price (PKR)</label><input id="variant-price" class="control" type="number" min="0" step="0.01" formControlName="regularPrice"></div>
-      </div>
-      @if (!isPerfume()) {
+
+    @if (editingId() !== null || isPerfume()) {
+      <form class="admin-form-card" [formGroup]="form" (ngSubmit)="save()">
+        <h2>{{ editingId() ? 'Edit variant' : 'Add variant' }}</h2>
+        <p class="muted-copy">Choose from the active store colors and sizes. Perfume variants use volume instead.</p>
+        <div class="admin-form-grid">
+          <div class="field"><label for="variant-sku">SKU</label><input id="variant-sku" class="control" formControlName="sku" maxlength="64" placeholder="e.g. TCS-SHIRT-BLK-M"></div>
+          <div class="field"><label for="variant-price">Regular price (PKR)</label><input id="variant-price" class="control" type="number" min="0" step="0.01" formControlName="regularPrice"></div>
+        </div>
+        @if (!isPerfume()) {
+          <div class="admin-form-grid">
+            <div class="field">
+              <label for="variant-color">Color <span class="field-optional">Optional</span></label>
+              <select id="variant-color" class="control" formControlName="colorId">
+                <option [ngValue]="null">No color</option>
+                @for (color of colors(); track color.colorId) {
+                  <option [ngValue]="color.colorId">{{ color.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="field">
+              <label for="variant-size">Size <span class="field-optional">Optional</span></label>
+              <select id="variant-size" class="control" formControlName="sizeId">
+                <option [ngValue]="null">No size</option>
+                @for (size of availableSizes(); track size.sizeId) {
+                  <option [ngValue]="size.sizeId">{{ size.name }}</option>
+                }
+              </select>
+            </div>
+          </div>
+        } @else {
+          <div class="field"><label for="variant-volume">Volume (ml)</label><input id="variant-volume" class="control" type="number" min="1" formControlName="volumeMl"></div>
+        }
         <div class="admin-form-grid">
           <div class="field">
-            <label for="variant-color">Color <span class="field-optional">Optional</span></label>
-            <select id="variant-color" class="control" formControlName="colorId">
-              <option [ngValue]="null">No color</option>
-              @for (color of colors(); track color.colorId) {
-                <option [ngValue]="color.colorId">{{ color.name }}</option>
-              }
-            </select>
+            <label for="variant-stock">Stock <span class="field-optional">{{ editingId() ? 'Set available quantity' : 'Starting stock' }}</span></label>
+            <input id="variant-stock" class="control" type="number" min="0" step="1" formControlName="stockTarget" placeholder="Leave empty to skip">
           </div>
-          <div class="field">
-            <label for="variant-size">Size <span class="field-optional">Optional</span></label>
-            <select id="variant-size" class="control" formControlName="sizeId">
-              <option [ngValue]="null">No size</option>
-              @for (size of availableSizes(); track size.sizeId) {
-                <option [ngValue]="size.sizeId">{{ size.name }}</option>
-              }
-            </select>
-          </div>
+          @if (editingId()) {
+            <label class="admin-check-row"><input type="checkbox" formControlName="isActive"> Active for sale</label>
+          }
         </div>
-      } @else {
-        <div class="field"><label for="variant-volume">Volume (ml)</label><input id="variant-volume" class="control" type="number" min="1" formControlName="volumeMl"></div>
-      }
-      @if (editingId()) {
-        <label class="admin-check-row"><input type="checkbox" formControlName="isActive"> Active for sale</label>
-      }
-      @if (form.controls.sku.touched && form.controls.sku.invalid) { <span class="field-error">SKU is required and must be 64 characters or fewer.</span> }
-      <div class="admin-form-actions">
-        <button class="btn btn-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Saving…' : editingId() ? 'Save variant' : 'Add variant' }}</button>
-        @if (editingId()) { <button class="btn btn-outline" type="button" (click)="resetForm()">Cancel edit</button> }
-      </div>
-    </form>
+        @if (form.controls.sku.touched && form.controls.sku.invalid) { <span class="field-error">SKU is required and must be 64 characters or fewer.</span> }
+        <div class="admin-form-actions">
+          <button class="btn btn-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Saving…' : editingId() ? 'Save variant' : 'Add variant' }}</button>
+          @if (editingId()) { <button class="btn btn-outline" type="button" (click)="resetForm()">Cancel edit</button> }
+        </div>
+      </form>
+    } @else {
+      <form class="admin-form-card variant-builder" [formGroup]="bulkForm" (ngSubmit)="save()">
+        <h2>Add variants in bulk</h2>
+        <p class="muted-copy">Pick one or more colors — each color gets its own size selection. A variant is created for every color × size combination. Select a color without sizes to create a color-only variant.</p>
+        <div class="admin-form-grid">
+          <div class="field"><label for="bulk-sku">SKU base</label><input id="bulk-sku" class="control" formControlName="skuBase" maxlength="40" placeholder="e.g. TCS-SHIRT"><small>SKUs are built as BASE-COLOR-SIZE.</small></div>
+          <div class="field"><label for="bulk-price">Regular price (PKR)</label><input id="bulk-price" class="control" type="number" min="0" step="0.01" formControlName="regularPrice"></div>
+        </div>
+        <div class="admin-form-grid">
+          <div class="field"><label for="bulk-stock">Starting stock per variant</label><input id="bulk-stock" class="control" type="number" min="0" step="1" formControlName="initialStock"></div>
+          <label class="admin-check-row"><input type="checkbox" formControlName="isActive"> Active for sale</label>
+        </div>
+
+        <fieldset class="variant-picker">
+          <legend class="variant-picker__label">Colors</legend>
+          <div class="variant-color-list">
+            <label class="variant-color-chip" [class.variant-color-chip--selected]="isColorKeySelected('none')">
+              <input type="checkbox" [checked]="isColorKeySelected('none')" (change)="toggleColorKey('none')">
+              No color
+            </label>
+            @for (color of colors(); track color.colorId) {
+              <label class="variant-color-chip" [class.variant-color-chip--selected]="isColorKeySelected(colorKey(color.colorId))">
+                <input type="checkbox" [checked]="isColorKeySelected(colorKey(color.colorId))" (change)="toggleColorKey(colorKey(color.colorId))">
+                <span class="variant-color-chip__swatch" [style.background]="color.hexCode || '#ece9e1'"></span>
+                {{ color.name }}
+              </label>
+            }
+          </div>
+        </fieldset>
+
+        @for (key of selectedColorKeys(); track key) {
+          <fieldset class="variant-picker variant-color-sizes">
+            <div class="variant-color-sizes__head">
+              <strong>{{ colorByKey(key)?.name ?? 'No color' }} — sizes</strong>
+              <span>
+                <button class="text-button" type="button" (click)="selectAllSizes(key)">All</button>
+                <button class="text-button" type="button" (click)="clearSizes(key)">None</button>
+              </span>
+            </div>
+            <div class="variant-size-list">
+              @for (size of availableSizes(); track size.sizeId) {
+                <label class="variant-size-chip" [class.variant-size-chip--selected]="isSizeSelected(key, size.sizeId)">
+                  <input type="checkbox" [checked]="isSizeSelected(key, size.sizeId)" (change)="toggleSize(key, size.sizeId)">
+                  {{ size.name }}
+                </label>
+              } @empty {
+                <span class="muted-copy">No active sizes for this product type.</span>
+              }
+            </div>
+            <small class="muted-copy">No sizes selected creates a single {{ colorByKey(key)?.name ?? 'standard' }} variant without a size.</small>
+          </fieldset>
+        }
+
+        @if (bulkForm.controls.skuBase.touched && bulkForm.controls.skuBase.invalid) { <span class="field-error">Enter a SKU base (up to 40 characters).</span> }
+        <div class="variant-builder__summary" role="status">
+          <strong>{{ combinations().length }}</strong> variant{{ combinations().length === 1 ? '' : 's' }} will be created
+          @if (combinations().length > 0) {
+            <div class="variant-builder__skus">
+              @for (combo of combinations(); track combo.key) {
+                <div>{{ combo.sku }} — {{ combo.colorName ?? 'No color' }}{{ combo.sizeName ? ' / ' + combo.sizeName : '' }}</div>
+              }
+            </div>
+          }
+        </div>
+        <div class="admin-form-actions">
+          <button class="btn btn-primary" type="submit" [disabled]="saving() || combinations().length === 0">{{ saving() ? 'Saving…' : 'Create variants' }}</button>
+          <button class="btn btn-outline" type="button" (click)="resetBulk()">Clear selection</button>
+        </div>
+      </form>
+    }
     <div class="admin-form-actions admin-product-setup-actions">
       <a class="btn btn-primary" [routerLink]="['/admin/products', productId(), 'images']">Continue to images (variants may be skipped)</a>
     </div>

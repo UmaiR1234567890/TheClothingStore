@@ -4,7 +4,7 @@
     <a class="btn btn-primary" routerLink="/admin/products/new">Create product</a>
   </div>
   <div class="admin-toolbar">
-    <form class="admin-toolbar__search" (ngSubmit)="search()">
+    <form class="admin-toolbar__search" (submit)="$event.preventDefault(); search()">
       <input class="control" [formControl]="searchControl" type="search" placeholder="Search name, slug, or brand" aria-label="Search products">
       <button class="btn btn-outline btn-small" type="submit">Search</button>
     </form>
@@ -44,7 +44,7 @@
                   <a [routerLink]="['/admin/products', product.productId, 'variants']">Variants</a>
                   <a [routerLink]="['/admin/products', product.productId, 'images']">Images</a>
                   @if (!product.isDeleted) {
-                    <button type="button" (click)="remove(product)">Soft delete</button>
+                    <button class="is-danger" type="button" (click)="remove(product)">Soft delete</button>
                   }
                 </div>
               </td>

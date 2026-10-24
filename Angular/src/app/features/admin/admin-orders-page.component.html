@@ -26,9 +26,9 @@
               <td><a [routerLink]="['/admin/orders', order.orderId]">{{ order.orderNumber }}</a><small>{{ order.items.length }} item lines</small></td>
               <td>{{ order.placedAt | date:'short' }}</td>
               <td>{{ order.guestEmail || order.shippingName || 'Registered customer' }}</td>
-              <td>{{ paymentStatus(order) }}</td>
+              <td><span class="admin-badge admin-badge--neutral">{{ paymentStatus(order) }}</span></td>
               <td>{{ order.totalAmount | currency:'PKR':'code':'1.0-2' }}</td>
-              <td><span class="admin-badge" [class.admin-badge--inactive]="order.status === 'Cancelled'">{{ order.status }}</span></td>
+              <td><span [class]="'admin-badge ' + statusBadgeClass(order.status)">{{ order.status }}</span></td>
               <td>
                 @if (nextStatuses(order).length > 0) {
                   <select class="admin-filter" [value]="''" (change)="updateStatus(order, $event)" aria-label="Change order status">

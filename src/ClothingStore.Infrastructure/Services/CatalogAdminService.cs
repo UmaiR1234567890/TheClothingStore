@@ -199,6 +199,86 @@ internal sealed class CatalogAdminService(
         return await LoadVariantDtoAsync(variant.ProductVariantId, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<ProductVariantDto>> CreateVariantsAsync(
+        int productId,
+        VariantBulkWriteRequest request,
+        CancellationToken cancellationToken)
+    {
+        var productExists = await db.Products.AnyAsync(x => x.ProductId == productId && !x.IsDeleted, cancellationToken);
+        if (!productExists)
+            throw new ServiceException(404, "product_not_found", "Product was not found.");
+
+        var requests = request.Variants;
+        if (requests.Select(x => x.Sku.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count() != requests.Count)
+            throw new ServiceException(400, "duplicate_sku", "Each variant in a bulk request must have a unique SKU.");
+
+        foreach (var item in requests)
+            await ValidateVariantOptionsAsync(productId, item, cancellationToken);
+
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        var now = DateTime.UtcNow;
+        var created = new List<ProductVariant>(requests.Count);
+        foreach (var item in requests)
+        {
+            var variant = new ProductVariant
+            {
+                ProductId = productId,
+                Sku = item.Sku.Trim(),
+                ColorId = item.ColorId,
+                SizeId = item.SizeId,
+                VolumeMl = item.VolumeMl,
+                RegularPrice = item.RegularPrice,
+                IsActive = item.IsActive,
+                IsDeleted = false
+            };
+            db.ProductVariants.Add(variant);
+            created.Add(variant);
+        }
+        await SaveWithConflictTranslationAsync(cancellationToken);
+
+        foreach (var variant in created)
+        {
+            var inventory = new Inventory
+            {
+                ProductVariantId = variant.ProductVariantId,
+                QuantityOnHand = Math.Max(0, request.InitialStock),
+                UpdatedAt = now
+            };
+            db.Inventory.Add(inventory);
+            audit.Record("ProductVariants", variant.ProductVariantId.ToString(), "Insert", $"Created variant SKU {variant.Sku} (bulk).");
+        }
+        await SaveWithConflictTranslationAsync(cancellationToken);
+
+        if (request.InitialStock > 0)
+        {
+            foreach (var variant in created)
+            {
+                var inventory = db.Inventory.Local.Single(x => x.ProductVariantId == variant.ProductVariantId);
+                db.InventoryTransactions.Add(new InventoryTransaction
+                {
+                    InventoryId = inventory.InventoryId,
+                    TransactionType = InventoryTransactionTypes.Adjustment,
+                    QuantityChange = request.InitialStock,
+                    QuantityAfter = request.InitialStock,
+                    ReferenceType = "AdminAdjustment",
+                    Notes = "Initial stock set at variant creation."
+                });
+            }
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        await transaction.CommitAsync(cancellationToken);
+
+        var ids = created.Select(x => x.ProductVariantId).ToArray();
+        var variants = await db.ProductVariants
+            .Include(x => x.Inventory)
+            .Include(x => x.Color)
+            .Include(x => x.Size)
+            .Where(x => ids.Contains(x.ProductVariantId))
+            .ToListAsync(cancellationToken);
+        var priceMap = await prices.ResolveAsync(variants.ToArray(), cancellationToken);
+        return variants.Select(x => EffectivePriceResolver.ToDto(x, priceMap[x.ProductVariantId])).ToArray();
+    }
+
     public async Task<ProductVariantDto> UpdateVariantAsync(
         int variantId,
         VariantWriteRequest request,

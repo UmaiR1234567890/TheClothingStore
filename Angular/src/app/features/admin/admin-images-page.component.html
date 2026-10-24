@@ -27,12 +27,19 @@
             <span class="admin-badge">{{ image.colorName || 'All colors' }}</span>
             <span class="admin-badge" [class.admin-badge--inactive]="!image.isPrimary">{{ image.isPrimary ? 'Primary' : 'Gallery' }}</span>
           </div>
+          <div class="admin-image-card__sizes">
+            @for (size of sizesForColor(image.colorId); track size) {
+              <span>{{ size }}</span>
+            } @empty {
+              <span>{{ image.colorId === null ? 'Shared fallback' : 'No size variants' }}</span>
+            }
+          </div>
           <small>{{ image.altText || 'No alternative text' }} · Order {{ image.displayOrder }}</small>
           <div class="admin-inline-actions">
             @if (!image.isPrimary) { <button type="button" (click)="setPrimary(image)">Set primary</button> }
-            <button type="button" (click)="edit(image)">Edit reference</button>
-            <button type="button" (click)="remove(image)">Remove</button>
+            <button type="button" (click)="edit(image)">Edit</button>
           </div>
+          <button class="btn btn-outline btn-small is-danger admin-image-card__remove" type="button" (click)="remove(image)">Remove image</button>
         </article>
       } @empty {
         <div class="state-panel"><h2>No images</h2><p>Add a URL or path reference below.</p></div>

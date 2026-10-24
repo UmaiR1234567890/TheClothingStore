@@ -6,16 +6,20 @@ using ClothingStore.Application.DTOs;
 using ClothingStore.Application.Services;
 using ClothingStore.Domain.Constants;
 using ClothingStore.Domain.Entities;
+using ClothingStore.Infrastructure.Email;
 using ClothingStore.Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ClothingStore.Infrastructure.Services;
 
 internal sealed class CheckoutService(
     ClothingStoreDbContext db,
     EffectivePriceResolver prices,
-    IEnumerable<IPaymentProvider> paymentProviders) : ICheckoutService
+    IEnumerable<IPaymentProvider> paymentProviders,
+    IEmailSender emails,
+    ILogger<CheckoutService> logger) : ICheckoutService
 {
     public async Task<CheckoutValidationDto> ValidateAsync(
         int? customerId,
@@ -229,6 +233,7 @@ internal sealed class CheckoutService(
             db.CartItems.RemoveRange(items);
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            await SendConfirmationEmailAsync(order, cancellationToken);
             return new CheckoutResultDto(
                 ToOrderDto(order),
                 paymentResult?.Status ?? "NotRequired",
@@ -242,6 +247,34 @@ internal sealed class CheckoutService(
             if (existing is not null)
                 return EnsureOwnerAndMap(existing, customerId, request.GuestEmail);
             throw;
+        }
+    }
+
+    private async Task SendConfirmationEmailAsync(Order order, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var recipient = order.GuestEmail
+                ?? (order.CustomerId.HasValue
+                    ? await db.Customers.AsNoTracking()
+                        .Where(x => x.CustomerId == order.CustomerId.Value)
+                        .Select(x => x.Email)
+                        .SingleOrDefaultAsync(cancellationToken)
+                    : null);
+            if (string.IsNullOrWhiteSpace(recipient))
+            {
+                logger.LogWarning("Order {OrderNumber} has no recipient email; confirmation was not sent.", order.OrderNumber);
+                return;
+            }
+
+            var (subject, html, text) = OrderConfirmationEmail.Build(order);
+            await emails.SendAsync(
+                new EmailMessage(recipient.Trim(), order.ShippingName, subject, html, text),
+                cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Failed to send the order confirmation email for {OrderNumber}.", order.OrderNumber);
         }
     }
 

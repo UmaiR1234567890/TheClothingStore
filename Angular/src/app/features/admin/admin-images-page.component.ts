@@ -116,6 +116,17 @@ export class AdminImagesPageComponent implements OnInit, OnDestroy {
       : `${(size / (1024 * 1024)).toFixed(1)} MB`;
   }
 
+  sizesForColor(colorId: number | null): string[] {
+    const names = new Set<string>();
+    for (const variant of this.product()?.variants ?? []) {
+      if (variant.isDeleted || variant.options.colorId !== colorId || !variant.options.sizeName) {
+        continue;
+      }
+      names.add(variant.options.sizeName);
+    }
+    return [...names].sort((left, right) => left.localeCompare(right));
+  }
+
   colorOptions(): Array<{ colorId: number; name: string }> {
     const colors = new Map<number, string>();
     for (const variant of this.product()?.variants ?? []) {

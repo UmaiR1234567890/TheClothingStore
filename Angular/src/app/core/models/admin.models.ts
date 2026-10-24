@@ -36,6 +36,11 @@ export interface VariantWriteRequest {
   isActive: boolean;
 }
 
+export interface VariantBulkWriteRequest {
+  variants: VariantWriteRequest[];
+  initialStock: number;
+}
+
 export interface ProductImageWriteRequest {
   imageUrl: string;
   altText: string | null;

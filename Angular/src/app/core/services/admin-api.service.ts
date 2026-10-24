@@ -20,6 +20,7 @@ import {
   SaleWriteRequest,
   ShipmentWriteRequest,
   StatusUpdateRequest,
+  VariantBulkWriteRequest,
   VariantWriteRequest,
 } from '../models/admin.models';
 import {
@@ -64,6 +65,10 @@ export class AdminApiService {
 
   createVariant(productId: number, request: VariantWriteRequest): Observable<ProductVariantDto> {
     return this.api.post<ProductVariantDto>(`/admin/products/${productId}/variants`, request);
+  }
+
+  createVariants(productId: number, request: VariantBulkWriteRequest): Observable<ProductVariantDto[]> {
+    return this.api.post<ProductVariantDto[]>(`/admin/products/${productId}/variants/bulk`, request);
   }
 
   updateVariant(id: number, request: VariantWriteRequest): Observable<ProductVariantDto> {

@@ -1,6 +1,7 @@
 using System.Text;
 using ClothingStore.Application.Contracts;
 using ClothingStore.Application.Services;
+using ClothingStore.Infrastructure.Email;
 using ClothingStore.Infrastructure.Identity;
 using ClothingStore.Infrastructure.Persistence;
 using ClothingStore.Infrastructure.Services;
@@ -49,7 +50,11 @@ public static class InfrastructureServiceCollectionExtensions
             .Validate(x => x.AccessTokenMinutes is >= 5 and <= 30, "Access tokens must expire within 5-30 minutes.")
             .ValidateOnStart();
 
+        services.AddOptions<EmailOptions>()
+            .Bind(configuration.GetSection("Email"));
+
         services.AddSingleton<IPricingCalculator, PricingCalculator>();
+        services.AddSingleton<IEmailSender, SmtpEmailSender>();
         services.AddScoped<EffectivePriceResolver>();
         services.AddScoped<AuditLogWriter>();
         services.AddScoped<ICatalogService, CatalogService>();

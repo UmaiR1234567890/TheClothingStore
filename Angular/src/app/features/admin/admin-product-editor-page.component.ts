@@ -115,6 +115,10 @@ export class AdminProductEditorPageComponent implements OnInit {
     return this.departments().find((department) => department.departmentId === id)?.name ?? '';
   }
 
+  attributeName(slug: string): string {
+    return this.attributes().find((attribute) => attribute.slug === slug)?.name ?? slug;
+  }
+
   addAttribute(): void {
     const slug = this.attributeSlug.value.trim();
     const value = this.attributeValue.value.trim();

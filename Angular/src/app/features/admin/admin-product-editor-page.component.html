@@ -76,7 +76,7 @@
         <button class="btn btn-outline btn-small" type="button" (click)="addAttribute()" [disabled]="!attributeSlug.value || !attributeValue.value.trim()">Add attribute</button>
         <div class="admin-attribute-list">
           @for (attribute of attributeDrafts(); track attribute.slug) {
-            <div><span><strong>{{ attribute.slug }}</strong> · {{ attribute.value }}</span><button class="text-button" type="button" (click)="removeAttribute(attribute.slug)">Remove</button></div>
+            <div><span><strong>{{ attributeName(attribute.slug) }}</strong> · {{ attribute.value }}</span><button class="text-button" type="button" (click)="removeAttribute(attribute.slug)">Remove</button></div>
           }
         </div>
       </section>

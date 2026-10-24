@@ -6,7 +6,7 @@
   @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
 
   <div class="admin-toolbar">
-    <form class="admin-toolbar__search" (ngSubmit)="search()">
+    <form class="admin-toolbar__search" (submit)="$event.preventDefault(); search()">
       <input class="control" type="search" [formControl]="searchControl" placeholder="Find by SKU or product" aria-label="Search inventory">
       <button class="btn btn-outline btn-small" type="submit">Search</button>
     </form>

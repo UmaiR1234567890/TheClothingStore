@@ -100,6 +100,7 @@ public interface ICatalogAdminService
     Task SetProductStatusAsync(int productId, string status, CancellationToken cancellationToken);
     Task DeleteProductAsync(int productId, CancellationToken cancellationToken);
     Task<ProductVariantDto> CreateVariantAsync(int productId, VariantWriteRequest request, CancellationToken cancellationToken);
+    Task<IReadOnlyList<ProductVariantDto>> CreateVariantsAsync(int productId, VariantBulkWriteRequest request, CancellationToken cancellationToken);
     Task<ProductVariantDto> UpdateVariantAsync(int variantId, VariantWriteRequest request, CancellationToken cancellationToken);
     Task SetVariantStatusAsync(int variantId, bool active, CancellationToken cancellationToken);
     Task<ProductImageDto> CreateImageAsync(int productId, ProductImageWriteRequest request, CancellationToken cancellationToken);

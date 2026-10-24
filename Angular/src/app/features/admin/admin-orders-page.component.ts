@@ -58,6 +58,16 @@ export class AdminOrdersPageComponent implements OnInit {
     return order.payments[0]?.status ?? (order.totalAmount === 0 ? 'Not required' : 'Pending');
   }
 
+  statusBadgeClass(status: string): string {
+    switch (status) {
+      case 'Completed': return 'admin-badge--success';
+      case 'Paid': case 'Shipped': return 'admin-badge--info';
+      case 'Pending': case 'Processing': return 'admin-badge--warn';
+      case 'Cancelled': return 'admin-badge--inactive';
+      default: return 'admin-badge--neutral';
+    }
+  }
+
   nextStatuses(order: OrderDto): string[] {
     const captured = order.payments.some((payment) => payment.status === 'Captured');
     const shipped = order.shipments.some((shipment) => ['Shipped', 'Delivered'].includes(shipment.status));

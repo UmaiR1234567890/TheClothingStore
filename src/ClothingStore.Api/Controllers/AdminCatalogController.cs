@@ -62,6 +62,17 @@ public sealed class AdminCatalogController(
         return NoContent();
     }
 
+    [HttpPost("products/{productId:int}/variants/bulk")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ProductVariantDto>>>> CreateVariants(
+        int productId,
+        VariantBulkWriteRequest request,
+        CancellationToken cancellationToken)
+    {
+        var variants = await catalog.CreateVariantsAsync(productId, request, cancellationToken);
+        return StatusCode(StatusCodes.Status201Created,
+            ApiResponse<IReadOnlyList<ProductVariantDto>>.Ok(variants, $"{variants.Count} variants created."));
+    }
+
     [HttpPost("products/{productId:int}/variants")]
     public async Task<ActionResult<ApiResponse<ProductVariantDto>>> CreateVariant(
         int productId,

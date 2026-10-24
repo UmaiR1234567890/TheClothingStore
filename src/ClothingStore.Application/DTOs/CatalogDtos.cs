@@ -154,6 +154,15 @@ public sealed class VariantWriteRequest
     public bool IsActive { get; init; } = true;
 }
 
+public sealed class VariantBulkWriteRequest
+{
+    [Required, MinLength(1), MaxLength(100)]
+    public List<VariantWriteRequest> Variants { get; init; } = [];
+
+    [Range(0, 1000000)]
+    public int InitialStock { get; init; }
+}
+
 public sealed class ProductImageWriteRequest
 {
     [Required, UrlOrPath]
