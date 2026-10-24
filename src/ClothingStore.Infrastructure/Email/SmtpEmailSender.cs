@@ -70,9 +70,27 @@ internal sealed class SmtpEmailSender(
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        await client.SendMailAsync(mail);
-        logger.LogInformation(
-            "Sent '{Subject}' to {ToAddress} via {DeliveryMethod}.",
-            message.Subject, message.ToAddress, client.DeliveryMethod);
+        try
+        {
+            await client.SendMailAsync(mail);
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Failed to send '{Subject}' to {ToAddress}.", message.Subject, message.ToAddress);
+            throw;
+        }
+
+        if (client.DeliveryMethod == SmtpDeliveryMethod.SpecifiedPickupDirectory)
+        {
+            logger.LogInformation(
+                "Email '{Subject}' to {ToAddress} was written as an .eml file in {Directory} (no real email is sent in pickup mode).",
+                message.Subject, message.ToAddress, client.PickupDirectoryLocation);
+        }
+        else
+        {
+            logger.LogInformation(
+                "Sent '{Subject}' to {ToAddress} via SMTP {Host}:{Port}.",
+                message.Subject, message.ToAddress, client.Host, client.Port);
+        }
     }
 }
