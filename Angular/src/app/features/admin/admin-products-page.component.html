@@ -46,7 +46,7 @@
                   <a [routerLink]="['/admin/products', product.productId, 'images']">Images</a>
                   <button type="button" (click)="openPromote(product)">Promote</button>
                   @if (!product.isDeleted) {
-                    <button class="is-danger" type="button" (click)="remove(product)">Soft delete</button>
+                    <button class="is-danger" type="button" (click)="remove(product)">Delete</button>
                   }
                 </div>
               </td>
@@ -91,6 +91,19 @@
       <div class="admin-form-actions">
         <a class="btn btn-outline btn-small" [routerLink]="['/admin/sales']" [queryParams]="{ promote: product.productId }">Create a new promotion</a>
         <button class="btn btn-outline" type="button" [disabled]="promoting()" (click)="closePromote()">Cancel</button>
+      </div>
+    </section>
+  }
+
+  @if (deleteTarget(); as product) {
+    <div class="admin-modal-backdrop" (click)="cancelDelete()" aria-hidden="true"></div>
+    <section class="admin-modal admin-modal--compact" role="alertdialog" aria-modal="true" aria-labelledby="delete-title">
+      <p class="eyebrow">Delete product</p>
+      <h2 id="delete-title">Delete "{{ product.name }}"?</h2>
+      <p class="muted-copy">The product is soft-deleted: it disappears from the storefront and admin lists, but historical orders keep their data. This can be reversed later.</p>
+      <div class="admin-form-actions admin-modal__actions">
+        <button class="btn btn-danger" type="button" [disabled]="deleting()" (click)="confirmDelete()">{{ deleting() ? 'Deleting…' : 'Yes, delete' }}</button>
+        <button class="btn btn-outline" type="button" [disabled]="deleting()" (click)="cancelDelete()">No, keep it</button>
       </div>
     </section>
   }

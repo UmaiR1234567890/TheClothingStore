@@ -4,6 +4,10 @@
     <span class="admin-page-heading__note">Status changes are checked by the API.</span>
   </div>
   <div class="admin-toolbar">
+    <form class="admin-toolbar__search" (submit)="$event.preventDefault(); search()">
+      <input class="control" type="search" [formControl]="searchControl" placeholder="Find order number, id, or customer email" aria-label="Search orders">
+      <button class="btn btn-outline btn-small" type="submit">Search</button>
+    </form>
     <span class="muted-copy">{{ result()?.totalCount ?? 0 }} orders</span>
     <label class="orders-filter">
       <span>Status</span>

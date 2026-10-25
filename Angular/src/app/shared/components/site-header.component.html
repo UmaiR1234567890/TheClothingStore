@@ -43,6 +43,10 @@
     </form>
 
     <div class="header-actions">
+      <a class="header-action" routerLink="/track">
+        <span class="header-action__eyebrow">Orders</span>
+        <span>Track order</span>
+      </a>
       @if (auth.user$ | async; as user) {
         <a class="header-action header-account" routerLink="/account/profile">
           <span class="header-action__eyebrow">Welcome</span>

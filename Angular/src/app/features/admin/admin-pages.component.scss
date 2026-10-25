@@ -263,6 +263,7 @@
 .admin-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 0.8rem;
 }
 
@@ -796,6 +797,16 @@
   background: #f7ebe8;
 }
 
+.variant-size-chip--taken,
+.variant-size-chip--taken:hover {
+  border-color: var(--line);
+  color: #9aa0a6;
+  background: #f3f4f1;
+  cursor: not-allowed;
+  opacity: 0.75;
+  text-decoration: line-through;
+}
+
 .variant-size-chip input {
   position: absolute;
   width: 1px;
@@ -937,6 +948,30 @@
   animation: admin-modal-in 0.18s ease-out;
 
   h2 { margin: 6px 0 10px; font-size: 22px; }
+}
+
+.admin-modal--wide {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.admin-modal--compact {
+  width: min(420px, calc(100vw - 32px));
+}
+
+.admin-modal form {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-modal .btn-danger {
+  border-color: var(--danger);
+  color: #fff;
+  background: var(--danger);
+}
+
+.admin-modal .btn-danger:hover:not(:disabled) {
+  color: #fff;
+  background: var(--accent-dark);
 }
 
 @keyframes admin-modal-in {

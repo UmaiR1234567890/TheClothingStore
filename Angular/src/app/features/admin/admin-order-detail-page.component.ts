@@ -4,13 +4,14 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { OrderDto } from '../../core/models/commerce.models';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { parseApiFailure } from '../../core/services/api-error.service';
+import { ShipmentTimelineComponent } from '../../shared/components/shipment-timeline.component';
 
 @Component({
   selector: 'tcs-admin-order-detail-page',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, RouterLink],
+  imports: [CurrencyPipe, DatePipe, RouterLink, ShipmentTimelineComponent],
   templateUrl: './admin-order-detail-page.component.html',
-  styleUrl: './admin-pages.component.scss',
+  styleUrls: ['./admin-pages.component.scss', '../orders/orders-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminOrderDetailPageComponent implements OnInit {

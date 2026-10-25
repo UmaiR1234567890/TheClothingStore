@@ -16,9 +16,10 @@ public sealed class AdminOrdersController(IOrderService orders) : ControllerBase
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] string? status = null,
+        [FromQuery] string? search = null,
         CancellationToken cancellationToken = default) =>
         Ok(ApiResponse<PagedResult<OrderDto>>.Ok(
-            await orders.GetAdminOrdersAsync(pageNumber, pageSize, status, cancellationToken)));
+            await orders.GetAdminOrdersAsync(pageNumber, pageSize, status, search, cancellationToken)));
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<ApiResponse<OrderDto>>> GetOrder(int id, CancellationToken cancellationToken) =>

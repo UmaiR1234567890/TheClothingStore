@@ -72,7 +72,7 @@ public interface IOrderService
     Task<OrderDto> GetCustomerOrderAsync(int customerId, int orderId, CancellationToken cancellationToken);
     Task<OrderDto> GetOrderTrackingAsync(int customerId, int orderId, CancellationToken cancellationToken);
     Task<OrderDto> GetGuestOrderTrackingAsync(string orderNumber, string email, CancellationToken cancellationToken);
-    Task<PagedResult<OrderDto>> GetAdminOrdersAsync(int page, int size, string? status, CancellationToken cancellationToken);
+    Task<PagedResult<OrderDto>> GetAdminOrdersAsync(int page, int size, string? status, string? search, CancellationToken cancellationToken);
     Task<OrderDto> GetAdminOrderAsync(int orderId, CancellationToken cancellationToken);
     Task<OrderDto> UpdateStatusAsync(int orderId, string status, string actorId, CancellationToken cancellationToken);
 }

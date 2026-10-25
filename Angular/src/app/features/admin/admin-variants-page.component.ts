@@ -160,13 +160,21 @@ export class AdminVariantsPageComponent implements OnInit {
   }
 
   toggleSize(key: string, sizeId: number): void {
+    const colorId = this.colorByKey(key)?.colorId ?? null;
+    if (this.isCombinationTaken(colorId, sizeId)) {
+      return;
+    }
     const current = new Set(this.selectedSizesFor(key));
     current.has(sizeId) ? current.delete(sizeId) : current.add(sizeId);
     this.sizeSelections.update((map) => ({ ...map, [key]: [...current] }));
   }
 
   selectAllSizes(key: string): void {
-    this.sizeSelections.update((map) => ({ ...map, [key]: this.availableSizes().map((size) => size.sizeId) }));
+    const colorId = this.colorByKey(key)?.colorId ?? null;
+    const freeSizes = this.availableSizes()
+      .map((size) => size.sizeId)
+      .filter((sizeId) => !this.isCombinationTaken(colorId, sizeId));
+    this.sizeSelections.update((map) => ({ ...map, [key]: freeSizes }));
   }
 
   clearSizes(key: string): void {
@@ -174,22 +182,25 @@ export class AdminVariantsPageComponent implements OnInit {
   }
 
   selectAllColors(): void {
-    const allKeys = ['none', ...this.colors().map((color) => String(color.colorId))];
-    this.selectedColorKeys.set(allKeys);
-    const allSizeIds = this.availableSizes().map((size) => size.sizeId);
+    const allKeys = this.colors().map((color) => String(color.colorId));
     const selections: Record<string, number[]> = {};
     for (const key of allKeys) {
-      selections[key] = this.sizeSelections()[key] ?? allSizeIds;
+      selections[key] = this.sizeSelections()[key] ?? [];
     }
+    this.selectedColorKeys.set(allKeys);
     this.sizeSelections.set(selections);
   }
 
-  selectEverySizeEverywhere(): void {
-    const allSizeIds = this.availableSizes().map((size) => size.sizeId);
+  selectAllColorsAndSizes(): void {
+    const allKeys = this.colors().map((color) => String(color.colorId));
     const selections: Record<string, number[]> = {};
-    for (const key of this.selectedColorKeys()) {
-      selections[key] = [...allSizeIds];
+    for (const key of allKeys) {
+      const colorId = Number(key);
+      selections[key] = this.availableSizes()
+        .map((size) => size.sizeId)
+        .filter((sizeId) => !this.isCombinationTaken(colorId, sizeId));
     }
+    this.selectedColorKeys.set(allKeys);
     this.sizeSelections.set(selections);
   }
 
@@ -202,7 +213,7 @@ export class AdminVariantsPageComponent implements OnInit {
     return this.sizes().find((size) => size.sizeId === sizeId)?.name ?? '';
   }
 
-  combinations(): VariantCombination[] {
+  private allCombinations(): VariantCombination[] {
     const base = this.bulkForm.controls.skuBase.value.trim();
     const combos: VariantCombination[] = [];
     for (const key of this.selectedColorKeys()) {
@@ -234,8 +245,28 @@ export class AdminVariantsPageComponent implements OnInit {
     return combos;
   }
 
+  combinations(): VariantCombination[] {
+    return this.allCombinations().filter((combo) => !this.isCombinationTaken(combo.colorId, combo.sizeId));
+  }
+
+  takenCombinations(): VariantCombination[] {
+    return this.allCombinations().filter((combo) => this.isCombinationTaken(combo.colorId, combo.sizeId));
+  }
+
   existingSkus(): Set<string> {
     return new Set((this.product()?.variants ?? []).map((variant) => variant.sku.trim().toUpperCase()));
+  }
+
+  isCombinationTaken(colorId: number | null, sizeId: number | null): boolean {
+    return (this.product()?.variants ?? []).some((variant) =>
+      !variant.isDeleted &&
+      variant.options.colorId === colorId &&
+      variant.options.sizeId === sizeId &&
+      variant.options.volumeMl == null);
+  }
+
+  isColorOnlyTaken(colorId: number | null): boolean {
+    return this.isCombinationTaken(colorId, null);
   }
 
   edit(variant: ProductVariantDto): void {
@@ -377,7 +408,10 @@ export class AdminVariantsPageComponent implements OnInit {
       return;
     }
     if (combos.length === 0) {
-      this.error.set('Select at least one color (or "No color") to build variants.');
+      this.error.set(
+        this.takenCombinations().length > 0
+          ? 'All selected combinations already exist as variants.'
+          : 'Select at least one color to build variants.');
       return;
     }
     const value = this.bulkForm.getRawValue();

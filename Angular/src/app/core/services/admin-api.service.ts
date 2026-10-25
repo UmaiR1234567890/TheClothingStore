@@ -214,8 +214,8 @@ export class AdminApiService {
     );
   }
 
-  getOrders(pageNumber = 1, pageSize = 20, status?: string): Observable<PagedResult<OrderDto>> {
-    return this.api.get<PagedResult<OrderDto>>('/admin/orders', { pageNumber, pageSize, status });
+  getOrders(pageNumber = 1, pageSize = 20, status?: string, search?: string): Observable<PagedResult<OrderDto>> {
+    return this.api.get<PagedResult<OrderDto>>('/admin/orders', { pageNumber, pageSize, status, search });
   }
 
   getOrder(id: number): Observable<OrderDto> {

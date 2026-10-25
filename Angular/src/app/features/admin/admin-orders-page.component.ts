@@ -1,6 +1,6 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
-import { FormControl } from '@angular/forms';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { OrderDto } from '../../core/models/commerce.models';
 import { PagedResult } from '../../core/models/api.models';
@@ -10,7 +10,7 @@ import { parseApiFailure } from '../../core/services/api-error.service';
 @Component({
   selector: 'tcs-admin-orders-page',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, RouterLink],
+  imports: [CurrencyPipe, DatePipe, ReactiveFormsModule, RouterLink],
   templateUrl: './admin-orders-page.component.html',
   styleUrl: './admin-pages.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,6 +23,7 @@ export class AdminOrdersPageComponent implements OnInit {
   readonly message = signal('');
   readonly pageNumber = signal(1);
   readonly status = signal('');
+  readonly searchControl = new FormControl('', { nonNullable: true });
 
   constructor(private readonly admin: AdminApiService) {}
 
@@ -34,7 +35,7 @@ export class AdminOrdersPageComponent implements OnInit {
     this.pageNumber.set(page);
     this.loading.set(true);
     this.error.set('');
-    this.admin.getOrders(page, 20, this.status() || undefined).subscribe({
+    this.admin.getOrders(page, 20, this.status() || undefined, this.searchControl.value.trim() || undefined).subscribe({
       next: (result) => {
         this.result.set(result);
         this.loading.set(false);
@@ -44,6 +45,10 @@ export class AdminOrdersPageComponent implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  search(): void {
+    this.load(1);
   }
 
   setStatusFilter(event: Event): void {

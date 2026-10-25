@@ -119,6 +119,11 @@ export class AdminProductEditorPageComponent implements OnInit {
     return this.attributes().find((attribute) => attribute.slug === slug)?.name ?? slug;
   }
 
+  availableAttributes(): ProductAttributeDefinitionDto[] {
+    const used = new Set(this.attributeDrafts().map((item) => item.slug));
+    return this.attributes().filter((attribute) => !used.has(attribute.slug));
+  }
+
   addAttribute(): void {
     const slug = this.attributeSlug.value.trim();
     const value = this.attributeValue.value.trim();
@@ -147,7 +152,7 @@ export class AdminProductEditorPageComponent implements OnInit {
     const value = this.form.getRawValue();
     const request = {
       name: value.name.trim(),
-      slug: value.slug.trim(),
+      slug: value.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
       description: value.description.trim() || null,
       brand: value.brand.trim() || null,
       status: value.status,

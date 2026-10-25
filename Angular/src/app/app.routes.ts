@@ -72,6 +72,11 @@ export const routes: Routes = [
           .then((module) => module.AddressesPageComponent),
       },
       {
+        path: 'track',
+        loadComponent: () => import('./features/track/order-track-page.component')
+          .then((module) => module.OrderTrackPageComponent),
+      },
+      {
         path: 'account/orders',
         canActivate: [authGuard],
         loadComponent: () => import('./features/orders/order-history-page.component')

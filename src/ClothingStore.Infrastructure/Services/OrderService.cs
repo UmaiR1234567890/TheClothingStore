@@ -77,6 +77,7 @@ internal sealed class OrderService(ClothingStoreDbContext db) : IOrderService
         int page,
         int size,
         string? status,
+        string? search,
         CancellationToken cancellationToken)
     {
         ValidatePage(page, size);
@@ -85,6 +86,16 @@ internal sealed class OrderService(ClothingStoreDbContext db) : IOrderService
         {
             ValidateOrderStatus(status);
             query = query.Where(x => x.Status == status);
+        }
+        var term = search?.Trim();
+        if (!string.IsNullOrWhiteSpace(term))
+        {
+            var isNumeric = int.TryParse(term, out var numericId);
+            query = query.Where(x =>
+                x.OrderNumber.Contains(term) ||
+                (isNumeric && x.OrderId == numericId) ||
+                (x.GuestEmail != null && x.GuestEmail.Contains(term)) ||
+                (x.Customer != null && x.Customer.Email.Contains(term)));
         }
         var count = await query.CountAsync(cancellationToken);
         var rows = await LoadOrderGraph(query.OrderByDescending(x => x.PlacedAt))

@@ -1,0 +1,49 @@
+<section class="account-page container">
+  <p class="eyebrow">Delivery updates</p>
+  <h1 class="page-title">Track your order.</h1>
+  <p class="page-intro">Enter the order number from your confirmation email and the email address used at checkout.</p>
+
+  <form class="track-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="field">
+      <label for="track-number">Order number</label>
+      <input id="track-number" class="control" formControlName="orderNumber" placeholder="e.g. TCS261024182910-AF62DFA7" autocomplete="off">
+      @if (form.controls.orderNumber.touched && form.controls.orderNumber.invalid) {
+        <span class="field-error">Enter the order number from your email.</span>
+      }
+    </div>
+    <div class="field">
+      <label for="track-email">Email address</label>
+      <input id="track-email" class="control" type="email" formControlName="email" placeholder="you@example.com" autocomplete="email">
+      @if (form.controls.email.touched && form.controls.email.invalid) {
+        <span class="field-error">Enter the email address used at checkout.</span>
+      }
+    </div>
+    <button class="btn btn-primary" type="submit" [disabled]="searching()">{{ searching() ? 'Finding order…' : 'Track order' }}</button>
+  </form>
+
+  @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
+
+  @if (order(); as current) {
+    <div class="track-result">
+      <div class="track-result__head">
+        <div>
+          <span class="eyebrow">Order</span>
+          <h2 class="track-result__number">{{ current.orderNumber }}</h2>
+          <p class="muted-copy">Placed {{ current.placedAt | date:'mediumDate' }} · {{ current.items.length }} item{{ current.items.length === 1 ? '' : 's' }}</p>
+        </div>
+        <span class="status-pill" [attr.data-status]="current.status.toLowerCase()">{{ current.status }}</span>
+      </div>
+      @if (current.shipments.length > 0) {
+        <div class="tracking-list">
+          @for (shipment of current.shipments; track shipment.shipmentId) {
+            <article class="tracking-card">
+              <tcs-shipment-timeline [shipment]="shipment" />
+            </article>
+          }
+        </div>
+      } @else {
+        <div class="state-panel"><h2>Tracking is not available yet</h2><p>The store has not added a shipment for this order.</p></div>
+      }
+    </div>
+  }
+</section>

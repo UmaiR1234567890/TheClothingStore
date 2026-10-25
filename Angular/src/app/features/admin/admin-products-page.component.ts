@@ -27,6 +27,8 @@ export class AdminProductsPageComponent implements OnInit {
   readonly promoting = signal(false);
   readonly promoteError = signal('');
   readonly promoteMessage = signal('');
+  readonly deleteTarget = signal<AdminProductCardDto | null>(null);
+  readonly deleting = signal(false);
 
   constructor(
     private readonly admin: AdminApiService,
@@ -58,13 +60,32 @@ export class AdminProductsPageComponent implements OnInit {
   }
 
   remove(product: AdminProductCardDto): void {
-    if (!window.confirm(`Soft-delete “${product.name}”? Historical orders will remain unchanged.`)) {
+    this.deleteTarget.set(product);
+  }
+
+  cancelDelete(): void {
+    if (!this.deleting()) {
+      this.deleteTarget.set(null);
+    }
+  }
+
+  confirmDelete(): void {
+    const product = this.deleteTarget();
+    if (!product || this.deleting()) {
       return;
     }
     this.error.set('');
+    this.deleting.set(true);
     this.admin.deleteProduct(product.productId).subscribe({
-      next: () => this.load(this.pageNumber()),
-      error: (failure: unknown) => this.error.set(parseApiFailure(failure, 'The product could not be deleted.').message),
+      next: () => {
+        this.deleting.set(false);
+        this.deleteTarget.set(null);
+        this.load(this.pageNumber());
+      },
+      error: (failure: unknown) => {
+        this.error.set(parseApiFailure(failure, 'The product could not be deleted.').message);
+        this.deleting.set(false);
+      },
     });
   }
 

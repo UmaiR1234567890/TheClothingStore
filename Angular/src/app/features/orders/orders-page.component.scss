@@ -342,6 +342,38 @@
   }
 }
 
+.track-form {
+  display: grid;
+  max-width: 520px;
+  gap: 0.9rem;
+  margin-top: 1.5rem;
+  border: 1px solid var(--line);
+  padding: 1.25rem;
+  background: var(--surface);
+}
+
+.track-result {
+  margin-top: 1.75rem;
+}
+
+.track-result__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid var(--line);
+  padding: 1.25rem;
+  background: var(--surface);
+}
+
+.track-result__number {
+  margin: 0.25rem 0;
+  font-family: "Bodoni MT", Didot, Georgia, serif;
+  font-size: 1.6rem;
+  font-weight: 500;
+  word-break: break-all;
+}
+
 .tracking-steps {
   display: flex;
   flex-direction: column;

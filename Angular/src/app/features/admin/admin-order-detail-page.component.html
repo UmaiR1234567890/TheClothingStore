@@ -52,6 +52,20 @@
         <a class="text-link" routerLink="/admin/shipments">Manage shipments →</a>
       </aside>
     </div>
+    <section class="admin-form-card">
+      <h2>Order tracking</h2>
+      @if (current.shipments.length > 0) {
+        <div class="tracking-list">
+          @for (shipment of current.shipments; track shipment.shipmentId) {
+            <article class="tracking-card">
+              <tcs-shipment-timeline [shipment]="shipment" />
+            </article>
+          }
+        </div>
+      } @else {
+        <p class="muted-copy">No shipment exists for this order yet — create one from the shipments page to see tracking here.</p>
+      }
+    </section>
     }
   }
 </section>

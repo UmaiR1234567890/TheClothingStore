@@ -87,6 +87,9 @@ export class AdminShipmentsPageComponent implements OnInit {
     this.selectedOrder.set(order);
     this.orderPickerOpen.set(false);
     this.orderSearch.setValue('');
+    if (!this.form.controls.trackingNumber.value.trim()) {
+      this.generateTrackingNumber();
+    }
   }
 
   clearOrder(): void {

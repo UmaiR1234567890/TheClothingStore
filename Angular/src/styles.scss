@@ -325,6 +325,32 @@ img {
   animation: spin 700ms linear infinite;
 }
 
+.app-loading-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 400;
+  height: 3px;
+  overflow: hidden;
+  background: rgb(157 56 44 / 16%);
+}
+
+.app-loading-bar::before {
+  content: "";
+  display: block;
+  width: 35%;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  animation: app-loading-slide 900ms ease-in-out infinite;
+}
+
+@keyframes app-loading-slide {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(320%); }
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

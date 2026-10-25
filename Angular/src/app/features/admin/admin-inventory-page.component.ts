@@ -25,6 +25,8 @@ export class AdminInventoryPageComponent implements OnInit {
   readonly message = signal('');
   readonly pageNumber = signal(1);
   readonly searchControl = new FormControl('', { nonNullable: true });
+  readonly adjustTarget = signal<InventoryDto | null>(null);
+  readonly historyTarget = signal<InventoryDto | null>(null);
   readonly adjustmentForm = new FormGroup({
     productVariantId: new FormControl<number | null>(null, [Validators.required, Validators.min(1)]),
     quantityChange: new FormControl<number | null>(null, Validators.required),
@@ -56,6 +58,26 @@ export class AdminInventoryPageComponent implements OnInit {
 
   search(): void {
     this.load(1);
+  }
+
+  openAdjust(item: InventoryDto): void {
+    this.adjustTarget.set(item);
+    this.adjustmentForm.reset({ productVariantId: item.productVariantId, quantityChange: null, reason: '' });
+  }
+
+  closeAdjust(): void {
+    if (!this.adjusting()) {
+      this.adjustTarget.set(null);
+    }
+  }
+
+  openHistory(item: InventoryDto): void {
+    this.historyTarget.set(item);
+    this.showTransactions(item);
+  }
+
+  closeHistory(): void {
+    this.historyTarget.set(null);
   }
 
   showTransactions(item: InventoryDto): void {
@@ -92,6 +114,7 @@ export class AdminInventoryPageComponent implements OnInit {
       next: (item) => {
         this.message.set(`Stock updated for ${item.sku}. Available quantity: ${item.quantityAvailable}.`);
         this.adjusting.set(false);
+        this.adjustTarget.set(null);
         this.load(this.pageNumber());
         if (this.selectedVariantId === item.productVariantId) {
           this.showTransactions(item);

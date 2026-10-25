@@ -168,11 +168,15 @@ export class AdminImagesPageComponent implements OnInit, OnDestroy {
   }
 
   imageLimitReached(): boolean {
+    return this.imageSlotsLeft() <= 0;
+  }
+
+  imageSlotsLeft(): number {
     const colorId = this.form.controls.colorId.value;
     const groupCount = (this.product()?.images ?? [])
       .filter((image) => image.colorId === colorId && image.productImageId !== this.editingId())
       .length;
-    return groupCount >= 5;
+    return Math.max(0, 20 - groupCount);
   }
 
   edit(image: ProductImageDto): void {
@@ -227,7 +231,15 @@ export class AdminImagesPageComponent implements OnInit, OnDestroy {
         this.message.set('Image reference saved.');
       } else {
         const files = this.selectedFiles();
+        const slotsLeft = this.imageSlotsLeft();
+        if (files.length > slotsLeft) {
+          this.error.set(`Only ${slotsLeft} image slot${slotsLeft === 1 ? '' : 's'} left in this gallery (20 per color). Remove ${files.length - slotsLeft} file${files.length - slotsLeft === 1 ? '' : 's'} or pick a different color.`);
+          this.saving.set(false);
+          return;
+        }
         const markFirstPrimary = value.isPrimary || !this.hasPrimaryForColor(value.colorId);
+        let uploaded = 0;
+        let lastError = '';
         for (const [index, entry] of files.entries()) {
           const metadata: ProductImageUploadMetadata = {
             altText: files.length === 1
@@ -237,9 +249,25 @@ export class AdminImagesPageComponent implements OnInit, OnDestroy {
             isPrimary: index === 0 && markFirstPrimary,
             colorId: value.colorId,
           };
-          await firstValueFrom(this.admin.uploadImage(this.productId(), entry.file, metadata));
+          try {
+            await firstValueFrom(this.admin.uploadImage(this.productId(), entry.file, metadata));
+            uploaded += 1;
+          } catch (failure) {
+            lastError = `"${entry.file.name}": ${parseApiFailure(failure, 'upload failed').message}`;
+          }
         }
-        this.message.set(files.length === 1 ? 'Image uploaded.' : `${files.length} images uploaded.`);
+        if (uploaded > 0) {
+          this.message.set(
+            uploaded === files.length
+              ? (uploaded === 1 ? 'Image uploaded.' : `${uploaded} images uploaded.`)
+              : `${uploaded} of ${files.length} images uploaded.`);
+        }
+        if (lastError) {
+          this.error.set(
+            uploaded === 0
+              ? lastError
+              : `${files.length - uploaded} file${files.length - uploaded === 1 ? '' : 's'} could not be uploaded — ${lastError}`);
+        }
       }
       this.saving.set(false);
       this.reset();

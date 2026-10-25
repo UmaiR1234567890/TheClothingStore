@@ -751,12 +751,12 @@ internal sealed class CatalogAdminService(
                  x.ColorId == colorId &&
                  (!exceptImageId.HasValue || x.ProductImageId != exceptImageId.Value),
             cancellationToken);
-        if (imageCount >= 5)
+        if (imageCount >= 20)
         {
             throw new ServiceException(
                 400,
                 "image_limit_per_color",
-                "A product can have at most five images in each color gallery.");
+                "A product can have at most twenty images in each color gallery.");
         }
     }
 

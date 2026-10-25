@@ -58,8 +58,11 @@
       </table>
     </div>
 
+    @if (editingId() !== null) {
+      <div class="admin-modal-backdrop" (click)="resetForm()" aria-hidden="true"></div>
+    }
     @if (editingId() !== null || isPerfume()) {
-      <form class="admin-form-card" [formGroup]="form" (ngSubmit)="save()">
+      <form class="admin-form-card" [class.admin-modal]="editingId() !== null" [class.admin-modal--wide]="editingId() !== null" role="dialog" [attr.aria-modal]="editingId() !== null" [formGroup]="form" (ngSubmit)="save()">
         <h2>{{ editingId() ? 'Edit variant' : 'Add variant' }}</h2>
         <p class="muted-copy">Choose from the active store colors and sizes. Perfume variants use volume instead.</p>
         <div class="admin-form-grid">
@@ -115,22 +118,23 @@
         </div>
         <div class="admin-form-grid">
           <div class="field"><label for="bulk-stock">Starting stock per variant</label><input id="bulk-stock" class="control" type="number" min="0" step="1" formControlName="initialStock"></div>
-          <label class="admin-check-row"><input type="checkbox" formControlName="isActive"> Active for sale</label>
+          <div class="field">
+            <label class="admin-check-row"><input type="checkbox" formControlName="isActive"> Active for sale</label>
+            @if (!bulkForm.controls.isActive.value) {
+              <span class="field-error">Unchecked — variants will be created inactive and hidden from the storefront.</span>
+            }
+          </div>
         </div>
 
         <fieldset class="variant-picker">
           <legend class="variant-picker__label">Colors
             <span class="variant-picker__tools">
               <button class="text-button" type="button" (click)="selectAllColors()">All colors</button>
+              <button class="text-button" type="button" (click)="selectAllColorsAndSizes()">All colors + all sizes</button>
               <button class="text-button" type="button" (click)="clearColors()">None</button>
-              <button class="text-button" type="button" (click)="selectEverySizeEverywhere()" [disabled]="selectedColorKeys().length === 0">All sizes in every color</button>
             </span>
           </legend>
           <div class="variant-color-list">
-            <label class="variant-color-chip" [class.variant-color-chip--selected]="isColorKeySelected('none')">
-              <input type="checkbox" [checked]="isColorKeySelected('none')" (change)="toggleColorKey('none')">
-              No color
-            </label>
             @for (color of colors(); track color.colorId) {
               <label class="variant-color-chip" [class.variant-color-chip--selected]="isColorKeySelected(colorKey(color.colorId))">
                 <input type="checkbox" [checked]="isColorKeySelected(colorKey(color.colorId))" (change)="toggleColorKey(colorKey(color.colorId))">
@@ -152,21 +156,32 @@
             </div>
             <div class="variant-size-list">
               @for (size of availableSizes(); track size.sizeId) {
-                <label class="variant-size-chip" [class.variant-size-chip--selected]="isSizeSelected(key, size.sizeId)">
-                  <input type="checkbox" [checked]="isSizeSelected(key, size.sizeId)" (change)="toggleSize(key, size.sizeId)">
-                  {{ size.name }}
-                </label>
+                @if (isCombinationTaken(colorByKey(key)?.colorId ?? null, size.sizeId)) {
+                  <span class="variant-size-chip variant-size-chip--taken" title="This color + size variant already exists">{{ size.name }}</span>
+                } @else {
+                  <label class="variant-size-chip" [class.variant-size-chip--selected]="isSizeSelected(key, size.sizeId)">
+                    <input type="checkbox" [checked]="isSizeSelected(key, size.sizeId)" (change)="toggleSize(key, size.sizeId)">
+                    {{ size.name }}
+                  </label>
+                }
               } @empty {
                 <span class="muted-copy">No active sizes for this product type.</span>
               }
             </div>
-            <small class="muted-copy">No sizes selected creates a single {{ colorByKey(key)?.name ?? 'standard' }} variant without a size.</small>
+            @if (isColorOnlyTaken(colorByKey(key)?.colorId ?? null)) {
+              <small class="muted-copy">A {{ colorByKey(key)?.name }} variant without a size already exists — pick sizes to add more.</small>
+            } @else {
+              <small class="muted-copy">No sizes selected creates a single {{ colorByKey(key)?.name ?? 'standard' }} variant without a size.</small>
+            }
           </fieldset>
         }
 
         @if (bulkForm.controls.skuBase.touched && bulkForm.controls.skuBase.invalid) { <span class="field-error">Enter a SKU base (up to 40 characters).</span> }
         <div class="variant-builder__summary" role="status">
           <strong>{{ combinations().length }}</strong> variant{{ combinations().length === 1 ? '' : 's' }} will be created
+          @if (takenCombinations().length > 0) {
+            <small class="muted-copy"> — {{ takenCombinations().length }} already exist{{ takenCombinations().length === 1 ? 's' : '' }} and will be skipped</small>
+          }
           @if (combinations().length > 0) {
             <div class="variant-builder__skus">
               @for (combo of combinations(); track combo.key) {

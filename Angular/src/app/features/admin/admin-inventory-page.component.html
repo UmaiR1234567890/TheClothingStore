@@ -16,7 +16,7 @@
   @else if (inventory()?.items?.length) {
     <div class="admin-table-wrap">
       <table class="admin-table">
-        <thead><tr><th>SKU</th><th>On hand</th><th>Reserved</th><th>Available</th><th>Updated</th><th>Ledger</th></tr></thead>
+        <thead><tr><th>SKU</th><th>On hand</th><th>Reserved</th><th>Available</th><th>Updated</th><th>Actions</th></tr></thead>
         <tbody>
           @for (item of inventory()!.items; track item.productVariantId) {
             <tr>
@@ -24,7 +24,12 @@
               <td>{{ item.quantityOnHand }}</td><td>{{ item.quantityReserved }}</td>
               <td><span class="inventory-available" [class.inventory-available--low]="item.quantityAvailable <= 5">{{ item.quantityAvailable }}</span></td>
               <td>{{ item.updatedAt | date:'short' }}</td>
-              <td><button class="text-button" type="button" (click)="showTransactions(item)">View history</button></td>
+              <td>
+                <div class="admin-inline-actions">
+                  <button type="button" (click)="openAdjust(item)">Adjust</button>
+                  <button type="button" (click)="openHistory(item)">View history</button>
+                </div>
+              </td>
             </tr>
           }
         </tbody>
@@ -41,17 +46,28 @@
     <div class="state-panel"><h2>No inventory rows found</h2><p>Variants receive an inventory row when created by the admin API.</p></div>
   }
 
-  <div class="admin-operations-grid">
-    <form class="admin-form-card" [formGroup]="adjustmentForm" (ngSubmit)="adjust()">
-      <p class="eyebrow">Manual stock control</p><h2>Adjust inventory.</h2>
-      <p class="muted-copy">A signed adjustment changes on-hand stock. Reserved stock cannot be reduced below its reserved quantity.</p>
-      <div class="field"><label for="adjust-variant">Variant ID</label><input id="adjust-variant" class="control" type="number" min="1" formControlName="productVariantId"></div>
-      <div class="field"><label for="adjust-quantity">Quantity change</label><input id="adjust-quantity" class="control" type="number" formControlName="quantityChange"><small>Use a positive number for incoming stock or a negative number for a reduction.</small></div>
-      <div class="field"><label for="adjust-reason">Reason</label><textarea id="adjust-reason" class="control" rows="3" formControlName="reason"></textarea></div>
-      <button class="btn btn-primary" type="submit" [disabled]="adjusting()">{{ adjusting() ? 'Saving…' : 'Record adjustment' }}</button>
-    </form>
-    <section class="admin-form-card">
-      <p class="eyebrow">Inventory ledger</p><h2>Recent transactions.</h2>
+  @if (adjustTarget(); as target) {
+    <div class="admin-modal-backdrop" (click)="closeAdjust()" aria-hidden="true"></div>
+    <section class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="adjust-title">
+      <form [formGroup]="adjustmentForm" (ngSubmit)="adjust()">
+        <p class="eyebrow">Manual stock control</p>
+        <h2 id="adjust-title">Adjust inventory.</h2>
+        <p class="muted-copy"><strong>{{ target.sku }}</strong> · {{ target.quantityOnHand }} on hand, {{ target.quantityAvailable }} available. A signed adjustment changes on-hand stock; reserved stock cannot be reduced below its reserved quantity.</p>
+        <div class="field"><label for="adjust-quantity">Quantity change</label><input id="adjust-quantity" class="control" type="number" formControlName="quantityChange" autofocus><small>Use a positive number for incoming stock or a negative number for a reduction.</small></div>
+        <div class="field"><label for="adjust-reason">Reason</label><textarea id="adjust-reason" class="control" rows="3" formControlName="reason"></textarea></div>
+        <div class="admin-form-actions">
+          <button class="btn btn-primary" type="submit" [disabled]="adjusting()">{{ adjusting() ? 'Saving…' : 'Record adjustment' }}</button>
+          <button class="btn btn-outline" type="button" [disabled]="adjusting()" (click)="closeAdjust()">Cancel</button>
+        </div>
+      </form>
+    </section>
+  }
+
+  @if (historyTarget(); as target) {
+    <div class="admin-modal-backdrop" (click)="closeHistory()" aria-hidden="true"></div>
+    <section class="admin-modal admin-modal--wide" role="dialog" aria-modal="true" aria-labelledby="history-title">
+      <p class="eyebrow">Inventory ledger</p>
+      <h2 id="history-title">{{ target.sku }}.</h2>
       @if (transactionError()) { <p class="notice notice-error" role="alert">{{ transactionError() }}</p> }
       @if (transactionsLoading()) {
         <div class="state-panel"><span class="spinner" aria-label="Loading transactions"></span></div>
@@ -59,14 +75,17 @@
         <div class="transaction-list">
           @for (item of transactions(); track item.inventoryTransactionId) {
             <article class="transaction-row">
-              <div><strong>{{ item.sku }}</strong><small>{{ item.transactionType }} · {{ item.createdAt | date:'short' }}</small></div>
+              <div><strong>{{ item.transactionType }}</strong><small>{{ item.notes || '—' }} · {{ item.createdAt | date:'short' }}</small></div>
               <span [class.transaction-row__negative]="item.quantityChange < 0">{{ item.quantityChange > 0 ? '+' : '' }}{{ item.quantityChange }}</span>
             </article>
           }
         </div>
       } @else {
-        <p class="muted-copy">Select a variant from the inventory table to review its ledger.</p>
+        <p class="muted-copy">No transactions recorded for this variant yet.</p>
       }
+      <div class="admin-form-actions">
+        <button class="btn btn-outline" type="button" (click)="closeHistory()">Close</button>
+      </div>
     </section>
-  </div>
+  }
 </section>
