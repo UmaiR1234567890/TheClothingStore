@@ -15,6 +15,10 @@ export class ProductCardComponent {
   @Input({ required: true }) product!: ProductCardDto;
   imageFailed = false;
 
+  hasRegularPrice(): boolean {
+    return this.product.regularMinPrice != null && this.product.regularMaxPrice != null;
+  }
+
   imageSource(path: string): string {
     if (/^https?:\/\//i.test(path)) {
       return path;

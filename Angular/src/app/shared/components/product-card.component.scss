@@ -119,3 +119,16 @@
   color: var(--muted);
   font-weight: 450;
 }
+
+.product-card__price-sale {
+  color: #b3261e;
+  font-weight: 700;
+}
+
+.product-card__price-regular {
+  margin-left: 8px;
+  color: #8a919d;
+  text-decoration: line-through;
+  font-size: 0.85em;
+  font-weight: 400;
+}

@@ -71,6 +71,7 @@ public interface IOrderService
     Task<PagedResult<OrderDto>> GetCustomerOrdersAsync(int customerId, int page, int size, string? status, CancellationToken cancellationToken);
     Task<OrderDto> GetCustomerOrderAsync(int customerId, int orderId, CancellationToken cancellationToken);
     Task<OrderDto> GetOrderTrackingAsync(int customerId, int orderId, CancellationToken cancellationToken);
+    Task<OrderDto> GetGuestOrderTrackingAsync(string orderNumber, string email, CancellationToken cancellationToken);
     Task<PagedResult<OrderDto>> GetAdminOrdersAsync(int page, int size, string? status, CancellationToken cancellationToken);
     Task<OrderDto> GetAdminOrderAsync(int orderId, CancellationToken cancellationToken);
     Task<OrderDto> UpdateStatusAsync(int orderId, string status, string actorId, CancellationToken cancellationToken);
@@ -80,9 +81,10 @@ public interface IPaymentService
 {
     Task<PaymentDto?> GetCustomerPaymentAsync(int customerId, int orderId, CancellationToken cancellationToken);
     Task<PaymentDto> InitiateCustomerPaymentAsync(int customerId, int orderId, string method, CancellationToken cancellationToken);
-    Task<PagedResult<PaymentDto>> GetAdminPaymentsAsync(int page, int size, CancellationToken cancellationToken);
+    Task<PagedResult<PaymentDto>> GetAdminPaymentsAsync(int page, int size, string? search, CancellationToken cancellationToken);
     Task<PaymentDto> GetAdminPaymentAsync(int paymentId, CancellationToken cancellationToken);
     Task<PaymentDto> MarkCashCollectedAsync(int paymentId, string actorId, string reason, CancellationToken cancellationToken);
+    Task<PaymentDto> RefundPaymentAsync(int paymentId, string actorId, string reason, CancellationToken cancellationToken);
 }
 
 public interface INewsletterService
@@ -147,6 +149,7 @@ public interface IShipmentService
     Task<ShipmentDto> CreateShipmentAsync(ShipmentWriteRequest request, CancellationToken cancellationToken);
     Task<ShipmentDto> UpdateShipmentAsync(int id, ShipmentWriteRequest request, CancellationToken cancellationToken);
     Task<ShipmentDto> UpdateShipmentStatusAsync(int id, string status, CancellationToken cancellationToken);
+    Task<IReadOnlyList<CarrierDto>> GetCarriersAsync(CancellationToken cancellationToken);
 }
 
 public interface IDashboardService
@@ -168,4 +171,4 @@ public sealed record DiscountCandidate(
     bool IsActive,
     bool IsDeleted);
 
-public sealed record EffectivePrice(decimal Amount, bool IsOnSale, string? SaleName);
+public sealed record EffectivePrice(decimal Amount, bool IsOnSale, string? SaleName, DateTime? SaleEndsAt = null);

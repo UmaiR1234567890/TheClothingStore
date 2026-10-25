@@ -38,9 +38,64 @@ internal sealed class EffectivePriceResolver(
             })
             .ToListAsync(cancellationToken);
 
+        // Scopes target whole departments/categories (or the whole store when
+        // both ids are null). Resolve each product's memberships once, then map
+        // matching scoped offers back onto the product ids.
+        var categoryPairs = await db.ProductCategories.AsNoTracking()
+            .Where(x => productIds.Contains(x.ProductId))
+            .Select(x => new { x.ProductId, x.CategoryId })
+            .ToListAsync(cancellationToken);
+        var departmentPairs = await db.ProductDepartments.AsNoTracking()
+            .Where(x => productIds.Contains(x.ProductId))
+            .Select(x => new { x.ProductId, x.DepartmentId })
+            .ToListAsync(cancellationToken);
+        var scopes = await db.SaleScopes.AsNoTracking()
+            .Where(x => x.Sale.IsActive &&
+                        !x.Sale.IsDeleted &&
+                        (x.Sale.StartsAt == null || x.Sale.StartsAt <= now) &&
+                        (x.Sale.EndsAt == null || x.Sale.EndsAt >= now))
+            .Select(x => new
+            {
+                x.DepartmentId,
+                x.CategoryId,
+                Candidate = new DiscountCandidate(
+                    x.Sale.Name,
+                    x.Sale.DiscountType,
+                    x.Sale.DiscountValue,
+                    x.Sale.StartsAt,
+                    x.Sale.EndsAt,
+                    x.Sale.IsActive,
+                    x.Sale.IsDeleted)
+            })
+            .ToListAsync(cancellationToken);
+
+        var categoriesByProduct = categoryPairs
+            .GroupBy(x => x.ProductId)
+            .ToDictionary(x => x.Key, x => x.Select(y => y.CategoryId).ToHashSet());
+        var departmentsByProduct = departmentPairs
+            .GroupBy(x => x.ProductId)
+            .ToDictionary(x => x.Key, x => x.Select(y => y.DepartmentId).ToHashSet());
+
         var candidatesByProduct = offers
             .GroupBy(x => x.ProductId)
-            .ToDictionary(x => x.Key, x => x.Select(y => y.Candidate).ToArray());
+            .ToDictionary(x => x.Key, x => x.Select(y => y.Candidate).ToList());
+        foreach (var productId in productIds)
+        {
+            var categoryIds = categoriesByProduct.GetValueOrDefault(productId) ?? [];
+            var departmentIds = departmentsByProduct.GetValueOrDefault(productId) ?? [];
+            var scoped = scopes
+                .Where(x =>
+                    (x.CategoryId == null && x.DepartmentId == null) ||
+                    (x.CategoryId.HasValue && categoryIds.Contains(x.CategoryId.Value)) ||
+                    (x.DepartmentId.HasValue && departmentIds.Contains(x.DepartmentId.Value)))
+                .Select(x => x.Candidate);
+            if (!candidatesByProduct.TryGetValue(productId, out var list))
+            {
+                list = [];
+                candidatesByProduct[productId] = list;
+            }
+            list.AddRange(scoped);
+        }
 
         return variants.ToDictionary(
             x => x.ProductVariantId,
@@ -77,6 +132,8 @@ internal sealed class EffectivePriceResolver(
             price.Amount,
             price.IsOnSale,
             available,
-            available > 0);
+            available > 0,
+            price.SaleName,
+            price.SaleEndsAt);
     }
 }

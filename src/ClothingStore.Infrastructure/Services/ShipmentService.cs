@@ -24,14 +24,22 @@ internal sealed class ShipmentService(ClothingStoreDbContext db, AuditLogWriter 
         return new PagedResult<ShipmentDto>(items, page, size, count);
     }
 
+    public async Task<IReadOnlyList<CarrierDto>> GetCarriersAsync(CancellationToken cancellationToken) =>
+        await db.Carriers.AsNoTracking()
+            .Where(x => x.IsActive)
+            .OrderBy(x => x.SortOrder).ThenBy(x => x.Name)
+            .Select(x => new CarrierDto(x.CarrierId, x.Name, x.Code))
+            .ToListAsync(cancellationToken);
+
     public async Task<ShipmentDto> CreateShipmentAsync(ShipmentWriteRequest request, CancellationToken cancellationToken)
     {
         if (request.Status != ShipmentStatuses.Pending)
             throw new ServiceException(400, "invalid_initial_shipment_status", "A shipment must start in Pending status.");
-        var orderExists = await db.Orders.AnyAsync(x =>
-            x.OrderId == request.OrderId && x.Status != OrderStatuses.Cancelled,
-            cancellationToken);
-        if (!orderExists)
+        var orderNumber = await db.Orders.AsNoTracking()
+            .Where(x => x.OrderId == request.OrderId && x.Status != OrderStatuses.Cancelled)
+            .Select(x => x.OrderNumber)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (orderNumber is null)
             throw new ServiceException(404, "order_not_found", "An active order was not found.");
 
         var shipment = new Shipment
@@ -47,7 +55,7 @@ internal sealed class ShipmentService(ClothingStoreDbContext db, AuditLogWriter 
         audit.Record("Shipments", shipment.ShipmentId.ToString(), "Insert", $"Created shipment for order {request.OrderId}.");
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return ToDto(shipment);
+        return ToDto(shipment, orderNumber);
     }
 
     public async Task<ShipmentDto> UpdateShipmentAsync(
@@ -55,17 +63,21 @@ internal sealed class ShipmentService(ClothingStoreDbContext db, AuditLogWriter 
         ShipmentWriteRequest request,
         CancellationToken cancellationToken)
     {
-        var shipment = await db.Shipments.SingleOrDefaultAsync(x => x.ShipmentId == id, cancellationToken);
+        var shipment = await db.Shipments
+            .Include(x => x.Order).ThenInclude(x => x.Payments)
+            .SingleOrDefaultAsync(x => x.ShipmentId == id, cancellationToken);
         if (shipment is null)
             throw new ServiceException(404, "shipment_not_found", "Shipment was not found.");
         if (shipment.OrderId != request.OrderId)
             throw new ServiceException(400, "shipment_order_immutable", "A shipment cannot be reassigned to another order.");
         if (request.Status != shipment.Status)
+        {
             EnsureTransition(shipment.Status, request.Status);
+            SetStatus(shipment, request.Status);
+            SyncOrderStatus(shipment.Order, request.Status);
+        }
         shipment.Carrier = Normalize(request.Carrier);
         shipment.TrackingNumber = Normalize(request.TrackingNumber);
-        if (request.Status != shipment.Status)
-            SetStatus(shipment, request.Status);
         audit.Record("Shipments", id.ToString(), "Update", "Updated shipment information.");
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(shipment);
@@ -76,14 +88,37 @@ internal sealed class ShipmentService(ClothingStoreDbContext db, AuditLogWriter 
         string status,
         CancellationToken cancellationToken)
     {
-        var shipment = await db.Shipments.SingleOrDefaultAsync(x => x.ShipmentId == id, cancellationToken);
+        var shipment = await db.Shipments
+            .Include(x => x.Order).ThenInclude(x => x.Payments)
+            .SingleOrDefaultAsync(x => x.ShipmentId == id, cancellationToken);
         if (shipment is null)
             throw new ServiceException(404, "shipment_not_found", "Shipment was not found.");
         EnsureTransition(shipment.Status, status);
         SetStatus(shipment, status);
+        SyncOrderStatus(shipment.Order, status);
         audit.Record("Shipments", id.ToString(), "Update", $"Changed shipment status to {status}.");
         await db.SaveChangesAsync(cancellationToken);
         return ToDto(shipment);
+    }
+
+    private static void SyncOrderStatus(Order order, string shipmentStatus)
+    {
+        // Keep the order in step with fulfillment automatically:
+        //   packed/shipped -> Processing or Shipped, delivered + paid -> Completed.
+        var moving = shipmentStatus is ShipmentStatuses.Packed or ShipmentStatuses.Shipped
+            or ShipmentStatuses.InTransit or ShipmentStatuses.OutForDelivery;
+        if (moving && order.Status is OrderStatuses.Pending or OrderStatuses.Paid)
+        {
+            order.Status = OrderStatuses.Processing;
+        }
+        if (shipmentStatus == ShipmentStatuses.Shipped && order.Status == OrderStatuses.Processing)
+            order.Status = OrderStatuses.Shipped;
+        var paid = order.Payments.Any(x => x.Status == PaymentStatuses.Captured);
+        if (shipmentStatus == ShipmentStatuses.Delivered && paid
+            && order.Status is OrderStatuses.Paid or OrderStatuses.Processing or OrderStatuses.Shipped)
+        {
+            order.Status = OrderStatuses.Completed;
+        }
     }
 
     private static void EnsureTransition(string current, string next)
@@ -93,6 +128,8 @@ internal sealed class ShipmentService(ClothingStoreDbContext db, AuditLogWriter 
             ShipmentStatuses.Pending => next == ShipmentStatuses.Packed,
             ShipmentStatuses.Packed => next == ShipmentStatuses.Shipped,
             ShipmentStatuses.Shipped => next is ShipmentStatuses.Delivered or ShipmentStatuses.Returned,
+            ShipmentStatuses.InTransit => next is ShipmentStatuses.OutForDelivery or ShipmentStatuses.Delivered or ShipmentStatuses.Returned,
+            ShipmentStatuses.OutForDelivery => next is ShipmentStatuses.Delivered or ShipmentStatuses.Returned,
             ShipmentStatuses.Delivered => next == ShipmentStatuses.Returned,
             _ => false
         };
@@ -112,11 +149,11 @@ internal sealed class ShipmentService(ClothingStoreDbContext db, AuditLogWriter 
     private static string? Normalize(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    private static ShipmentDto ToDto(Shipment shipment) =>
-        new(shipment.ShipmentId, shipment.OrderId, shipment.Carrier, shipment.TrackingNumber, shipment.Status, shipment.ShippedAt, shipment.DeliveredAt);
+    private static ShipmentDto ToDto(Shipment shipment, string? orderNumber = null) =>
+        new(shipment.ShipmentId, shipment.OrderId, shipment.Carrier, shipment.TrackingNumber, shipment.Status, shipment.ShippedAt, shipment.DeliveredAt, orderNumber ?? shipment.Order?.OrderNumber);
 
     private static System.Linq.Expressions.Expression<Func<Shipment, ShipmentDto>> ToDtoExpression() =>
-        x => new ShipmentDto(x.ShipmentId, x.OrderId, x.Carrier, x.TrackingNumber, x.Status, x.ShippedAt, x.DeliveredAt);
+        x => new ShipmentDto(x.ShipmentId, x.OrderId, x.Carrier, x.TrackingNumber, x.Status, x.ShippedAt, x.DeliveredAt, x.Order.OrderNumber);
 
     private static void ValidatePage(int page, int size)
     {

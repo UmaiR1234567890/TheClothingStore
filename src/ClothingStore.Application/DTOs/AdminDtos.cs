@@ -36,6 +36,9 @@ public sealed class SaleWriteRequest
     public DateTime? StartsAt { get; init; }
     public DateTime? EndsAt { get; init; }
     public List<int> ProductIds { get; init; } = [];
+    public List<int> CategoryIds { get; init; } = [];
+    public List<int> DepartmentIds { get; init; } = [];
+    public bool ApplyToAll { get; init; }
 }
 
 public sealed class InventoryAdjustmentRequest

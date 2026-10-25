@@ -6,6 +6,8 @@ import { PagedResult } from '../../core/models/api.models';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { parseApiFailure } from '../../core/services/api-error.service';
 
+type PaymentAction = 'collect' | 'refund';
+
 @Component({
   selector: 'tcs-admin-payments-page',
   standalone: true,
@@ -16,11 +18,12 @@ import { parseApiFailure } from '../../core/services/api-error.service';
 })
 export class AdminPaymentsPageComponent implements OnInit {
   readonly payments = signal<PagedResult<PaymentDto> | null>(null);
-  readonly selectedPayment = signal<PaymentDto | null>(null);
+  readonly dialog = signal<{ action: PaymentAction; payment: PaymentDto } | null>(null);
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly error = signal('');
   readonly message = signal('');
+  readonly search = new FormControl('', { nonNullable: true });
   readonly reason = new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(3), Validators.maxLength(400)] });
 
   constructor(private readonly admin: AdminApiService) {}
@@ -32,7 +35,7 @@ export class AdminPaymentsPageComponent implements OnInit {
   load(): void {
     this.loading.set(true);
     this.error.set('');
-    this.admin.getPayments(1, 100).subscribe({
+    this.admin.getPayments(1, 100, this.search.value.trim() || undefined).subscribe({
       next: (payments) => {
         this.payments.set(payments);
         this.loading.set(false);
@@ -44,32 +47,48 @@ export class AdminPaymentsPageComponent implements OnInit {
     });
   }
 
-  selectPayment(payment: PaymentDto): void {
-    this.selectedPayment.set(payment);
+  runSearch(event: Event): void {
+    event.preventDefault();
+    this.load();
+  }
+
+  openDialog(action: PaymentAction, payment: PaymentDto): void {
+    this.dialog.set({ action, payment });
     this.reason.reset('');
     this.error.set('');
     this.message.set('');
   }
 
-  confirmCollection(): void {
+  closeDialog(): void {
+    if (!this.saving()) {
+      this.dialog.set(null);
+    }
+  }
+
+  confirmDialog(): void {
     this.reason.markAsTouched();
-    const payment = this.selectedPayment();
-    if (!payment || this.reason.invalid || this.saving()) {
+    const current = this.dialog();
+    if (!current || this.reason.invalid || this.saving()) {
       return;
     }
+    const request = { reason: this.reason.value.trim() };
     this.saving.set(true);
-    this.admin.markCodCollected(payment.paymentId, {
-      status: 'Captured',
-      reason: this.reason.value.trim(),
-    }).subscribe({
+    const call = current.action === 'collect'
+      ? this.admin.markCodCollected(current.payment.paymentId, { status: 'Captured', ...request })
+      : this.admin.refundPayment(current.payment.paymentId, request);
+    call.subscribe({
       next: () => {
-        this.message.set(`COD collection for payment #${payment.paymentId} was recorded.`);
-        this.selectedPayment.set(null);
+        this.message.set(current.action === 'collect'
+          ? `COD collection for ${current.payment.orderNumber ?? 'order #' + current.payment.orderId} was recorded.`
+          : `Payment #${current.payment.paymentId} was refunded; stock was restored and the order marked refunded.`);
+        this.dialog.set(null);
         this.saving.set(false);
         this.load();
       },
       error: (failure: unknown) => {
-        this.error.set(parseApiFailure(failure, 'Cash collection could not be recorded.').message);
+        this.error.set(parseApiFailure(failure, current.action === 'collect'
+          ? 'Cash collection could not be recorded.'
+          : 'The refund could not be recorded.').message);
         this.saving.set(false);
       },
     });

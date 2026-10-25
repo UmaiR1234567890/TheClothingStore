@@ -173,6 +173,31 @@ export class AdminVariantsPageComponent implements OnInit {
     this.sizeSelections.update((map) => ({ ...map, [key]: [] }));
   }
 
+  selectAllColors(): void {
+    const allKeys = ['none', ...this.colors().map((color) => String(color.colorId))];
+    this.selectedColorKeys.set(allKeys);
+    const allSizeIds = this.availableSizes().map((size) => size.sizeId);
+    const selections: Record<string, number[]> = {};
+    for (const key of allKeys) {
+      selections[key] = this.sizeSelections()[key] ?? allSizeIds;
+    }
+    this.sizeSelections.set(selections);
+  }
+
+  selectEverySizeEverywhere(): void {
+    const allSizeIds = this.availableSizes().map((size) => size.sizeId);
+    const selections: Record<string, number[]> = {};
+    for (const key of this.selectedColorKeys()) {
+      selections[key] = [...allSizeIds];
+    }
+    this.sizeSelections.set(selections);
+  }
+
+  clearColors(): void {
+    this.selectedColorKeys.set([]);
+    this.sizeSelections.set({});
+  }
+
   sizeName(sizeId: number): string {
     return this.sizes().find((size) => size.sizeId === sizeId)?.name ?? '';
   }

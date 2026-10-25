@@ -1,10 +1,7 @@
 <section class="admin-page">
   <div class="admin-page-heading">
-    <div><p class="eyebrow">Pricing / Promotions</p><h1 class="page-title">Current offers.</h1></div>
-    <button class="btn btn-primary" type="button" (click)="createMode()">Create promotion</button>
-  </div>
-  <div class="notice">
-    Effective prices use the lowest active eligible sale. The API does not return eligible product IDs on sale records, so existing promotion eligibility cannot be safely edited from this screen.
+    <div><p class="eyebrow">Marketing / Pricing</p><h1 class="page-title">Promotions.</h1></div>
+    <button class="btn btn-outline" type="button" (click)="createMode()">New promotion</button>
   </div>
   @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
   @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
@@ -12,47 +9,118 @@
   @else {
     <div class="admin-table-wrap">
       <table class="admin-table">
-        <thead><tr><th>Promotion</th><th>Discount</th><th>Schedule</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Name</th><th>Discount</th><th>Window</th><th>Scope</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
           @for (sale of sales(); track sale.saleId) {
             <tr>
               <td><strong>{{ sale.name }}</strong><small>#{{ sale.saleId }}</small></td>
               <td>{{ discountLabel(sale) }}</td>
-              <td><small>{{ sale.startsAt ? (sale.startsAt | date:'mediumDate') : 'No start' }} — {{ sale.endsAt ? (sale.endsAt | date:'mediumDate') : 'No end' }}</small></td>
-              <td><span class="admin-badge" [class.admin-badge--inactive]="!sale.isActive">{{ sale.isActive ? 'Active' : 'Inactive' }}</span></td>
+              <td><small>{{ sale.startsAt ? (sale.startsAt | date:'shortDate') : 'Starts immediately' }}<br>{{ sale.endsAt ? 'Ends ' + (sale.endsAt | date:'shortDate') : 'No end date' }}</small></td>
+              <td>{{ scopeLabel(sale) }}</td>
+              <td><span class="admin-badge" [class.admin-badge--inactive]="!sale.isActive">{{ sale.isActive ? 'Active' : 'Paused' }}</span></td>
               <td><div class="admin-inline-actions">
-                <button type="button" (click)="toggle(sale)">{{ sale.isActive ? 'Deactivate' : 'Activate' }}</button>
-                <button type="button" (click)="remove(sale)">Soft delete</button>
+                <button type="button" (click)="editSale(sale)">Edit</button>
+                <button type="button" (click)="toggle(sale)">{{ sale.isActive ? 'Pause' : 'Resume' }}</button>
+                <button class="is-danger" type="button" (click)="remove(sale)">Delete</button>
               </div></td>
             </tr>
-          } @empty { <tr><td colspan="5">No promotions found.</td></tr> }
+          } @empty { <tr><td colspan="6">No promotions are configured.</td></tr> }
         </tbody>
       </table>
     </div>
-  }
-
-  @if (editing()) {
-    <form class="admin-form-card" [formGroup]="form" (ngSubmit)="create()">
-      <h2>Create promotion</h2>
-      <div class="admin-form-grid">
-        <div class="field"><label for="sale-name">Name</label><input id="sale-name" class="control" formControlName="name"></div>
-        <div class="field">
-          <label for="sale-type">Discount type</label>
-          <select id="sale-type" class="control" formControlName="discountType"><option value="Percentage">Percentage</option><option value="FixedAmount">Fixed amount (PKR)</option></select>
+    @if (editing()) {
+      <form class="admin-form-card admin-sale-editor" [formGroup]="form" (ngSubmit)="create()">
+        <p class="eyebrow">{{ editingSaleId() ? 'Edit promotion' : 'Create promotion' }}</p>
+        <h2>{{ editingSaleId() ? 'Update the promotion.' : 'What is the offer?' }}</h2>
+        <div class="admin-form-grid">
+          <div class="field"><label for="sale-name">Name</label><input id="sale-name" class="control" formControlName="name" placeholder="e.g. Summer clearance"></div>
+          <div class="field"><label for="sale-type">Discount type</label><select id="sale-type" class="control" formControlName="discountType"><option value="Percentage">Percentage</option><option value="FixedAmount">Fixed amount</option></select></div>
         </div>
-      </div>
-      <div class="admin-form-grid">
-        <div class="field"><label for="sale-value">Discount value</label><input id="sale-value" class="control" type="number" min="0.01" step="0.01" formControlName="discountValue"></div>
-        <div class="field"><label for="sale-products">Eligible product IDs</label><input id="sale-products" class="control" formControlName="productIds" placeholder="e.g. 1, 2, 3"><small>Enter product IDs returned by the admin product list, separated by commas.</small></div>
-      </div>
-      <div class="admin-form-grid">
-        <div class="field"><label for="sale-start">Starts at</label><input id="sale-start" class="control" type="datetime-local" formControlName="startsAt"></div>
-        <div class="field"><label for="sale-end">Ends at</label><input id="sale-end" class="control" type="datetime-local" formControlName="endsAt"></div>
-      </div>
-      <div class="admin-form-actions">
-        <button class="btn btn-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Create promotion' }}</button>
-        <button class="btn btn-outline" type="button" (click)="editing.set(false)">Cancel</button>
-      </div>
-    </form>
+        <div class="admin-form-grid">
+          <div class="field"><label for="sale-value">Value</label><input id="sale-value" class="control" type="number" min="0.01" step="0.01" formControlName="discountValue" placeholder="e.g. 20"></div>
+          <div class="field">
+            <label>Discount preview</label>
+            <span class="sale-value-preview">{{ form.controls.discountType.value === 'Percentage' ? 'Percent off the regular price' : 'Flat amount off each unit' }}</span>
+          </div>
+        </div>
+        <div class="admin-form-grid admin-sale-calendar">
+          <div class="field">
+            <label for="sale-starts">Starts at <span class="muted-copy">(optional)</span></label>
+            <input id="sale-starts" class="control admin-datetime" type="datetime-local" formControlName="startsAt">
+          </div>
+          <div class="field">
+            <label for="sale-ends">Ends at <span class="muted-copy">(optional)</span></label>
+            <input id="sale-ends" class="control admin-datetime" type="datetime-local" formControlName="endsAt">
+          </div>
+        </div>
+        <p class="muted-copy">Leave a date empty for an open-ended window; promotions only apply while Active and inside this window.</p>
+
+        <h3 class="admin-subheading">Where does it apply?</h3>
+        <div class="admin-form-grid">
+          <div class="field">
+            <label for="sale-dept">Step 1 · Department</label>
+            <select id="sale-dept" class="control" [value]="scopeDepartmentId() ?? ''" (change)="setScopeDepartment($event)">
+              <option value="">All departments</option>
+              @for (dept of departments(); track dept.departmentId) { <option [value]="dept.departmentId">{{ dept.name }}</option> }
+            </select>
+          </div>
+          <div class="field">
+            <label for="sale-cat">Step 2 · Category</label>
+            <select id="sale-cat" class="control" [value]="scopeCategoryId() ?? ''" (change)="setScopeCategory($event)">
+              <option value="">All categories</option>
+              @for (cat of scopeCategories(); track cat.categoryId) { <option [value]="cat.categoryId">{{ cat.name }}</option> }
+            </select>
+            <small>{{ scopeDepartmentId() === null ? 'Showing every category — pick a department to narrow the list.' : 'Filtered to the selected department.' }}</small>
+          </div>
+        </div>
+        <div class="field">
+          <label>Step 3 · Apply to</label>
+          <div class="admin-choice-group">
+            <button type="button" class="admin-choice" [class.admin-choice--selected]="applyMode() === 'all'" (click)="setApplyMode('all')">
+              All items in this selection
+              <small>Automatically covers every product in the chosen scope — even new products added later.</small>
+            </button>
+            <button type="button" class="admin-choice" [class.admin-choice--selected]="applyMode() === 'specific'" (click)="setApplyMode('specific')">
+              Specific items only
+              <small>Pick individual products one by one.</small>
+            </button>
+          </div>
+        </div>
+        @if (applyMode() === 'specific') {
+          <div class="field">
+            <label>Step 4 · Choose products</label>
+            <div class="admin-picker-search">
+              <input class="control" type="search" [formControl]="productSearch" placeholder="Search products in this scope" (keydown.enter)="$event.preventDefault(); refreshPicker()">
+              <button class="btn btn-outline btn-small" type="button" (click)="refreshPicker()">Search</button>
+              <button class="btn btn-outline btn-small" type="button" (click)="selectAllVisible()">Select all shown</button>
+              @if (selectedProducts().size > 0) { <button class="text-button" type="button" (click)="clearSelected()">Clear ({{ selectedProducts().size }})</button> }
+            </div>
+            @if (pickerLoading()) { <div class="state-panel"><span class="spinner" aria-label="Loading products"></span></div> }
+            @else {
+              <div class="admin-product-picker">
+                @for (product of pickerProducts(); track product.productId) {
+                  <label class="admin-product-tile" [class.admin-product-tile--selected]="isSelected(product.productId)">
+                    <input type="checkbox" [checked]="isSelected(product.productId)" (change)="toggleProduct(product)">
+                    @if (product.primaryImageUrl) { <img [src]="product.primaryImageUrl" [alt]="product.name"> } @else { <span class="admin-product-tile__placeholder">No image</span> }
+                    <span class="admin-product-tile__name">{{ product.name }}</span>
+                  </label>
+                } @empty { <p class="muted-copy">No products match this scope. Try widening the department/category or clearing the search.</p> }
+              </div>
+            }
+            @if (selectedProducts().size > 0) {
+              <div class="admin-selected-chips">
+                @for (item of selectedList(); track item.id) {
+                  <span class="admin-selected-chip">{{ item.name }}<button type="button" (click)="deselectProduct(item.id)" [attr.aria-label]="'Remove ' + item.name">×</button></span>
+                }
+              </div>
+            }
+          </div>
+        }
+        <div class="admin-form-actions">
+          <button class="btn btn-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Saving…' : editingSaleId() ? 'Save promotion' : 'Create promotion' }}</button>
+          <button class="btn btn-outline" type="button" (click)="editing.set(false)">Cancel</button>
+        </div>
+      </form>
+    }
   }
 </section>

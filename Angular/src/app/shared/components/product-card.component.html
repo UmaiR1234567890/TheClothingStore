@@ -28,10 +28,19 @@
     </a>
     <p class="product-card__price">
       @if (product.minPrice !== null && product.maxPrice !== null) {
-        @if (product.minPrice === product.maxPrice) {
-          {{ product.minPrice | currency:'PKR':'code':'1.0-2' }}
+        @if (product.onSale && hasRegularPrice()) {
+          <span class="product-card__price-sale">
+            @if (product.minPrice === product.maxPrice) { {{ product.minPrice | currency:'PKR':'code':'1.0-2' }} } @else { From {{ product.minPrice | currency:'PKR':'code':'1.0-2' }} }
+          </span>
+          <span class="product-card__price-regular">
+            @if (product.regularMinPrice === product.regularMaxPrice) { {{ product.regularMinPrice | currency:'PKR':'code':'1.0-2' }} } @else { From {{ product.regularMinPrice | currency:'PKR':'code':'1.0-2' }} }
+          </span>
         } @else {
-          <span>From {{ product.minPrice | currency:'PKR':'code':'1.0-2' }}</span>
+          @if (product.minPrice === product.maxPrice) {
+            {{ product.minPrice | currency:'PKR':'code':'1.0-2' }}
+          } @else {
+            <span>From {{ product.minPrice | currency:'PKR':'code':'1.0-2' }}</span>
+          }
         }
       } @else {
         <span class="product-card__price-missing">Price unavailable</span>

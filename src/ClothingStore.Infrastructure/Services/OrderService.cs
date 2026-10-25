@@ -55,6 +55,24 @@ internal sealed class OrderService(ClothingStoreDbContext db) : IOrderService
             : ToDto(order);
     }
 
+    public async Task<OrderDto> GetGuestOrderTrackingAsync(
+        string orderNumber,
+        string email,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(orderNumber) || string.IsNullOrWhiteSpace(email))
+            throw new ServiceException(400, "tracking_details_required", "An order number and the checkout email are required.");
+        var order = await LoadOrderGraph(db.Orders.AsNoTracking()
+                .Where(x => x.OrderNumber == orderNumber.Trim() &&
+                            x.CustomerId == null &&
+                            x.GuestEmail != null &&
+                            x.GuestEmail == email.Trim()))
+            .SingleOrDefaultAsync(cancellationToken);
+        return order is null
+            ? throw new ServiceException(404, "order_not_found", "No order matches that number and email.")
+            : ToDto(order);
+    }
+
     public async Task<PagedResult<OrderDto>> GetAdminOrdersAsync(
         int page,
         int size,
@@ -106,7 +124,8 @@ internal sealed class OrderService(ClothingStoreDbContext db) : IOrderService
                 order.Status,
                 status,
                 order.Payments.Any(x => x.Status == PaymentStatuses.Captured),
-                order.Shipments.Any(x => x.Status is ShipmentStatuses.Shipped or ShipmentStatuses.Delivered),
+                order.Payments.Any(x => x.Status == PaymentStatuses.Refunded),
+                order.Shipments.Any(x => x.Status is ShipmentStatuses.Shipped or ShipmentStatuses.InTransit or ShipmentStatuses.OutForDelivery or ShipmentStatuses.Delivered),
                 order.Shipments.Any(x => x.Status == ShipmentStatuses.Delivered)))
         {
             if (status == OrderStatuses.Paid && !order.Payments.Any(x => x.Status == PaymentStatuses.Captured))
@@ -119,9 +138,12 @@ internal sealed class OrderService(ClothingStoreDbContext db) : IOrderService
             if (status == OrderStatuses.Cancelled &&
                 order.Payments.Any(x => x.Status is PaymentStatuses.Captured or PaymentStatuses.Refunded))
                 throw new ServiceException(409, "payment_refund_required", "Orders with captured payments cannot be cancelled without a verified refund workflow.");
+            if (status == OrderStatuses.Refunded &&
+                !order.Payments.Any(x => x.Status == PaymentStatuses.Refunded))
+                throw new ServiceException(409, "refund_required", "Record a payment refund before marking the order refunded.");
             throw new ServiceException(409, "invalid_order_transition", $"Order status cannot move from {order.Status} to {status}.");
         }
-        if (status == OrderStatuses.Cancelled)
+        if (status is OrderStatuses.Cancelled or OrderStatuses.Returned or OrderStatuses.Refunded)
             await RestockAsync(order, cancellationToken);
 
         var oldStatus = order.Status;
@@ -141,6 +163,12 @@ internal sealed class OrderService(ClothingStoreDbContext db) : IOrderService
 
     private async Task RestockAsync(Order order, CancellationToken cancellationToken)
     {
+        var alreadyRestocked = await db.InventoryTransactions.AsNoTracking()
+            .AnyAsync(x => x.ReferenceId == order.OrderId
+                && (x.ReferenceType == "OrderCancellation" || x.ReferenceType == "PaymentRefund"),
+                cancellationToken);
+        if (alreadyRestocked)
+            return;
         foreach (var line in order.Items.Where(x => x.ProductVariantId.HasValue).OrderBy(x => x.ProductVariantId))
         {
             var variantId = line.ProductVariantId!.Value;
@@ -168,7 +196,7 @@ internal sealed class OrderService(ClothingStoreDbContext db) : IOrderService
                 QuantityAfter = inventory.QuantityOnHand,
                 ReferenceType = "OrderCancellation",
                 ReferenceId = order.OrderId,
-                Notes = "Stock restored after order cancellation."
+                Notes = "Stock restored after order cancellation, return, or refund."
             });
         }
     }
@@ -198,16 +226,17 @@ internal sealed class OrderService(ClothingStoreDbContext db) : IOrderService
             order.ShippingPostalCode,
             order.ShippingCountry,
             order.Items.Select(x => new OrderItemDto(
-                x.ProductName, x.Sku, x.VariantDetails, x.Quantity, x.UnitPrice, x.DiscountAmount, x.LineTotal)).ToArray(),
+                x.ProductName, x.Sku, x.VariantDetails, x.Quantity, x.UnitPrice, x.DiscountAmount, x.LineTotal, x.ProductVariantId)).ToArray(),
             order.Payments.Select(x => new PaymentDto(
-                x.PaymentId, x.OrderId, x.Amount, x.Method, x.Provider, x.ProviderReference, x.Status, x.CreatedAt, x.ProcessedAt)).ToArray(),
+                x.PaymentId, x.OrderId, x.Amount, x.Method, x.Provider, x.ProviderReference, x.Status, x.CreatedAt, x.ProcessedAt, order.OrderNumber)).ToArray(),
             order.Shipments.Select(x => new ShipmentDto(
-                x.ShipmentId, x.OrderId, x.Carrier, x.TrackingNumber, x.Status, x.ShippedAt, x.DeliveredAt)).ToArray());
+                x.ShipmentId, x.OrderId, x.Carrier, x.TrackingNumber, x.Status, x.ShippedAt, x.DeliveredAt, order.OrderNumber)).ToArray());
 
     private static void ValidateOrderStatus(string status)
     {
         if (status is not (OrderStatuses.Pending or OrderStatuses.Paid or OrderStatuses.Processing or
-            OrderStatuses.Shipped or OrderStatuses.Completed or OrderStatuses.Cancelled))
+            OrderStatuses.Shipped or OrderStatuses.Completed or OrderStatuses.Returned or
+            OrderStatuses.Refunded or OrderStatuses.Cancelled))
             throw new ServiceException(400, "invalid_order_status", "The order status is invalid.");
     }
 

@@ -1,10 +1,16 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { ProductImageUploadMetadata } from '../../core/models/admin.models';
 import { ProductDetailDto, ProductImageDto } from '../../core/models/catalog.models';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { parseApiFailure } from '../../core/services/api-error.service';
+
+interface SelectedImageFile {
+  file: File;
+  previewUrl: string;
+}
 
 @Component({
   selector: 'tcs-admin-images-page',
@@ -21,8 +27,7 @@ export class AdminImagesPageComponent implements OnInit, OnDestroy {
   readonly unavailableImages = signal<number[]>([]);
   readonly loading = signal(true);
   readonly saving = signal(false);
-  readonly selectedFile = signal<File | null>(null);
-  readonly previewUrl = signal<string | null>(null);
+  readonly selectedFiles = signal<SelectedImageFile[]>([]);
   readonly draggingFile = signal(false);
   readonly error = signal('');
   readonly message = signal('');
@@ -40,7 +45,7 @@ export class AdminImagesPageComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnDestroy(): void {
-    this.releasePreviewUrl();
+    this.releasePreviewUrls();
   }
 
   ngOnInit(): void {
@@ -84,7 +89,7 @@ export class AdminImagesPageComponent implements OnInit, OnDestroy {
   onFileSelected(event: Event): void {
     const input = event.target;
     if (input instanceof HTMLInputElement) {
-      this.selectFile(input.files?.[0] ?? null);
+      this.addFiles(input.files ? Array.from(input.files) : []);
       input.value = '';
     }
   }
@@ -102,15 +107,23 @@ export class AdminImagesPageComponent implements OnInit, OnDestroy {
   onFileDrop(event: DragEvent): void {
     event.preventDefault();
     this.draggingFile.set(false);
-    this.selectFile(event.dataTransfer?.files.item(0) ?? null);
+    this.addFiles(event.dataTransfer?.files ? Array.from(event.dataTransfer.files) : []);
   }
 
-  clearSelectedFile(): void {
-    this.selectFile(null);
+  removeSelectedFile(index: number): void {
+    this.selectedFiles.update((files) => {
+      URL.revokeObjectURL(files[index].previewUrl);
+      return files.filter((_, i) => i !== index);
+    });
   }
 
-  selectedFileSize(): string {
-    const size = this.selectedFile()?.size ?? 0;
+  clearSelectedFiles(): void {
+    this.releasePreviewUrls();
+    this.selectedFiles.set([]);
+  }
+
+  fileSize(file: File): string {
+    const size = file.size;
     return size < 1024 * 1024
       ? `${Math.max(1, Math.round(size / 1024))} KB`
       : `${(size / (1024 * 1024)).toFixed(1)} MB`;
@@ -148,7 +161,7 @@ export class AdminImagesPageComponent implements OnInit, OnDestroy {
     if (this.form.invalid || this.saving()) {
       return false;
     }
-    if (this.editingId() === null && this.selectedFile() === null) {
+    if (this.editingId() === null && this.selectedFiles().length === 0) {
       return false;
     }
     return !this.imageLimitReached();
@@ -163,7 +176,7 @@ export class AdminImagesPageComponent implements OnInit, OnDestroy {
   }
 
   edit(image: ProductImageDto): void {
-    this.clearSelectedFile();
+    this.clearSelectedFiles();
     this.editingId.set(image.productImageId);
     this.form.patchValue({
       imageUrl: image.imageUrl,
@@ -175,12 +188,16 @@ export class AdminImagesPageComponent implements OnInit, OnDestroy {
   }
 
   reset(): void {
-    this.clearSelectedFile();
+    this.clearSelectedFiles();
     this.editingId.set(null);
     this.form.reset({ imageUrl: '', altText: '', displayOrder: 0, isPrimary: false, colorId: null });
   }
 
-  save(): void {
+  hasPrimaryForColor(colorId: number | null): boolean {
+    return (this.product()?.images ?? []).some((image) => image.colorId === colorId && image.isPrimary);
+  }
+
+  async save(): Promise<void> {
     this.form.markAllAsTouched();
     this.error.set('');
     this.message.set('');
@@ -189,36 +206,49 @@ export class AdminImagesPageComponent implements OnInit, OnDestroy {
     }
     const value = this.form.getRawValue();
     const id = this.editingId();
-    if (id === null && this.selectedFile() === null) {
-      this.error.set('Choose an image file or drop it into the upload area.');
+    if (id === null && this.selectedFiles().length === 0) {
+      this.error.set('Choose one or more image files, or drop them into the upload area.');
       return;
     }
     if (id !== null && !value.imageUrl.trim()) {
       this.error.set('The existing image path is missing.');
       return;
     }
-    const metadata: ProductImageUploadMetadata = {
-      altText: value.altText.trim() || null,
-      displayOrder: value.displayOrder,
-      isPrimary: value.isPrimary,
-      colorId: value.colorId,
-    };
     this.saving.set(true);
-    const operation = id === null
-      ? this.admin.uploadImage(this.productId(), this.selectedFile()!, metadata)
-      : this.admin.updateImage(id, { ...metadata, imageUrl: value.imageUrl.trim() });
-    operation.subscribe({
-      next: () => {
-        this.saving.set(false);
+    try {
+      if (id !== null) {
+        await firstValueFrom(this.admin.updateImage(id, {
+          altText: value.altText.trim() || null,
+          displayOrder: value.displayOrder,
+          isPrimary: value.isPrimary,
+          colorId: value.colorId,
+          imageUrl: value.imageUrl.trim(),
+        }));
         this.message.set('Image reference saved.');
-        this.reset();
-        this.load();
-      },
-      error: (failure: unknown) => {
-        this.error.set(parseApiFailure(failure, 'The image reference could not be saved.').message);
-        this.saving.set(false);
-      },
-    });
+      } else {
+        const files = this.selectedFiles();
+        const markFirstPrimary = value.isPrimary || !this.hasPrimaryForColor(value.colorId);
+        for (const [index, entry] of files.entries()) {
+          const metadata: ProductImageUploadMetadata = {
+            altText: files.length === 1
+              ? (value.altText.trim() || null)
+              : entry.file.name.replace(/\.[^.]+$/, ''),
+            displayOrder: value.displayOrder + index,
+            isPrimary: index === 0 && markFirstPrimary,
+            colorId: value.colorId,
+          };
+          await firstValueFrom(this.admin.uploadImage(this.productId(), entry.file, metadata));
+        }
+        this.message.set(files.length === 1 ? 'Image uploaded.' : `${files.length} images uploaded.`);
+      }
+      this.saving.set(false);
+      this.reset();
+      this.load();
+    } catch (failure) {
+      this.error.set(parseApiFailure(failure, 'The image reference could not be saved.').message);
+      this.saving.set(false);
+      this.load();
+    }
   }
 
   setPrimary(image: ProductImageDto): void {
@@ -238,38 +268,41 @@ export class AdminImagesPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  private selectFile(file: File | null): void {
-    this.releasePreviewUrl();
-    this.selectedFile.set(null);
+  private addFiles(files: File[]): void {
     this.error.set('');
-    if (!file) {
-      return;
-    }
-
-    const extension = file.name.split('.').pop()?.toLowerCase();
     const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!extension || !allowedExtensions.includes(extension) || !allowedTypes.includes(file.type)) {
-      this.error.set('Choose a JPEG, PNG, or WebP image.');
-      return;
+    const accepted: SelectedImageFile[] = [];
+    for (const file of files) {
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      if (!extension || !allowedExtensions.includes(extension) || !allowedTypes.includes(file.type)) {
+        this.error.set(`"${file.name}" was skipped — only JPEG, PNG, or WebP images are allowed.`);
+        continue;
+      }
+      if (file.size > 8 * 1024 * 1024) {
+        this.error.set(`"${file.name}" was skipped — it is larger than 8 MB.`);
+        continue;
+      }
+      accepted.push({ file, previewUrl: URL.createObjectURL(file) });
     }
-    if (file.size > 8 * 1024 * 1024) {
-      this.error.set('The image must be 8 MB or smaller.');
-      return;
-    }
-
-    this.selectedFile.set(file);
-    this.previewUrl.set(URL.createObjectURL(file));
-    if (!this.form.controls.altText.value.trim()) {
-      this.form.controls.altText.setValue(file.name.replace(/\.[^.]+$/, ''));
+    if (accepted.length > 0) {
+      this.selectedFiles.update((current) => [...current, ...accepted]);
+      if (!this.form.controls.altText.value.trim()) {
+        this.form.controls.altText.setValue(accepted[0].file.name.replace(/\.[^.]+$/, ''));
+      }
+      if (this.selectedFiles().length > 1) {
+        this.form.controls.isPrimary.setValue(true);
+      }
     }
   }
 
-  private releasePreviewUrl(): void {
-    const url = this.previewUrl();
-    if (url) {
-      URL.revokeObjectURL(url);
-      this.previewUrl.set(null);
+  firstWillBePrimary(): boolean {
+    return this.form.controls.isPrimary.value || !this.hasPrimaryForColor(this.form.controls.colorId.value);
+  }
+
+  private releasePreviewUrls(): void {
+    for (const entry of this.selectedFiles()) {
+      URL.revokeObjectURL(entry.previewUrl);
     }
   }
 }

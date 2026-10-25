@@ -16,7 +16,7 @@ import { parseApiFailure } from '../../core/services/api-error.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminOrdersPageComponent implements OnInit {
-  readonly statusOptions = ['Pending', 'Paid', 'Processing', 'Shipped', 'Completed', 'Cancelled'];
+  readonly statusOptions = ['Pending', 'Paid', 'Processing', 'Shipped', 'Completed', 'Returned', 'Refunded', 'Cancelled'];
   readonly result = signal<PagedResult<OrderDto> | null>(null);
   readonly loading = signal(true);
   readonly error = signal('');
@@ -63,20 +63,24 @@ export class AdminOrdersPageComponent implements OnInit {
       case 'Completed': return 'admin-badge--success';
       case 'Paid': case 'Shipped': return 'admin-badge--info';
       case 'Pending': case 'Processing': return 'admin-badge--warn';
-      case 'Cancelled': return 'admin-badge--inactive';
+      case 'Returned': return 'admin-badge--danger';
+      case 'Refunded': case 'Cancelled': return 'admin-badge--inactive';
       default: return 'admin-badge--neutral';
     }
   }
 
   nextStatuses(order: OrderDto): string[] {
     const captured = order.payments.some((payment) => payment.status === 'Captured');
-    const shipped = order.shipments.some((shipment) => ['Shipped', 'Delivered'].includes(shipment.status));
+    const refunded = order.payments.some((payment) => payment.status === 'Refunded');
+    const shipped = order.shipments.some((shipment) => ['Shipped', 'InTransit', 'OutForDelivery', 'Delivered'].includes(shipment.status));
     const delivered = order.shipments.some((shipment) => shipment.status === 'Delivered');
     switch (order.status) {
       case 'Pending': return captured ? ['Paid'] : ['Processing', 'Cancelled'];
       case 'Processing': return [...(shipped ? ['Shipped'] : []), ...(captured ? ['Paid'] : []), ...(!captured ? ['Cancelled'] : [])];
       case 'Paid': return ['Processing'];
-      case 'Shipped': return delivered && captured ? ['Completed'] : [];
+      case 'Shipped': return [...(delivered && captured ? ['Completed'] : []), 'Returned'];
+      case 'Completed': return ['Returned'];
+      case 'Returned': return [...(refunded ? ['Refunded'] : []), ...(!captured ? ['Cancelled'] : [])];
       default: return [];
     }
   }

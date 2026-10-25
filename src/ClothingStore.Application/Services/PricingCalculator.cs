@@ -12,6 +12,7 @@ public sealed class PricingCalculator : IPricingCalculator
 
         var bestPrice = regularPrice;
         string? bestSale = null;
+        DateTime? bestSaleEndsAt = null;
 
         foreach (var sale in candidates)
         {
@@ -44,10 +45,11 @@ public sealed class PricingCalculator : IPricingCalculator
             {
                 bestPrice = candidate;
                 bestSale = sale.Name;
+                bestSaleEndsAt = sale.EndsAt;
             }
         }
 
-        return new EffectivePrice(bestPrice, bestSale is not null, bestSale);
+        return new EffectivePrice(bestPrice, bestSale is not null, bestSale, bestSaleEndsAt);
     }
 
     private static DateTime AsUtc(DateTime value) =>

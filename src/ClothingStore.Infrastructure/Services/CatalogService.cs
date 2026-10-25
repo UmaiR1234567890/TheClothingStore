@@ -124,19 +124,11 @@ internal sealed class CatalogService(
         }
         if (query.OnSale == true)
         {
-            var now = DateTime.UtcNow;
-            queryable = queryable.Where(p => p.SaleProducts.Any(x =>
-                x.Sale.IsActive && !x.Sale.IsDeleted && x.Sale.DiscountValue > 0 &&
-                (x.Sale.StartsAt == null || x.Sale.StartsAt <= now) &&
-                (x.Sale.EndsAt == null || x.Sale.EndsAt >= now)));
+            queryable = queryable.Where(HasActiveSale(DateTime.UtcNow));
         }
         else if (query.OnSale == false)
         {
-            var now = DateTime.UtcNow;
-            queryable = queryable.Where(p => !p.SaleProducts.Any(x =>
-                x.Sale.IsActive && !x.Sale.IsDeleted && x.Sale.DiscountValue > 0 &&
-                (x.Sale.StartsAt == null || x.Sale.StartsAt <= now) &&
-                (x.Sale.EndsAt == null || x.Sale.EndsAt >= now)));
+            queryable = queryable.Where(Not(HasActiveSale(DateTime.UtcNow)));
         }
         if (query.MinPrice.HasValue || query.MaxPrice.HasValue)
         {
@@ -173,11 +165,7 @@ internal sealed class CatalogService(
 
     public Task<PagedResult<ProductCardDto>> GetOnSaleAsync(int page, int size, CancellationToken cancellationToken)
     {
-        var now = DateTime.UtcNow;
-        var query = PublicProducts().Where(p => p.SaleProducts.Any(x =>
-            x.Sale.IsActive && !x.Sale.IsDeleted && x.Sale.DiscountValue > 0 &&
-            (x.Sale.StartsAt == null || x.Sale.StartsAt <= now) &&
-            (x.Sale.EndsAt == null || x.Sale.EndsAt >= now)));
+        var query = PublicProducts().Where(HasActiveSale(DateTime.UtcNow));
         return GetProductPageAsync(query, "newest", page, size, cancellationToken);
     }
 
@@ -229,7 +217,12 @@ internal sealed class CatalogService(
                         (x.StartsAt == null || x.StartsAt <= now) &&
                         (x.EndsAt == null || x.EndsAt >= now))
             .OrderBy(x => x.Name)
-            .Select(x => new SaleDto(x.SaleId, x.Name, x.DiscountType, x.DiscountValue, x.StartsAt, x.EndsAt, x.IsActive))
+            .Select(x => new SaleDto(
+                x.SaleId, x.Name, x.DiscountType, x.DiscountValue, x.StartsAt, x.EndsAt, x.IsActive,
+                x.SaleProducts.Select(p => p.ProductId).ToArray(),
+                x.SaleScopes.Where(s => s.CategoryId != null).Select(s => s.CategoryId!.Value).ToArray(),
+                x.SaleScopes.Where(s => s.DepartmentId != null).Select(s => s.DepartmentId!.Value).ToArray(),
+                x.SaleScopes.Any(s => s.CategoryId == null && s.DepartmentId == null)))
             .ToListAsync(cancellationToken);
     }
 
@@ -240,7 +233,12 @@ internal sealed class CatalogService(
             .Where(x => x.SaleId == id && x.IsActive && !x.IsDeleted &&
                         (x.StartsAt == null || x.StartsAt <= now) &&
                         (x.EndsAt == null || x.EndsAt >= now))
-            .Select(x => new SaleDto(x.SaleId, x.Name, x.DiscountType, x.DiscountValue, x.StartsAt, x.EndsAt, x.IsActive))
+            .Select(x => new SaleDto(
+                x.SaleId, x.Name, x.DiscountType, x.DiscountValue, x.StartsAt, x.EndsAt, x.IsActive,
+                x.SaleProducts.Select(p => p.ProductId).ToArray(),
+                x.SaleScopes.Where(s => s.CategoryId != null).Select(s => s.CategoryId!.Value).ToArray(),
+                x.SaleScopes.Where(s => s.DepartmentId != null).Select(s => s.DepartmentId!.Value).ToArray(),
+                x.SaleScopes.Any(s => s.CategoryId == null && s.DepartmentId == null)))
             .SingleOrDefaultAsync(cancellationToken);
     }
 
@@ -347,7 +345,79 @@ internal sealed class CatalogService(
                         : 0m
             };
 
-        var bestSalePrices = eligibleSalePrices
+        var scopedSalePrices =
+            from variant in db.ProductVariants.AsNoTracking()
+            join link in db.ProductCategories.AsNoTracking()
+                on variant.ProductId equals link.ProductId
+            join scope in db.SaleScopes.AsNoTracking()
+                on link.CategoryId equals scope.CategoryId
+            join sale in db.Sales.AsNoTracking()
+                on scope.SaleId equals sale.SaleId
+            where variant.IsActive && !variant.IsDeleted &&
+                  sale.IsActive && !sale.IsDeleted &&
+                  (sale.StartsAt == null || sale.StartsAt <= now) &&
+                  (sale.EndsAt == null || sale.EndsAt >= now)
+            select new
+            {
+                variant.ProductVariantId,
+                variant.ProductId,
+                EffectivePrice = sale.DiscountType == "Percentage"
+                    ? Math.Round(variant.RegularPrice * (1m - sale.DiscountValue / 100m), 2)
+                    : variant.RegularPrice > sale.DiscountValue
+                        ? variant.RegularPrice - sale.DiscountValue
+                        : 0m
+            };
+
+        var departmentScopedPrices =
+            from variant in db.ProductVariants.AsNoTracking()
+            join link in db.ProductDepartments.AsNoTracking()
+                on variant.ProductId equals link.ProductId
+            join scope in db.SaleScopes.AsNoTracking()
+                on link.DepartmentId equals scope.DepartmentId
+            join sale in db.Sales.AsNoTracking()
+                on scope.SaleId equals sale.SaleId
+            where variant.IsActive && !variant.IsDeleted &&
+                  sale.IsActive && !sale.IsDeleted &&
+                  (sale.StartsAt == null || sale.StartsAt <= now) &&
+                  (sale.EndsAt == null || sale.EndsAt >= now)
+            select new
+            {
+                variant.ProductVariantId,
+                variant.ProductId,
+                EffectivePrice = sale.DiscountType == "Percentage"
+                    ? Math.Round(variant.RegularPrice * (1m - sale.DiscountValue / 100m), 2)
+                    : variant.RegularPrice > sale.DiscountValue
+                        ? variant.RegularPrice - sale.DiscountValue
+                        : 0m
+            };
+
+        var globalScopedPrices =
+            from variant in db.ProductVariants.AsNoTracking()
+            from scope in db.SaleScopes.AsNoTracking()
+                .Where(scope => scope.CategoryId == null && scope.DepartmentId == null)
+            join sale in db.Sales.AsNoTracking()
+                on scope.SaleId equals sale.SaleId
+            where variant.IsActive && !variant.IsDeleted &&
+                  sale.IsActive && !sale.IsDeleted &&
+                  (sale.StartsAt == null || sale.StartsAt <= now) &&
+                  (sale.EndsAt == null || sale.EndsAt >= now)
+            select new
+            {
+                variant.ProductVariantId,
+                variant.ProductId,
+                EffectivePrice = sale.DiscountType == "Percentage"
+                    ? Math.Round(variant.RegularPrice * (1m - sale.DiscountValue / 100m), 2)
+                    : variant.RegularPrice > sale.DiscountValue
+                        ? variant.RegularPrice - sale.DiscountValue
+                        : 0m
+            };
+
+        var allSalePrices = eligibleSalePrices
+            .Concat(scopedSalePrices)
+            .Concat(departmentScopedPrices)
+            .Concat(globalScopedPrices);
+
+        var bestSalePrices = allSalePrices
             .GroupBy(x => new { x.ProductVariantId, x.ProductId })
             .Select(x => new
             {
@@ -465,6 +535,7 @@ internal sealed class CatalogService(
         var variantPrices = variants
             .Select(x => resolved[x.ProductVariantId])
             .ToArray();
+        var regularPrices = variants.Select(x => x.RegularPrice).ToArray();
         return new ProductCardDto(
             product.ProductId,
             product.Name,
@@ -478,9 +549,32 @@ internal sealed class CatalogService(
                 .FirstOrDefault()?.ImageUrl,
             variantPrices.Length == 0 ? null : variantPrices.Min(x => x.Amount),
             variantPrices.Length == 0 ? null : variantPrices.Max(x => x.Amount),
+            regularPrices.Length == 0 ? null : regularPrices.Min(),
+            regularPrices.Length == 0 ? null : regularPrices.Max(),
             variantPrices.Any(x => x.IsOnSale),
             variants.Any(x => EffectivePriceResolver.Available(x) > 0));
     }
+
+    private Expression<Func<Product, bool>> HasActiveSale(DateTime now) =>
+        p => p.SaleProducts.Any(x =>
+                x.Sale.IsActive && !x.Sale.IsDeleted && x.Sale.DiscountValue > 0 &&
+                (x.Sale.StartsAt == null || x.Sale.StartsAt <= now) &&
+                (x.Sale.EndsAt == null || x.Sale.EndsAt >= now))
+            || p.ProductCategories.Any(pc => pc.Category.SaleScopes.Any(ss =>
+                ss.Sale.IsActive && !ss.Sale.IsDeleted && ss.Sale.DiscountValue > 0 &&
+                (ss.Sale.StartsAt == null || ss.Sale.StartsAt <= now) &&
+                (ss.Sale.EndsAt == null || ss.Sale.EndsAt >= now)))
+            || p.ProductDepartments.Any(pd => pd.Department.SaleScopes.Any(ss =>
+                ss.Sale.IsActive && !ss.Sale.IsDeleted && ss.Sale.DiscountValue > 0 &&
+                (ss.Sale.StartsAt == null || ss.Sale.StartsAt <= now) &&
+                (ss.Sale.EndsAt == null || ss.Sale.EndsAt >= now)))
+            || db.SaleScopes.Any(ss => ss.CategoryId == null && ss.DepartmentId == null &&
+                ss.Sale.IsActive && !ss.Sale.IsDeleted && ss.Sale.DiscountValue > 0 &&
+                (ss.Sale.StartsAt == null || ss.Sale.StartsAt <= now) &&
+                (ss.Sale.EndsAt == null || ss.Sale.EndsAt >= now));
+
+    private static Expression<Func<T, bool>> Not<T>(Expression<Func<T, bool>> predicate) =>
+        Expression.Lambda<Func<T, bool>>(Expression.Not(predicate.Body), predicate.Parameters);
 
     private static bool IsPurchasable(ProductVariant variant) =>
         variant.IsActive && !variant.IsDeleted;

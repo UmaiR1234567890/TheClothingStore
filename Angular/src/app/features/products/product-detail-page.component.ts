@@ -42,7 +42,41 @@ export class ProductDetailPageComponent implements OnInit {
   readonly cartMessage = signal('');
   readonly cartError = signal('');
   readonly related = signal<ProductCardDto[]>([]);
+  readonly now = signal(Date.now());
   readonly selectedVariant = computed(() => this.matchingVariant());
+  readonly saleInfo = computed(() => {
+    const variant = this.selectedVariant();
+    if (variant?.onSale) {
+      return { name: variant.saleName ?? null, endsAt: variant.saleEndsAt ?? null };
+    }
+    const onSale = (this.product()?.variants ?? []).filter((item) => item.onSale && item.saleEndsAt);
+    if (onSale.length === 0) {
+      return null;
+    }
+    const soonest = onSale.reduce((a, b) =>
+      new Date(a.saleEndsAt!).getTime() <= new Date(b.saleEndsAt!).getTime() ? a : b);
+    return { name: soonest.saleName ?? null, endsAt: soonest.saleEndsAt ?? null };
+  });
+  readonly saleCountdown = computed(() => {
+    const endsAt = this.saleInfo()?.endsAt;
+    if (!endsAt) {
+      return null;
+    }
+    const remaining = new Date(endsAt).getTime() - this.now();
+    if (remaining <= 0) {
+      return 'Ending soon';
+    }
+    const days = Math.floor(remaining / 86_400_000);
+    const hours = Math.floor((remaining % 86_400_000) / 3_600_000);
+    const minutes = Math.floor((remaining % 3_600_000) / 60_000);
+    if (days > 0) {
+      return `${days}d ${hours}h left`;
+    }
+    if (hours > 0) {
+      return `${hours}h ${minutes}m left`;
+    }
+    return `${Math.max(minutes, 1)}m left`;
+  });
   readonly visibleImages = computed(() =>
     imagesForColor(this.product()?.images ?? [], this.selectedColorId()));
   readonly colorOptions = computed(() => uniqueOptions(this.product()?.variants.map((variant) => ({
@@ -70,6 +104,8 @@ export class ProductDetailPageComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    const countdown = window.setInterval(() => this.now.set(Date.now()), 60_000);
+    this.destroyRef.onDestroy(() => window.clearInterval(countdown));
     this.route.paramMap.pipe(
       switchMap((params) => {
         const slug = params.get('slug');

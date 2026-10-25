@@ -23,7 +23,7 @@
         <tbody>
           @for (order of result()!.items; track order.orderId) {
             <tr>
-              <td><a [routerLink]="['/admin/orders', order.orderId]">{{ order.orderNumber }}</a><small>{{ order.items.length }} item lines</small></td>
+              <td><a class="order-number-cell" [routerLink]="['/admin/orders', order.orderId]">{{ order.orderNumber }}</a><small>{{ order.items.length }} item lines</small></td>
               <td>{{ order.placedAt | date:'short' }}</td>
               <td>{{ order.guestEmail || order.shippingName || 'Registered customer' }}</td>
               <td><span class="admin-badge admin-badge--neutral">{{ paymentStatus(order) }}</span></td>

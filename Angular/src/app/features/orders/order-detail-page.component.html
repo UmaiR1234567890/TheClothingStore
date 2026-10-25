@@ -14,8 +14,16 @@
         <h1 class="page-title">Your order.</h1>
         <p class="page-intro">Placed {{ current.placedAt | date:'medium' }}</p>
       </div>
-      <span class="status-pill" [attr.data-status]="current.status.toLowerCase()">{{ current.status }}</span>
+      <div class="order-detail-heading__side">
+        <span class="status-pill" [attr.data-status]="current.status.toLowerCase()">{{ current.status }}</span>
+        @if (canReorder(current)) {
+          <button class="btn btn-outline btn-small" type="button" [disabled]="reordering()" (click)="reorder()">
+            {{ reordering() ? 'Adding…' : 'Back to bag' }}
+          </button>
+        }
+      </div>
     </div>
+    @if (reorderError()) { <p class="notice notice-error" role="alert">{{ reorderError() }}</p> }
 
     <div class="order-detail-layout">
       <section class="order-detail-card">

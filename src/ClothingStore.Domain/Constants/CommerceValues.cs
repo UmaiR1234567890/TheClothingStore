@@ -14,6 +14,8 @@ public static class OrderStatuses
     public const string Processing = "Processing";
     public const string Shipped = "Shipped";
     public const string Completed = "Completed";
+    public const string Returned = "Returned";
+    public const string Refunded = "Refunded";
     public const string Cancelled = "Cancelled";
 }
 
@@ -31,6 +33,8 @@ public static class ShipmentStatuses
     public const string Pending = "Pending";
     public const string Packed = "Packed";
     public const string Shipped = "Shipped";
+    public const string InTransit = "InTransit";
+    public const string OutForDelivery = "OutForDelivery";
     public const string Delivered = "Delivered";
     public const string Returned = "Returned";
 }

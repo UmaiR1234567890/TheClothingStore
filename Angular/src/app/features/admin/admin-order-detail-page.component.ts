@@ -50,13 +50,16 @@ export class AdminOrderDetailPageComponent implements OnInit {
 
   nextStatuses(order: OrderDto): string[] {
     const captured = order.payments.some((payment) => payment.status === 'Captured');
-    const shipped = order.shipments.some((shipment) => ['Shipped', 'Delivered'].includes(shipment.status));
+    const refunded = order.payments.some((payment) => payment.status === 'Refunded');
+    const shipped = order.shipments.some((shipment) => ['Shipped', 'InTransit', 'OutForDelivery', 'Delivered'].includes(shipment.status));
     const delivered = order.shipments.some((shipment) => shipment.status === 'Delivered');
     switch (order.status) {
       case 'Pending': return captured ? ['Paid'] : ['Processing', 'Cancelled'];
       case 'Processing': return [...(shipped ? ['Shipped'] : []), ...(captured ? ['Paid'] : []), ...(!captured ? ['Cancelled'] : [])];
       case 'Paid': return ['Processing'];
-      case 'Shipped': return delivered && captured ? ['Completed'] : [];
+      case 'Shipped': return [...(delivered && captured ? ['Completed'] : []), 'Returned'];
+      case 'Completed': return ['Returned'];
+      case 'Returned': return [...(refunded ? ['Refunded'] : []), ...(!captured ? ['Cancelled'] : [])];
       default: return [];
     }
   }

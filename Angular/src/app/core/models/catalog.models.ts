@@ -70,6 +70,8 @@ export interface ProductVariantDto {
   onSale: boolean;
   quantityAvailable: number;
   isAvailable: boolean;
+  saleName?: string | null;
+  saleEndsAt?: string | null;
 }
 
 export interface ProductCardDto {
@@ -80,6 +82,8 @@ export interface ProductCardDto {
   primaryImageUrl: string | null;
   minPrice: number | null;
   maxPrice: number | null;
+  regularMinPrice?: number | null;
+  regularMaxPrice?: number | null;
   onSale: boolean;
   isAvailable: boolean;
 }
@@ -108,6 +112,10 @@ export interface SaleDto {
   startsAt: string | null;
   endsAt: string | null;
   isActive: boolean;
+  productIds?: number[];
+  categoryIds?: number[];
+  departmentIds?: number[];
+  applyToAll?: boolean;
 }
 
 export interface ProductQuery {

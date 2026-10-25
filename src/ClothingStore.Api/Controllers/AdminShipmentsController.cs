@@ -18,6 +18,11 @@ public sealed class AdminShipmentsController(IShipmentService shipments) : Contr
         Ok(ApiResponse<PagedResult<ShipmentDto>>.Ok(
             await shipments.GetAdminShipmentsAsync(pageNumber, pageSize, cancellationToken)));
 
+    [HttpGet("carriers")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<CarrierDto>>>> GetCarriers(
+        CancellationToken cancellationToken) =>
+        Ok(ApiResponse<IReadOnlyList<CarrierDto>>.Ok(await shipments.GetCarriersAsync(cancellationToken)));
+
     [HttpPost]
     public async Task<ActionResult<ApiResponse<ShipmentDto>>> Create(
         ShipmentWriteRequest request,

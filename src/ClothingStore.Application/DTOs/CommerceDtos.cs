@@ -78,7 +78,8 @@ public sealed record OrderItemDto(
     int Quantity,
     decimal UnitPrice,
     decimal DiscountAmount,
-    decimal LineTotal);
+    decimal LineTotal,
+    int? ProductVariantId);
 
 public sealed record PaymentDto(
     int PaymentId,
@@ -89,7 +90,8 @@ public sealed record PaymentDto(
     string? ProviderReference,
     string Status,
     DateTime CreatedAt,
-    DateTime? ProcessedAt);
+    DateTime? ProcessedAt,
+    string? OrderNumber = null);
 
 public sealed class InitiatePaymentRequest
 {
@@ -118,7 +120,16 @@ public sealed record ShipmentDto(
     string? TrackingNumber,
     string Status,
     DateTime? ShippedAt,
-    DateTime? DeliveredAt);
+    DateTime? DeliveredAt,
+    string? OrderNumber = null);
+
+public sealed record CarrierDto(int CarrierId, string Name, string Code);
+
+public sealed class RefundPaymentRequest
+{
+    [Required, StringLength(400, MinimumLength = 3)]
+    public string Reason { get; init; } = string.Empty;
+}
 
 public sealed record OrderDto(
     int OrderId,

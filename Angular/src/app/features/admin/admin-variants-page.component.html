@@ -119,7 +119,13 @@
         </div>
 
         <fieldset class="variant-picker">
-          <legend class="variant-picker__label">Colors</legend>
+          <legend class="variant-picker__label">Colors
+            <span class="variant-picker__tools">
+              <button class="text-button" type="button" (click)="selectAllColors()">All colors</button>
+              <button class="text-button" type="button" (click)="clearColors()">None</button>
+              <button class="text-button" type="button" (click)="selectEverySizeEverywhere()" [disabled]="selectedColorKeys().length === 0">All sizes in every color</button>
+            </span>
+          </legend>
           <div class="variant-color-list">
             <label class="variant-color-chip" [class.variant-color-chip--selected]="isColorKeySelected('none')">
               <input type="checkbox" [checked]="isColorKeySelected('none')" (change)="toggleColorKey('none')">

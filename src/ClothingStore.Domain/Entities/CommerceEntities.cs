@@ -94,6 +94,15 @@ public sealed class NewsletterSubscription
     public DateTime? UnsubscribedAt { get; set; }
 }
 
+public sealed class Carrier
+{
+    public int CarrierId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+    public int SortOrder { get; set; }
+}
+
 public sealed class AuditLog
 {
     public long AuditLogId { get; set; }

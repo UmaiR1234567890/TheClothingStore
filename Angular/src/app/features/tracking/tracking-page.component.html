@@ -17,12 +17,19 @@
       <div class="tracking-list">
         @for (shipment of current.shipments; track shipment.shipmentId) {
           <article class="tracking-card">
-            <div class="tracking-card__icon" aria-hidden="true">↗</div>
             <div class="tracking-card__main">
               <div class="tracking-card__top">
-                <div><span class="eyebrow">Shipment {{ shipment.shipmentId }}</span><h2>{{ shipment.status }}</h2></div>
-                <span class="status-pill" [attr.data-status]="shipment.status.toLowerCase()">{{ shipment.status }}</span>
+                <div><span class="eyebrow">Shipment {{ shipment.shipmentId }}</span><h2>{{ statusLabel(shipment.status) }}</h2></div>
+                <span class="status-pill" [attr.data-status]="shipment.status.toLowerCase()">{{ statusLabel(shipment.status) }}</span>
               </div>
+              <ol class="tracking-steps" aria-label="Shipment progress">
+                @for (step of stepsFor(shipment); track step.label) {
+                  <li [attr.data-state]="step.state"><span class="tracking-steps__dot" aria-hidden="true"></span>{{ step.label }}</li>
+                }
+                @if (shipment.status === 'Returned') {
+                  <li data-state="returned"><span class="tracking-steps__dot" aria-hidden="true"></span>Returned to sender</li>
+                }
+              </ol>
               <div class="tracking-card__details">
                 @if (shipment.carrier) { <div><span>Carrier</span><strong>{{ shipment.carrier }}</strong></div> }
                 @if (shipment.trackingNumber) { <div><span>Tracking number</span><strong>{{ shipment.trackingNumber }}</strong></div> }

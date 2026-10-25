@@ -93,8 +93,8 @@ internal sealed class CheckoutService(
         var paymentProvider = FindProvider(request.PaymentMethod)
             ?? throw new ServiceException(503, "payment_provider_unavailable", "The requested payment provider is not configured.");
 
-        var orderNumber = CreateOrderNumber(customerId, guestToken, request.IdempotencyKey);
-        var prior = await LoadOrderByNumberAsync(orderNumber, cancellationToken);
+        var (orderNumber, fingerprint) = CreateOrderNumber(customerId, guestToken, request.IdempotencyKey);
+        var prior = await LoadOrderByFingerprintAsync(fingerprint, cancellationToken);
         if (prior is not null)
             return EnsureOwnerAndMap(prior, customerId, request.GuestEmail);
 
@@ -102,9 +102,9 @@ internal sealed class CheckoutService(
         try
         {
             await db.Database.ExecuteSqlInterpolatedAsync(
-                $"DECLARE @lockResult int; EXEC @lockResult = sys.sp_getapplock @Resource = {string.Concat("checkout:", orderNumber)}, @LockMode = N'Exclusive', @LockOwner = N'Transaction', @LockTimeout = 10000; IF @lockResult < 0 THROW 51010, N'Could not acquire checkout idempotency lock.', 1;",
+                $"DECLARE @lockResult int; EXEC @lockResult = sys.sp_getapplock @Resource = {string.Concat("checkout:", fingerprint)}, @LockMode = N'Exclusive', @LockOwner = N'Transaction', @LockTimeout = 10000; IF @lockResult < 0 THROW 51010, N'Could not acquire checkout idempotency lock.', 1;",
                 cancellationToken);
-            prior = await LoadOrderByNumberAsync(orderNumber, cancellationToken);
+            prior = await LoadOrderByFingerprintAsync(fingerprint, cancellationToken);
             if (prior is not null)
             {
                 await transaction.CommitAsync(cancellationToken);
@@ -243,7 +243,7 @@ internal sealed class CheckoutService(
         {
             await transaction.RollbackAsync(cancellationToken);
             db.ChangeTracker.Clear();
-            var existing = await LoadOrderByNumberAsync(orderNumber, cancellationToken);
+            var existing = await LoadOrderByFingerprintAsync(fingerprint, cancellationToken);
             if (existing is not null)
                 return EnsureOwnerAndMap(existing, customerId, request.GuestEmail);
             throw;
@@ -336,23 +336,26 @@ internal sealed class CheckoutService(
             []);
     }
 
-    private static string CreateOrderNumber(int? customerId, Guid? guestToken, Guid key)
+    private static (string Number, string Fingerprint) CreateOrderNumber(int? customerId, Guid? guestToken, Guid key)
     {
         var owner = customerId.HasValue
             ? $"customer:{customerId.Value}"
             : $"guest:{guestToken.GetValueOrDefault():N}";
         var input = Encoding.UTF8.GetBytes($"{owner}|{key:N}");
         var hash = Convert.ToHexString(SHA256.HashData(input));
-        return $"TCS{hash[..29]}";
+        var fingerprint = hash[..8];
+        var number = $"TCS{DateTime.UtcNow:yyMMddHHmmss}-{fingerprint}";
+        return (number, fingerprint);
     }
 
-    private async Task<Order?> LoadOrderByNumberAsync(string orderNumber, CancellationToken cancellationToken) =>
+    private async Task<Order?> LoadOrderByFingerprintAsync(string fingerprint, CancellationToken cancellationToken) =>
         await db.Orders.AsNoTracking()
             .Include(x => x.Items)
             .Include(x => x.Payments)
             .Include(x => x.Shipments)
             .AsSplitQuery()
-            .SingleOrDefaultAsync(x => x.OrderNumber == orderNumber, cancellationToken);
+            .OrderByDescending(x => x.PlacedAt)
+            .FirstOrDefaultAsync(x => x.OrderNumber.EndsWith("-" + fingerprint), cancellationToken);
 
     private static CheckoutResultDto EnsureOwnerAndMap(Order order, int? customerId, string? guestEmail)
     {
@@ -387,7 +390,7 @@ internal sealed class CheckoutService(
             order.ShippingPostalCode,
             order.ShippingCountry,
             order.Items.Select(x => new OrderItemDto(
-                x.ProductName, x.Sku, x.VariantDetails, x.Quantity, x.UnitPrice, x.DiscountAmount, x.LineTotal)).ToArray(),
+                x.ProductName, x.Sku, x.VariantDetails, x.Quantity, x.UnitPrice, x.DiscountAmount, x.LineTotal, x.ProductVariantId)).ToArray(),
             order.Payments.Select(x => new PaymentDto(
                 x.PaymentId, x.OrderId, x.Amount, x.Method, x.Provider, x.ProviderReference, x.Status, x.CreatedAt, x.ProcessedAt)).ToArray(),
             order.Shipments.Select(x => new ShipmentDto(

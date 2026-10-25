@@ -13,6 +13,7 @@ public sealed class Department
     public DateTime? UpdatedAt { get; set; }
     public ICollection<Category> Categories { get; set; } = new List<Category>();
     public ICollection<ProductDepartment> ProductDepartments { get; set; } = new List<ProductDepartment>();
+    public ICollection<SaleScope> SaleScopes { get; set; } = new List<SaleScope>();
 }
 
 public sealed class Color
@@ -65,6 +66,7 @@ public sealed class Category
     public Category? ParentCategory { get; set; }
     public ICollection<Category> Children { get; set; } = new List<Category>();
     public ICollection<ProductCategory> ProductCategories { get; set; } = new List<ProductCategory>();
+    public ICollection<SaleScope> SaleScopes { get; set; } = new List<SaleScope>();
 }
 
 public sealed class Product
@@ -164,6 +166,7 @@ public sealed class Sale
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public ICollection<SaleProduct> SaleProducts { get; set; } = new List<SaleProduct>();
+    public ICollection<SaleScope> SaleScopes { get; set; } = new List<SaleScope>();
 }
 
 public sealed class SaleProduct
@@ -172,4 +175,15 @@ public sealed class SaleProduct
     public int ProductId { get; set; }
     public Sale Sale { get; set; } = null!;
     public Product Product { get; set; } = null!;
+}
+
+public sealed class SaleScope
+{
+    public int SaleScopeId { get; set; }
+    public int SaleId { get; set; }
+    public int? DepartmentId { get; set; }
+    public int? CategoryId { get; set; }
+    public Sale Sale { get; set; } = null!;
+    public Department? Department { get; set; }
+    public Category? Category { get; set; }
 }

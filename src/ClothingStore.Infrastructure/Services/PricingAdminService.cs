@@ -17,7 +17,18 @@ internal sealed class PricingAdminService(ClothingStoreDbContext db, AuditLogWri
         var count = await query.CountAsync(cancellationToken);
         var sales = await query.OrderByDescending(x => x.CreatedAt)
             .Skip((page - 1) * size).Take(size)
-            .Select(ToDtoExpression())
+            .Select(x => new SaleDto(
+                x.SaleId,
+                x.Name,
+                x.DiscountType,
+                x.DiscountValue,
+                x.StartsAt,
+                x.EndsAt,
+                x.IsActive,
+                x.SaleProducts.Select(p => p.ProductId).ToArray(),
+                x.SaleScopes.Where(s => s.CategoryId != null).Select(s => s.CategoryId!.Value).ToArray(),
+                x.SaleScopes.Where(s => s.DepartmentId != null).Select(s => s.DepartmentId!.Value).ToArray(),
+                x.SaleScopes.Any(s => s.CategoryId == null && s.DepartmentId == null)))
             .ToListAsync(cancellationToken);
         return new PagedResult<SaleDto>(sales, page, size, count);
     }
@@ -26,6 +37,7 @@ internal sealed class PricingAdminService(ClothingStoreDbContext db, AuditLogWri
     {
         ValidateSale(request);
         var productIds = await ValidateProductIdsAsync(request.ProductIds, cancellationToken);
+        var scopes = await ValidateScopesAsync(request, cancellationToken);
         var sale = new Sale
         {
             Name = request.Name.Trim(),
@@ -38,6 +50,8 @@ internal sealed class PricingAdminService(ClothingStoreDbContext db, AuditLogWri
         };
         foreach (var productId in productIds)
             sale.SaleProducts.Add(new SaleProduct { Sale = sale, ProductId = productId });
+        foreach (var scope in scopes)
+            sale.SaleScopes.Add(scope);
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         db.Sales.Add(sale);
         await SaveWithConflictTranslationAsync(cancellationToken);
@@ -50,11 +64,12 @@ internal sealed class PricingAdminService(ClothingStoreDbContext db, AuditLogWri
     public async Task<SaleDto> UpdateSaleAsync(int id, SaleWriteRequest request, CancellationToken cancellationToken)
     {
         ValidateSale(request);
-        var sale = await db.Sales.Include(x => x.SaleProducts)
+        var sale = await db.Sales.Include(x => x.SaleProducts).Include(x => x.SaleScopes)
             .SingleOrDefaultAsync(x => x.SaleId == id && !x.IsDeleted, cancellationToken);
         if (sale is null)
             throw new ServiceException(404, "sale_not_found", "Sale was not found.");
         var productIds = await ValidateProductIdsAsync(request.ProductIds, cancellationToken);
+        var scopes = await ValidateScopesAsync(request, cancellationToken);
         sale.Name = request.Name.Trim();
         sale.DiscountType = request.DiscountType;
         sale.DiscountValue = request.DiscountValue;
@@ -65,6 +80,15 @@ internal sealed class PricingAdminService(ClothingStoreDbContext db, AuditLogWri
         sale.SaleProducts.Clear();
         foreach (var productId in productIds)
             sale.SaleProducts.Add(new SaleProduct { SaleId = sale.SaleId, ProductId = productId });
+        db.SaleScopes.RemoveRange(sale.SaleScopes);
+        sale.SaleScopes.Clear();
+        foreach (var scope in scopes)
+            sale.SaleScopes.Add(new SaleScope
+            {
+                SaleId = sale.SaleId,
+                DepartmentId = scope.DepartmentId,
+                CategoryId = scope.CategoryId
+            });
         audit.Record("Sales", id.ToString(), "Update", "Updated promotion terms, schedule, or eligibility.");
         await SaveWithConflictTranslationAsync(cancellationToken);
         return ToDto(sale);
@@ -98,11 +122,40 @@ internal sealed class PricingAdminService(ClothingStoreDbContext db, AuditLogWri
     {
         var ids = requested.Distinct().ToArray();
         if (ids.Length == 0)
-            throw new ServiceException(400, "sale_products_required", "At least one product must be eligible for a sale.");
+            return ids;
         var count = await db.Products.CountAsync(x => ids.Contains(x.ProductId) && !x.IsDeleted, cancellationToken);
         if (count != ids.Length)
             throw new ServiceException(400, "invalid_sale_product", "One or more sale products do not exist or are deleted.");
         return ids;
+    }
+
+    private async Task<SaleScope[]> ValidateScopesAsync(SaleWriteRequest request, CancellationToken cancellationToken)
+    {
+        var scopes = new List<SaleScope>();
+        if (request.ApplyToAll)
+            scopes.Add(new SaleScope());
+        foreach (var departmentId in request.DepartmentIds.Distinct())
+            scopes.Add(new SaleScope { DepartmentId = departmentId });
+        foreach (var categoryId in request.CategoryIds.Distinct())
+            scopes.Add(new SaleScope { CategoryId = categoryId });
+        if (scopes.Count == 0 && request.ProductIds.Count == 0)
+            throw new ServiceException(400, "sale_target_required", "Choose at least one product, category, or department for the promotion.");
+
+        var departmentIds = request.DepartmentIds.Distinct().ToArray();
+        if (departmentIds.Length > 0)
+        {
+            var count = await db.Departments.CountAsync(x => departmentIds.Contains(x.DepartmentId), cancellationToken);
+            if (count != departmentIds.Length)
+                throw new ServiceException(400, "invalid_sale_department", "One or more sale departments do not exist.");
+        }
+        var categoryIds = request.CategoryIds.Distinct().ToArray();
+        if (categoryIds.Length > 0)
+        {
+            var count = await db.Categories.CountAsync(x => categoryIds.Contains(x.CategoryId) && !x.IsDeleted, cancellationToken);
+            if (count != categoryIds.Length)
+                throw new ServiceException(400, "invalid_sale_category", "One or more sale categories do not exist or are deleted.");
+        }
+        return scopes.ToArray();
     }
 
     private static void ValidateSale(SaleWriteRequest request)
@@ -140,10 +193,18 @@ internal sealed class PricingAdminService(ClothingStoreDbContext db, AuditLogWri
     }
 
     private static SaleDto ToDto(Sale sale) =>
-        new(sale.SaleId, sale.Name, sale.DiscountType, sale.DiscountValue, sale.StartsAt, sale.EndsAt, sale.IsActive);
-
-    private static System.Linq.Expressions.Expression<Func<Sale, SaleDto>> ToDtoExpression() =>
-        x => new SaleDto(x.SaleId, x.Name, x.DiscountType, x.DiscountValue, x.StartsAt, x.EndsAt, x.IsActive);
+        new(
+            sale.SaleId,
+            sale.Name,
+            sale.DiscountType,
+            sale.DiscountValue,
+            sale.StartsAt,
+            sale.EndsAt,
+            sale.IsActive,
+            sale.SaleProducts.Select(x => x.ProductId).ToArray(),
+            sale.SaleScopes.Where(x => x.CategoryId != null).Select(x => x.CategoryId!.Value).ToArray(),
+            sale.SaleScopes.Where(x => x.DepartmentId != null).Select(x => x.DepartmentId!.Value).ToArray(),
+            sale.SaleScopes.Any(x => x.CategoryId == null && x.DepartmentId == null));
 
     private static DateTime? AsUtc(DateTime? value)
     {

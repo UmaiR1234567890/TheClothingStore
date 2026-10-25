@@ -57,6 +57,53 @@ internal sealed class SaleProductConfiguration : IEntityTypeConfiguration<SalePr
     }
 }
 
+internal sealed class SaleScopeConfiguration : IEntityTypeConfiguration<SaleScope>
+{
+    public void Configure(EntityTypeBuilder<SaleScope> builder)
+    {
+        builder.ToTable("SaleScopes", "dbo", table =>
+        {
+            table.ExcludeFromMigrations();
+            table.HasCheckConstraint(
+                "CK_SaleScopes_Target",
+                "[CategoryId] IS NULL OR [DepartmentId] IS NULL");
+        });
+        builder.HasKey(x => x.SaleScopeId).HasName("PK_SaleScopes");
+        builder.HasIndex(x => x.SaleId).HasDatabaseName("IX_SaleScopes_SaleId");
+        builder.HasIndex(x => x.CategoryId).HasDatabaseName("IX_SaleScopes_CategoryId");
+        builder.HasIndex(x => x.DepartmentId).HasDatabaseName("IX_SaleScopes_DepartmentId");
+        builder.HasOne(x => x.Sale)
+            .WithMany(x => x.SaleScopes)
+            .HasForeignKey(x => x.SaleId)
+            .OnDelete(DeleteBehavior.Cascade)
+            .HasConstraintName("FK_SaleScopes_Sales");
+        builder.HasOne(x => x.Department)
+            .WithMany(x => x.SaleScopes)
+            .HasForeignKey(x => x.DepartmentId)
+            .OnDelete(DeleteBehavior.NoAction)
+            .HasConstraintName("FK_SaleScopes_Departments");
+        builder.HasOne(x => x.Category)
+            .WithMany(x => x.SaleScopes)
+            .HasForeignKey(x => x.CategoryId)
+            .OnDelete(DeleteBehavior.NoAction)
+            .HasConstraintName("FK_SaleScopes_Categories");
+    }
+}
+
+internal sealed class CarrierConfiguration : IEntityTypeConfiguration<Carrier>
+{
+    public void Configure(EntityTypeBuilder<Carrier> builder)
+    {
+        builder.ToTable("Carriers", "dbo", table => table.ExcludeFromMigrations());
+        builder.HasKey(x => x.CarrierId).HasName("PK_Carriers");
+        builder.Property(x => x.Name).HasMaxLength(80).IsRequired();
+        builder.Property(x => x.Code).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true);
+        builder.Property(x => x.SortOrder).HasDefaultValue(0);
+        builder.HasIndex(x => x.Code).IsUnique().HasDatabaseName("UX_Carriers_Code");
+    }
+}
+
 internal sealed class InventoryConfiguration : IEntityTypeConfiguration<Inventory>
 {
     public void Configure(EntityTypeBuilder<Inventory> builder)

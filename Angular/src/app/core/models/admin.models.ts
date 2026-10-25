@@ -89,6 +89,15 @@ export interface SaleWriteRequest {
   startsAt: string | null;
   endsAt: string | null;
   productIds: number[];
+  categoryIds: number[];
+  departmentIds: number[];
+  applyToAll: boolean;
+}
+
+export interface CarrierDto {
+  carrierId: number;
+  name: string;
+  code: string;
 }
 
 export interface InventoryAdjustmentRequest {
@@ -149,5 +158,9 @@ export interface ShipmentWriteRequest {
 
 export interface PaymentStatusUpdateRequest {
   status: 'Captured';
+  reason: string;
+}
+
+export interface RefundPaymentRequest {
   reason: string;
 }

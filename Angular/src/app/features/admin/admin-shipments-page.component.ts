@@ -1,8 +1,9 @@
-import { DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ShipmentWriteRequest } from '../../core/models/admin.models';
-import { ShipmentDto } from '../../core/models/commerce.models';
+import { RouterLink } from '@angular/router';
+import { CarrierDto, ShipmentWriteRequest } from '../../core/models/admin.models';
+import { OrderDto, ShipmentDto } from '../../core/models/commerce.models';
 import { PagedResult } from '../../core/models/api.models';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { parseApiFailure } from '../../core/services/api-error.service';
@@ -10,19 +11,23 @@ import { parseApiFailure } from '../../core/services/api-error.service';
 @Component({
   selector: 'tcs-admin-shipments-page',
   standalone: true,
-  imports: [DatePipe, ReactiveFormsModule],
+  imports: [CurrencyPipe, DatePipe, ReactiveFormsModule, RouterLink],
   templateUrl: './admin-shipments-page.component.html',
   styleUrl: './admin-pages.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminShipmentsPageComponent implements OnInit {
   readonly shipments = signal<PagedResult<ShipmentDto> | null>(null);
+  readonly carriers = signal<CarrierDto[]>([]);
+  readonly shippableOrders = signal<OrderDto[]>([]);
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly error = signal('');
   readonly message = signal('');
+  readonly orderSearch = new FormControl('', { nonNullable: true });
+  readonly selectedOrder = signal<OrderDto | null>(null);
+  readonly orderPickerOpen = signal(false);
   readonly form = new FormGroup({
-    orderId: new FormControl<number | null>(null, [Validators.required, Validators.min(1)]),
     carrier: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(80)] }),
     trackingNumber: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(80)] }),
   });
@@ -31,6 +36,15 @@ export class AdminShipmentsPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.admin.getCarriers().subscribe({
+      next: (carriers) => this.carriers.set(carriers),
+      error: () => this.carriers.set([]),
+    });
+    this.admin.getOrders(1, 100).subscribe({
+      next: (result) => this.shippableOrders.set(
+        result.items.filter((order) => order.status !== 'Cancelled' && order.status !== 'Refunded')),
+      error: () => this.shippableOrders.set([]),
+    });
   }
 
   load(): void {
@@ -48,11 +62,53 @@ export class AdminShipmentsPageComponent implements OnInit {
     });
   }
 
+  statusLabel(status: string): string {
+    switch (status) {
+      case 'Pending': return 'Shipment created';
+      case 'InTransit': return 'In transit';
+      case 'OutForDelivery': return 'Out for delivery';
+      default: return status;
+    }
+  }
+
+  filteredOrders(): OrderDto[] {
+    const term = this.orderSearch.value.trim().toLowerCase();
+    const orders = this.shippableOrders();
+    if (!term) {
+      return orders;
+    }
+    return orders.filter((order) =>
+      order.orderNumber.toLowerCase().includes(term) ||
+      String(order.orderId).includes(term) ||
+      (order.guestEmail ?? '').toLowerCase().includes(term));
+  }
+
+  pickOrder(order: OrderDto): void {
+    this.selectedOrder.set(order);
+    this.orderPickerOpen.set(false);
+    this.orderSearch.setValue('');
+  }
+
+  clearOrder(): void {
+    this.selectedOrder.set(null);
+  }
+
+  shipmentBadgeClass(status: string): string {
+    switch (status) {
+      case 'Delivered': return 'admin-badge--success';
+      case 'Shipped': case 'InTransit': case 'OutForDelivery': return 'admin-badge--info';
+      case 'Returned': return 'admin-badge--danger';
+      default: return 'admin-badge--warn';
+    }
+  }
+
   nextStatuses(shipment: ShipmentDto): string[] {
     switch (shipment.status) {
       case 'Pending': return ['Packed'];
       case 'Packed': return ['Shipped'];
       case 'Shipped': return ['Delivered', 'Returned'];
+      case 'InTransit': return ['OutForDelivery', 'Delivered', 'Returned'];
+      case 'OutForDelivery': return ['Delivered', 'Returned'];
       case 'Delivered': return ['Returned'];
       default: return [];
     }
@@ -65,7 +121,7 @@ export class AdminShipmentsPageComponent implements OnInit {
     }
     this.admin.setShipmentStatus(shipment.shipmentId, target.value).subscribe({
       next: () => {
-        this.message.set(`Shipment #${shipment.shipmentId} updated.`);
+        this.message.set(`Shipment #${shipment.shipmentId} updated to ${this.statusLabel(target.value)}.`);
         this.load();
       },
       error: (failure: unknown) => {
@@ -75,15 +131,26 @@ export class AdminShipmentsPageComponent implements OnInit {
     });
   }
 
+  generateTrackingNumber(): void {
+    const carrier = this.form.controls.carrier.value.trim();
+    const code = (this.carriers().find((c) => c.name === carrier)?.code || 'TCS').replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 8) || 'TCS';
+    const stamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(2, 14);
+    const random = Math.floor(1000 + Math.random() * 9000);
+    this.form.controls.trackingNumber.setValue(`${code}-${stamp}-${random}`);
+    this.form.controls.trackingNumber.markAsDirty();
+  }
+
   create(): void {
     this.form.markAllAsTouched();
     this.error.set('');
-    if (this.form.invalid || this.saving()) {
+    const order = this.selectedOrder();
+    if (order === null || this.form.invalid || this.saving()) {
+      this.error.set('Search and pick an order before creating a shipment.');
       return;
     }
     const value = this.form.getRawValue();
     const request: ShipmentWriteRequest = {
-      orderId: value.orderId!,
+      orderId: order.orderId,
       carrier: value.carrier.trim() || null,
       trackingNumber: value.trackingNumber.trim() || null,
       status: 'Pending',
@@ -91,8 +158,9 @@ export class AdminShipmentsPageComponent implements OnInit {
     this.saving.set(true);
     this.admin.createShipment(request).subscribe({
       next: () => {
-        this.message.set('Shipment created in Pending status.');
-        this.form.reset({ orderId: null, carrier: '', trackingNumber: '' });
+        this.message.set(`Shipment created for ${order.orderNumber} in Pending status.`);
+        this.form.reset({ carrier: '', trackingNumber: '' });
+        this.selectedOrder.set(null);
         this.saving.set(false);
         this.load();
       },

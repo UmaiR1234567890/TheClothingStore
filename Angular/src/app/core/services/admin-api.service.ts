@@ -5,6 +5,7 @@ import { PagedResult } from '../models/api.models';
 import {
   AdminCustomerDto,
   AdminProductCardDto,
+  CarrierDto,
   CategoryWriteRequest,
   DashboardSummaryDto,
   DepartmentWriteRequest,
@@ -17,6 +18,7 @@ import {
   ProductImageUploadMetadata,
   ProductImageWriteRequest,
   ProductWriteRequest,
+  RefundPaymentRequest,
   SaleWriteRequest,
   ShipmentWriteRequest,
   StatusUpdateRequest,
@@ -224,8 +226,8 @@ export class AdminApiService {
     return this.api.patch<OrderDto>(`/admin/orders/${id}/status`, { status });
   }
 
-  getPayments(pageNumber = 1, pageSize = 20): Observable<PagedResult<PaymentDto>> {
-    return this.api.get<PagedResult<PaymentDto>>('/admin/payments', { pageNumber, pageSize });
+  getPayments(pageNumber = 1, pageSize = 20, search?: string): Observable<PagedResult<PaymentDto>> {
+    return this.api.get<PagedResult<PaymentDto>>('/admin/payments', { pageNumber, pageSize, search });
   }
 
   getPayment(id: number): Observable<PaymentDto> {
@@ -234,6 +236,14 @@ export class AdminApiService {
 
   markCodCollected(id: number, request: PaymentStatusUpdateRequest): Observable<PaymentDto> {
     return this.api.post<PaymentDto>(`/payments/${id}/status`, request);
+  }
+
+  refundPayment(id: number, request: RefundPaymentRequest): Observable<PaymentDto> {
+    return this.api.post<PaymentDto>(`/admin/payments/${id}/refund`, request);
+  }
+
+  getCarriers(): Observable<CarrierDto[]> {
+    return this.api.get<CarrierDto[]>('/admin/shipments/carriers');
   }
 
   getShipments(pageNumber = 1, pageSize = 20): Observable<PagedResult<ShipmentDto>> {

@@ -1,0 +1,187 @@
+=====================================================================
+ CLOTHING STORE — FULL VERIFICATION CHECKLIST
+=====================================================================
+Every issue from your last 3 requests is covered below.
+Tick each item as you verify it. If something fails, note the page
+and what happened and send it back to me.
+
+PREREQS
+---------------------------------------------------------------------
+- SQL script 20_carriers_and_sale_scopes.sql applied (Carriers + SaleScopes tables exist).
+- API running on http://127.0.0.1:5077  (restart it to load latest code).
+- Angular running on http://localhost:4200.
+- Admin login: superadmin@theclothingstore.local
+
+
+=====================================================================
+ PART 1 — FIRST REQUEST (admin UI fixes + checkout email)
+=====================================================================
+
+A. ADMIN PRODUCT LIST (/admin/products)
+ [ ] Edit / Variants / Images / Soft-delete buttons render as styled
+     pills; Soft delete is red.
+ [ ] Search box works and does NOT produce empty URL "/admin/products?".
+
+B. ADD/EDIT PRODUCT PAGE (/admin/products/new, /edit)
+ [ ] Attribute drafts render as clean chips showing the attribute's
+     DISPLAY name, with hover-danger Remove buttons.
+
+C. VARIANTS PAGE (/admin/products/<id>/variants)
+ [ ] Colors are multi-select chips (with hex swatches) + "No color" chip.
+ [ ] Each selected color expands its own size multi-select chip group.
+ [ ] Per-color "All / None" size shortcuts work.
+ [ ] SKU base generates SKUs as BASE-COLOR-SIZE; duplicates get -2, -3.
+ [ ] Starting stock per variant can be set during bulk add.
+ [ ] Editing a variant allows stock change; inline per-row stock setter
+     saves via inventory adjustment.
+
+D. IMAGES PAGE (/admin/products/<id>/images)
+ [ ] Images show as proper thumbnails in a grid (not oversized).
+ [ ] Each image has a clear red Remove button.
+ [ ] Each image shows its color badge and associated sizes.
+ [ ] Image sizing matches the listing style (object-fit thumbnails).
+
+E. INVENTORY PAGE (/admin/inventory)
+ [ ] Search actually sends the text — URL is no longer "/admin/inventory?".
+
+F. ORDERS PAGE (/admin/orders)
+ [ ] Status filter dropdown works; statuses shown as colored badges:
+     Completed=green, Paid/Shipped=blue, Pending/Processing=amber,
+     Cancelled/Refunded=grey, Returned=red.
+
+G. STOREFRONT FILTERS (/products)
+ [ ] Filter panel is toggleable on desktop (not locked open); chevron
+     animates; mobile slide-in still works; query params are sent.
+
+H. CHECKOUT EMAIL
+ [ ] Successful checkout sends a branded HTML order-confirmation email
+     (items table, totals, shipping address) — check Mailtrap inbox.
+
+
+=====================================================================
+ PART 2 — SECOND REQUEST (uploads, orders, payments, shipments,
+           refunds, promotions, pricing)
+=====================================================================
+
+I. MULTI-IMAGE UPLOAD (/admin/products/<id>/images)
+ [ ] File input accepts MULTIPLE files (browse multi-select or drop many).
+ [ ] Selected queue shows each file's thumbnail, name, size, with
+     individual Remove + Clear all.
+ [ ] With multiple files, the FIRST becomes primary automatically
+     ("First = primary" badge); only one primary exists at a time;
+     "Set primary" can change it later.
+
+J. ORDER NUMBER OVERFLOW
+ [ ] /admin/orders/<id> — a long number like
+     TCS201A37952EC64E153BEC3BDB203E3 wraps and never overflows the page.
+
+K. ORDER LIFECYCLE (orders page + detail)
+ [ ] Statuses beyond Processing/Cancelled: Pending → Paid → Processing →
+     Shipped → Completed, plus Returned, Refunded.
+ [ ] Returned/Refunded/Cancelled restores stock (check Inventory).
+ [ ] Invalid transitions are rejected by the API.
+ [ ] Customer order page shows "Back to bag" on cancelled/returned/
+     refunded orders — re-adds items to cart.
+
+L. SHORT ORDER NUMBERS
+ [ ] New orders look like TCS261024182910-AF62DFA7
+     (TCS + yymmddhhmmss + short suffix) not a 32-char hex blob.
+
+M. PAYMENTS PAGE (/admin/payments)
+ [ ] Search box filters by ORDER NUMBER (also order id / payment id /
+     provider reference).
+ [ ] "Record cash collection" opens a beautiful MODAL popup (backdrop,
+     reason textarea, validation, cancel) — not inline.
+ [ ] Success message shows the order number.
+
+N. SHIPMENTS PAGE (/admin/shipments)
+ [ ] No numeric OrderId entry — order picked via SEARCH INPUT
+     (type order number / id / customer email → click the match).
+ [ ] Carrier is a DROPDOWN backed by a Carriers table
+     (TCS Courier, Leopards, M&P, Pakistan Post, CallCourier, DHL,
+     FedEx, self-delivery).
+ [ ] Tracking number auto-generates via the Generate button.
+ [ ] Create shipment button works end to end.
+ [ ] Progress states: Pending(created) → Packed → Shipped → Delivered
+     | Returned, via per-row "Next step" dropdown.
+ [ ] Table shows order numbers and they're readable/wrapped.
+
+O. CUSTOMER TRACKING (/account/orders/<id>/tracking)
+ [ ] Timeline with dots: Shipment created → Packed → Shipped →
+     Delivered (+ Returned branch), current step highlighted.
+ [ ] Carrier, tracking number, shipped/delivered timestamps shown.
+
+P. REFUNDS
+ [ ] Captured payment shows a Refund action → modal → payment Refunded,
+     order → Refunded, stock restored, audit logged.
+
+Q. PROMOTIONS PAGE (/admin/sales)
+ [ ] Calendar (datetime-local) pickers styled nicely.
+ [ ] NO manual product-id entry — cascading picker instead:
+     Step 1 department (All Departments/Men/Women/Kids)
+     Step 2 category filtered by dept (with All Categories)
+     Step 3 "All items in this selection" vs "Specific items only"
+     Step 4 searchable product tile grid (filtered by scope) with
+     Select all shown + selected chips.
+ [ ] Scoped promotions actually discount storefront prices
+     (dept/category/global sales apply to every matching product).
+
+R. PRICING DISPLAY
+ [ ] On-sale product cards show sale price + struck-through original.
+ [ ] Product detail page shows promotion name + countdown
+     ("ends in Xd Xh") while a sale is active.
+ [ ] "Promote" link exists on each admin product row.
+
+S. PROMOTE POPUP (products list)
+ [ ] Clicking Promote opens a modal listing active promotions; Attach
+     links the product instantly; "Create a new promotion" link too.
+
+
+=====================================================================
+ PART 3 — THIRD REQUEST (latest fixes)
+=====================================================================
+
+T. VARIANTS — SELECT EVERYTHING
+ [ ] "All colors" selects every color chip.
+ [ ] "All sizes in every color" fills every size chip in every color.
+ [ ] "None" clears all selections.
+
+U. PROMOTE = POPUP (not a page)
+ [ ] Promote on the product list opens a dropdown-style modal of
+     existing promotions — does NOT navigate away.
+ [ ] Attaching works and shows a success message.
+
+V. SHIPMENT TRANSITIONS
+ [ ] After "Shipped", the next step is "Delivered" (NOT In transit).
+ [ ] Refund does NOT appear on the shipments page — it lives on the
+     Payments page and order status flow.
+
+W. SHIPMENT PAGE LAYOUT & ORDER SEARCH
+ [ ] Order and Carrier fields align side by side.
+ [ ] Order field is a search input — typing an order number / id /
+     customer email filters matches; click to pick; "Change" clears.
+
+X. ORDER DETAIL — ITEM INFO (admin)
+ [ ] Ordered items table shows Product / Variant details / SKU /
+     Quantity / Unit price / Line total — admin can tell exactly what
+     was ordered.
+
+Y. AUTOMATIC ORDER STATUS
+ [ ] Shipment Packed or Shipped → order auto-moves to Processing/Shipped.
+ [ ] Shipment Delivered + payment Captured → order auto-Completes.
+ [ ] COD "Record collection" on delivered order → order Completes.
+ [ ] No manual order status clicks needed in the normal flow.
+
+Z. PROMOTIONS — CASCADING DROPDOWNS
+ [ ] Specific-items mode still flows dept → category → items;
+     product list is limited to the chosen department + category.
+
+
+=====================================================================
+ KNOWN TEST DATA (left in DB from E2E testing — safe to delete)
+=====================================================================
+- Sale "E2E Scope Test": 20% off all Men products (proves dept-scoped
+  promotions discount correctly on the storefront).
+- Order TCS261024182910-AF62DFA7: guest checkout → email sent to
+  Mailtrap; COD payment pending.
+- Order TCS261024195052-EF8DA886: your test order (shipped, COD captured).

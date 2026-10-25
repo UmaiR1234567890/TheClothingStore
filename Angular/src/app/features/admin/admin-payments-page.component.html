@@ -2,7 +2,12 @@
   <div class="admin-page-heading">
     <div><p class="eyebrow">Operations / Payments</p><h1 class="page-title">Payment records.</h1></div>
   </div>
-  <p class="notice">Only COD is enabled. Mark cash as collected only after the store has verified receipt.</p>
+  <p class="notice">Only COD is enabled. Mark cash as collected only after the store has verified receipt. Refund a captured payment to return the customer's money and restore stock.</p>
+  <form class="admin-toolbar" (submit)="runSearch($event)">
+    <span class="muted-copy">{{ payments()?.totalCount ?? 0 }} payments</span>
+    <input class="control admin-search" type="search" [formControl]="search" placeholder="Search by order number, order id, or reference" aria-label="Search payments by order number">
+    <button class="btn btn-outline btn-small" type="submit">Search</button>
+  </form>
   @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
   @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
   @if (loading()) { <div class="state-panel"><span class="spinner" aria-label="Loading payments"></span></div> }
@@ -14,16 +19,22 @@
           @for (payment of payments()?.items ?? []; track payment.paymentId) {
             <tr>
               <td>#{{ payment.paymentId }}</td>
-              <td>#{{ payment.orderId }}</td>
+              <td><strong class="order-number-cell">{{ payment.orderNumber || '#' + payment.orderId }}</strong></td>
               <td>{{ payment.method }}<small>{{ payment.provider || 'No provider configured' }}</small></td>
               <td>{{ payment.amount | currency:'PKR':'code':'1.0-2' }}</td>
               <td><span class="admin-badge" [class.admin-badge--inactive]="payment.status !== 'Captured'">{{ payment.status }}</span></td>
               <td>{{ payment.createdAt | date:'short' }}</td>
-              <td>
+              <td><div class="admin-inline-actions">
                 @if (payment.method === 'COD' && payment.status === 'Pending') {
-                  <button class="text-button" type="button" (click)="selectPayment(payment)">Record collection</button>
-                } @else { <span class="muted-copy">—</span> }
-              </td>
+                  <button type="button" (click)="openDialog('collect', payment)">Record collection</button>
+                }
+                @if (payment.status === 'Captured') {
+                  <button class="is-danger" type="button" (click)="openDialog('refund', payment)">Refund</button>
+                }
+                @if (payment.method !== 'COD' || (payment.status !== 'Pending' && payment.status !== 'Captured')) {
+                  <span class="muted-copy">—</span>
+                }
+              </div></td>
             </tr>
           } @empty { <tr><td colspan="7">No payment records found.</td></tr> }
         </tbody>
@@ -31,19 +42,31 @@
     </div>
   }
 
-  @if (selectedPayment(); as payment) {
-    <section class="admin-form-card">
-      <p class="eyebrow">Cash on delivery · Order #{{ payment.orderId }}</p>
-      <h2>Record cash collection.</h2>
-      <p class="muted-copy">{{ payment.amount | currency:'PKR':'code':'1.0-2' }} stays pending until the administrator confirms collection.</p>
+  @if (dialog(); as current) {
+    <div class="admin-modal-backdrop" (click)="closeDialog()" aria-hidden="true"></div>
+    <section class="admin-modal" role="dialog" aria-modal="true" [attr.aria-labelledby]="current.action === 'collect' ? 'collect-title' : 'refund-title'">
+      <p class="eyebrow">{{ current.action === 'collect' ? 'Cash on delivery' : 'Refund' }} · {{ current.payment.orderNumber || 'Order #' + current.payment.orderId }}</p>
+      <h2 [id]="current.action === 'collect' ? 'collect-title' : 'refund-title'">
+        {{ current.action === 'collect' ? 'Record cash collection.' : 'Refund this payment.' }}
+      </h2>
+      <p class="muted-copy">
+        @if (current.action === 'collect') {
+          {{ current.payment.amount | currency:'PKR':'code':'1.0-2' }} stays pending until the administrator confirms collection.
+        } @else {
+          {{ current.payment.amount | currency:'PKR':'code':'1.0-2' }} will be marked refunded. The order moves to Refunded and ordered stock returns to inventory.
+        }
+      </p>
       <div class="field">
-        <label for="cash-reason">Collection reason / reference</label>
-        <textarea id="cash-reason" class="control" rows="3" [formControl]="reason" placeholder="Describe how collection was verified"></textarea>
+        <label for="payment-reason">{{ current.action === 'collect' ? 'Collection reason / reference' : 'Refund reason / reference' }}</label>
+        <textarea id="payment-reason" class="control" rows="3" [formControl]="reason"
+          [placeholder]="current.action === 'collect' ? 'Describe how collection was verified' : 'Describe why the payment is being refunded'"></textarea>
       </div>
       @if (reason.touched && reason.invalid) { <span class="field-error">Enter a reason of at least 3 characters.</span> }
       <div class="admin-form-actions">
-        <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="confirmCollection()">{{ saving() ? 'Saving…' : 'Confirm COD collected' }}</button>
-        <button class="btn btn-outline" type="button" (click)="selectedPayment.set(null)">Cancel</button>
+        <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="confirmDialog()">
+          {{ saving() ? 'Saving…' : current.action === 'collect' ? 'Confirm COD collected' : 'Confirm refund' }}
+        </button>
+        <button class="btn btn-outline" type="button" [disabled]="saving()" (click)="closeDialog()">Cancel</button>
       </div>
     </section>
   }

@@ -20,6 +20,10 @@ export class OrderApiService {
     return this.api.get<OrderDto>(`/orders/${id}/tracking`);
   }
 
+  getGuestTracking(orderNumber: string, email: string): Observable<OrderDto> {
+    return this.api.get<OrderDto>('/orders/track', { orderNumber, email });
+  }
+
   getPayment(orderId: number): Observable<PaymentDto> {
     return this.api.get<PaymentDto>(`/orders/${orderId}/payment`);
   }

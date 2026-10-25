@@ -55,7 +55,9 @@ public sealed record ProductVariantDto(
     decimal EffectivePrice,
     bool OnSale,
     int QuantityAvailable,
-    bool IsAvailable);
+    bool IsAvailable,
+    string? SaleName = null,
+    DateTime? SaleEndsAt = null);
 
 public sealed record ProductCardDto(
     int ProductId,
@@ -65,6 +67,8 @@ public sealed record ProductCardDto(
     string? PrimaryImageUrl,
     decimal? MinPrice,
     decimal? MaxPrice,
+    decimal? RegularMinPrice,
+    decimal? RegularMaxPrice,
     bool OnSale,
     bool IsAvailable);
 
@@ -102,7 +106,11 @@ public sealed record SaleDto(
     decimal DiscountValue,
     DateTime? StartsAt,
     DateTime? EndsAt,
-    bool IsActive);
+    bool IsActive,
+    IReadOnlyList<int> ProductIds = default!,
+    IReadOnlyList<int> CategoryIds = default!,
+    IReadOnlyList<int> DepartmentIds = default!,
+    bool ApplyToAll = false);
 
 public sealed class ProductWriteRequest
 {

@@ -11,6 +11,7 @@
     <span class="muted-copy">{{ result()?.totalCount ?? 0 }} records</span>
   </div>
   @if (error()) { <div class="notice notice-error" role="alert">{{ error() }} <button class="text-button" type="button" (click)="load(pageNumber())">Retry</button></div> }
+  @if (promoteMessage()) { <div class="notice notice-success" role="status">{{ promoteMessage() }}</div> }
   @if (loading()) {
     <div class="state-panel"><span class="spinner" aria-label="Loading products"></span></div>
   } @else if (result()?.items?.length) {
@@ -43,6 +44,7 @@
                   <a [routerLink]="['/admin/products', product.productId, 'edit']">Edit</a>
                   <a [routerLink]="['/admin/products', product.productId, 'variants']">Variants</a>
                   <a [routerLink]="['/admin/products', product.productId, 'images']">Images</a>
+                  <button type="button" (click)="openPromote(product)">Promote</button>
                   @if (!product.isDeleted) {
                     <button class="is-danger" type="button" (click)="remove(product)">Soft delete</button>
                   }
@@ -62,5 +64,34 @@
     }
   } @else if (!error()) {
     <div class="state-panel"><h2>No products found</h2><p>Create a product or change the search.</p></div>
+  }
+
+  @if (promoteTarget(); as product) {
+    <div class="admin-modal-backdrop" (click)="closePromote()" aria-hidden="true"></div>
+    <section class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="promote-title">
+      <p class="eyebrow">Promotions</p>
+      <h2 id="promote-title">Link "{{ product.name }}" to a promotion.</h2>
+      <p class="muted-copy">Pick an active promotion — the product joins it instantly at the discounted price.</p>
+      @if (promoteError()) { <p class="notice notice-error" role="alert">{{ promoteError() }}</p> }
+      @if (promotions().length > 0) {
+        <ul class="admin-promo-list">
+          @for (sale of promotions(); track sale.saleId) {
+            <li>
+              <div>
+                <strong>{{ sale.name }}</strong>
+                <small>{{ sale.discountType === 'Percentage' ? sale.discountValue + '% off' : ('PKR ' + sale.discountValue + ' off') }}{{ sale.endsAt ? ' · ends ' + (sale.endsAt | date:'mediumDate') : ' · no end date' }}</small>
+              </div>
+              <button class="btn btn-outline btn-small" type="button" [disabled]="promoting()" (click)="attachToSale(sale)">Attach</button>
+            </li>
+          }
+        </ul>
+      } @else if (!promoteError()) {
+        <p class="muted-copy">No active promotions exist yet.</p>
+      }
+      <div class="admin-form-actions">
+        <a class="btn btn-outline btn-small" [routerLink]="['/admin/sales']" [queryParams]="{ promote: product.productId }">Create a new promotion</a>
+        <button class="btn btn-outline" type="button" [disabled]="promoting()" (click)="closePromote()">Cancel</button>
+      </div>
+    </section>
   }
 </section>

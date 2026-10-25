@@ -43,6 +43,17 @@ public sealed class OrdersController(
         return Ok(ApiResponse<OrderDto>.Ok(order));
     }
 
+    [AllowAnonymous]
+    [HttpGet("track")]
+    public async Task<ActionResult<ApiResponse<OrderDto>>> TrackGuestOrder(
+        [FromQuery] string orderNumber,
+        [FromQuery] string email,
+        CancellationToken cancellationToken)
+    {
+        var order = await orders.GetGuestOrderTrackingAsync(orderNumber, email, cancellationToken);
+        return Ok(ApiResponse<OrderDto>.Ok(order));
+    }
+
     private async Task<int> CustomerIdAsync(CancellationToken cancellationToken)
     {
         var identityId = User.FindFirstValue(ClaimTypes.NameIdentifier);

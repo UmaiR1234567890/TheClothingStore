@@ -4,19 +4,30 @@
   @else {
     @if (order(); as current) {
     <div class="admin-page-heading">
-      <div><p class="eyebrow">Order operations</p><h1 class="page-title">{{ current.orderNumber }}</h1></div>
+      <div><p class="eyebrow">Order operations</p><h1 class="page-title order-number-title">{{ current.orderNumber }}</h1></div>
       <a class="text-link" routerLink="/admin/orders">← All orders</a>
     </div>
     @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
     <div class="admin-detail-grid">
       <section class="admin-form-card">
-        <h2>Historical item snapshots</h2>
-        @for (line of current.items; track $index) {
-          <article class="snapshot-line">
-            <div><strong>{{ line.productName }}</strong><p>{{ line.variantDetails || 'Standard option' }} · {{ line.sku }}</p><small>Quantity {{ line.quantity }}</small></div>
-            <span>{{ line.lineTotal | currency:'PKR':'code':'1.0-2' }}</span>
-          </article>
-        }
+        <h2>Ordered items</h2>
+        <div class="admin-table-wrap admin-table-wrap--flush">
+          <table class="admin-table">
+            <thead><tr><th>Product</th><th>Variant</th><th>SKU</th><th>Qty</th><th>Unit price</th><th>Line total</th></tr></thead>
+            <tbody>
+              @for (line of current.items; track $index) {
+                <tr>
+                  <td><strong>{{ line.productName }}</strong></td>
+                  <td>{{ line.variantDetails || 'Standard option' }}</td>
+                  <td><span class="order-number-cell">{{ line.sku }}</span></td>
+                  <td>{{ line.quantity }}</td>
+                  <td>{{ line.unitPrice | currency:'PKR':'code':'1.0-2' }}</td>
+                  <td>{{ line.lineTotal | currency:'PKR':'code':'1.0-2' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
         <div class="checkout-total-row"><span>Subtotal</span><span>{{ current.subtotalAmount | currency:'PKR':'code':'1.0-2' }}</span></div>
         <div class="checkout-total-row"><span>Discount</span><span>− {{ current.discountAmount | currency:'PKR':'code':'1.0-2' }}</span></div>
         <div class="checkout-total-row checkout-total-row--grand"><strong>Total</strong><strong>{{ current.totalAmount | currency:'PKR':'code':'1.0-2' }}</strong></div>

@@ -27,6 +27,8 @@ public sealed class ClothingStoreDbContext
     public DbSet<ProductAttributeValue> ProductAttributeValues => Set<ProductAttributeValue>();
     public DbSet<Sale> Sales => Set<Sale>();
     public DbSet<SaleProduct> SaleProducts => Set<SaleProduct>();
+    public DbSet<SaleScope> SaleScopes => Set<SaleScope>();
+    public DbSet<Carrier> Carriers => Set<Carrier>();
     public DbSet<Inventory> Inventory => Set<Inventory>();
     public DbSet<InventoryTransaction> InventoryTransactions => Set<InventoryTransaction>();
     public DbSet<Customer> Customers => Set<Customer>();

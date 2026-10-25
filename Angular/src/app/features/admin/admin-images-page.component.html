@@ -62,26 +62,37 @@
           (dragover)="onFileDragOver($event)"
           (dragleave)="onFileDragLeave($event)"
           (drop)="onFileDrop($event)">
-          @if (previewUrl(); as preview) {
-            <img class="admin-image-upload__preview" [src]="preview" alt="Selected image preview">
-          } @else {
-            <span class="admin-image-upload__icon" aria-hidden="true">+</span>
-          }
+          <span class="admin-image-upload__icon" aria-hidden="true">+</span>
           <div>
-            <strong>{{ selectedFile()?.name || 'Drop an image here' }}</strong>
-            <small>{{ selectedFile() ? selectedFileSize() : 'JPEG, PNG, or WebP · up to 8 MB' }}</small>
+            <strong>{{ selectedFiles().length > 0 ? selectedFiles().length + ' image(s) selected' : 'Drop images here' }}</strong>
+            <small>JPEG, PNG, or WebP · up to 8 MB each · select multiple at once</small>
           </div>
           <label class="btn btn-outline btn-small" for="image-upload">Browse images</label>
           <input
             id="image-upload"
             class="sr-only"
             type="file"
+            multiple
             accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
             (change)="onFileSelected($event)">
-          @if (selectedFile()) {
-            <button class="text-button" type="button" (click)="clearSelectedFile()">Remove selected file</button>
+          @if (selectedFiles().length > 0) {
+            <button class="text-button" type="button" (click)="clearSelectedFiles()">Clear all</button>
           }
         </div>
+        @if (selectedFiles().length > 0) {
+          <ul class="admin-upload-queue">
+            @for (entry of selectedFiles(); track entry.file.name; let i = $index) {
+              <li>
+                <img [src]="entry.previewUrl" [alt]="entry.file.name">
+                <span class="admin-upload-queue__name">{{ entry.file.name }}</span>
+                <small>{{ fileSize(entry.file) }}</small>
+                @if (i === 0 && firstWillBePrimary()) { <span class="admin-badge">First = primary</span> }
+                <button class="text-button" type="button" (click)="removeSelectedFile(i)" [attr.aria-label]="'Remove ' + entry.file.name">Remove</button>
+              </li>
+            }
+          </ul>
+          <p class="muted-copy">The first image becomes the primary image by default — you can change it later. Only one image can be primary at a time.</p>
+        }
       }
       <div class="admin-form-grid">
         <div class="field"><label for="image-alt">Alternative text</label><input id="image-alt" class="control" formControlName="altText"></div>

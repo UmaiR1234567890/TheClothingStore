@@ -138,6 +138,7 @@ export interface OrderItemDto {
   unitPrice: number;
   discountAmount: number;
   lineTotal: number;
+  productVariantId: number | null;
 }
 
 export interface PaymentDto {
@@ -150,6 +151,7 @@ export interface PaymentDto {
   status: string;
   createdAt: string;
   processedAt: string | null;
+  orderNumber?: string | null;
 }
 
 export interface ShipmentDto {
@@ -160,6 +162,7 @@ export interface ShipmentDto {
   status: string;
   shippedAt: string | null;
   deliveredAt: string | null;
+  orderNumber?: string | null;
 }
 
 export interface OrderDto {

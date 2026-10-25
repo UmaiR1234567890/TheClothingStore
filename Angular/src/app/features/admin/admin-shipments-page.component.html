@@ -13,16 +13,16 @@
           @for (shipment of shipments()?.items ?? []; track shipment.shipmentId) {
             <tr>
               <td>#{{ shipment.shipmentId }}</td>
-              <td>#{{ shipment.orderId }}</td>
+              <td><a class="order-number-cell" [routerLink]="['/admin/orders', shipment.orderId]">{{ shipment.orderNumber || '#' + shipment.orderId }}</a></td>
               <td>{{ shipment.carrier || '—' }}</td>
-              <td>{{ shipment.trackingNumber || '—' }}</td>
-              <td><span class="admin-badge">{{ shipment.status }}</span></td>
-              <td><small>{{ shipment.shippedAt ? (shipment.shippedAt | date:'shortDate') : 'Not shipped' }}</small></td>
+              <td><span class="order-number-cell">{{ shipment.trackingNumber || '—' }}</span></td>
+              <td><span [class]="'admin-badge ' + shipmentBadgeClass(shipment.status)">{{ statusLabel(shipment.status) }}</span></td>
+              <td><small>{{ shipment.shippedAt ? (shipment.shippedAt | date:'shortDate') : 'Not shipped' }}{{ shipment.deliveredAt ? ' · delivered ' + (shipment.deliveredAt | date:'shortDate') : '' }}</small></td>
               <td>
                 @if (nextStatuses(shipment).length > 0) {
                   <select class="admin-filter" (change)="changeStatus(shipment, $event)" aria-label="Change shipment status">
                     <option value="">Choose…</option>
-                    @for (status of nextStatuses(shipment); track status) { <option [value]="status">{{ status }}</option> }
+                    @for (status of nextStatuses(shipment); track status) { <option [value]="status">{{ statusLabel(status) }}</option> }
                   </select>
                 } @else { <span class="muted-copy">No transition</span> }
               </td>
@@ -33,12 +33,57 @@
     </div>
     <form class="admin-form-card" [formGroup]="form" (ngSubmit)="create()">
       <p class="eyebrow">Fulfillment</p><h2>Create a shipment</h2>
-      <p class="muted-copy">New shipments start Pending. Shipment progress does not change payment status.</p>
+      <p class="muted-copy">Pick the order being dispatched. Progress: Pending → Packed → Shipped → In transit → Out for delivery → Delivered (Returned on failure).</p>
       <div class="admin-form-grid">
-        <div class="field"><label for="shipment-order">Order ID</label><input id="shipment-order" class="control" type="number" min="1" formControlName="orderId"></div>
-        <div class="field"><label for="shipment-carrier">Carrier</label><input id="shipment-carrier" class="control" formControlName="carrier"></div>
+        <div class="field admin-combobox">
+          <label for="shipment-order">Order</label>
+          @if (selectedOrder(); as picked) {
+            <div class="admin-combobox__picked">
+              <span><strong class="order-number-cell">{{ picked.orderNumber }}</strong><small>{{ picked.status }} · {{ picked.totalAmount | currency:'PKR':'code':'1.0-2' }}</small></span>
+              <button class="text-button" type="button" (click)="clearOrder()">Change</button>
+            </div>
+          } @else {
+            <input
+              id="shipment-order"
+              class="control"
+              type="search"
+              [formControl]="orderSearch"
+              placeholder="Search order number, id, or customer email"
+              autocomplete="off"
+              (focus)="orderPickerOpen.set(true)">
+            @if (orderPickerOpen()) {
+              <ul class="admin-combobox__list" role="listbox">
+                @for (order of filteredOrders(); track order.orderId) {
+                  <li>
+                    <button type="button" role="option" (click)="pickOrder(order)">
+                      <strong class="order-number-cell">{{ order.orderNumber }}</strong>
+                      <small>{{ order.status }} · {{ order.totalAmount | currency:'PKR':'code':'1.0-2' }}{{ order.guestEmail ? ' · ' + order.guestEmail : '' }}</small>
+                    </button>
+                  </li>
+                } @empty { <li class="admin-combobox__empty">No orders match "{{ orderSearch.value }}".</li> }
+              </ul>
+            }
+          }
+          <small>Type an order number like TCS2610… and pick the match.</small>
+        </div>
+        <div class="field">
+          <label for="shipment-carrier">Carrier</label>
+          <select id="shipment-carrier" class="control" formControlName="carrier">
+            <option value="">Choose a carrier…</option>
+            @for (carrier of carriers(); track carrier.carrierId) {
+              <option [value]="carrier.name">{{ carrier.name }}</option>
+            }
+          </select>
+        </div>
       </div>
-      <div class="field"><label for="shipment-tracking">Tracking number</label><input id="shipment-tracking" class="control" formControlName="trackingNumber"></div>
+      <div class="field">
+        <label for="shipment-tracking">Tracking number</label>
+        <div class="admin-input-action">
+          <input id="shipment-tracking" class="control" formControlName="trackingNumber" placeholder="Auto-generated or paste the carrier reference">
+          <button class="btn btn-outline btn-small" type="button" (click)="generateTrackingNumber()">Generate</button>
+        </div>
+        <small>Leave it empty, paste the carrier's reference, or let the store generate one.</small>
+      </div>
       <button class="btn btn-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Creating…' : 'Create shipment' }}</button>
     </form>
   }

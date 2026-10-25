@@ -421,3 +421,16 @@
     font-size: 2.7rem;
   }
 }
+
+.product-sale-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 10px 0 0;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #fdeaea;
+  color: #b3261e;
+  font-size: 13px;
+  font-weight: 600;
+}
