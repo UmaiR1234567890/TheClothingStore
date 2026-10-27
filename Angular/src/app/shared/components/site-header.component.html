@@ -97,27 +97,29 @@
           </button>
           @if (openSlug() === department.slug) {
             <div class="mega-menu" [id]="'department-menu-' + department.slug" (mouseenter)="openDepartment(department)" (mouseleave)="closeDepartment(department.slug)">
-              <div class="mega-menu__intro">
-                <p class="eyebrow">Explore {{ department.name }}</p>
-                <h2>Find your<br>next favourite.</h2>
-                <a class="text-link" [routerLink]="['/', department.slug]" (click)="closeAllMenus()">
-                  Shop all {{ department.name }} <span aria-hidden="true">→</span>
-                </a>
-              </div>
-              <div class="mega-menu__categories">
+              <div class="mega-menu__categories mega-menu__flyout">
                 @if (loadingSlug() === department.slug) {
                   <span class="mega-menu__loading">Loading categories…</span>
                 } @else {
-                  @for (category of categoryTree(department.slug); track category.categoryId) {
-                    <div class="mega-menu__group" [style.margin-left.rem]="category.depth * 0.75">
-                      <a
-                        [class.mega-menu__category]="category.depth === 0"
-                        [class.mega-menu__child]="category.depth > 0"
-                        [routerLink]="['/category', category.categoryId, category.slug]"
-                        (click)="closeAllMenus()">
-                        {{ category.name }}
-                      </a>
-                    </div>
+                  @for (column of menuColumns(); track $index; let columnIndex = $index) {
+                    <ul class="mega-menu__col">
+                      @for (item of column; track item.categoryId) {
+                        <li>
+                          <a
+                            class="mega-menu__link"
+                            [class.mega-menu__link--parent]="item.children.length > 0"
+                            [routerLink]="['/category', item.categoryId, item.slug]"
+                            (mouseenter)="hoverCategory(columnIndex, item)"
+                            (focus)="hoverCategory(columnIndex, item)"
+                            (click)="closeAllMenus()">
+                            <span>{{ item.name }}</span>
+                            @if (item.children.length > 0) {
+                              <span class="mega-menu__arrow" aria-hidden="true">›</span>
+                            }
+                          </a>
+                        </li>
+                      }
+                    </ul>
                   } @empty {
                     <span class="mega-menu__loading">Categories are not available right now.</span>
                   }

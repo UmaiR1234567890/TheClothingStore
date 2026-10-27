@@ -117,6 +117,7 @@ public interface ICatalogAdminService
     Task SetDepartmentStatusAsync(int id, bool active, CancellationToken cancellationToken);
     Task<IReadOnlyList<CategoryDto>> GetAdminCategoriesAsync(int? departmentId, CancellationToken cancellationToken);
     Task<CategoryDto> CreateCategoryAsync(CategoryWriteRequest request, CancellationToken cancellationToken);
+    Task<CategoryDto> EnsureCategoryPathAsync(string path, CancellationToken cancellationToken);
     Task<CategoryDto> UpdateCategoryAsync(int id, CategoryWriteRequest request, CancellationToken cancellationToken);
     Task SetCategoryStatusAsync(int id, bool active, CancellationToken cancellationToken);
     Task DeleteCategoryAsync(int id, CancellationToken cancellationToken);

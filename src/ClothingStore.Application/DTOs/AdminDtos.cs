@@ -25,6 +25,12 @@ public sealed class CategoryWriteRequest
     public int SortOrder { get; init; }
 }
 
+public sealed class CategoryPathRequest
+{
+    [Required, StringLength(800)]
+    public string Path { get; init; } = string.Empty;
+}
+
 public sealed class SaleWriteRequest
 {
     [Required, StringLength(150)]

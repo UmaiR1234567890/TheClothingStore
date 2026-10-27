@@ -1,6 +1,7 @@
 <section class="admin-page">
   <div class="admin-page-heading">
     <div><p class="eyebrow">Operations / Fulfillment</p><h1 class="page-title">Shipments.</h1></div>
+    <button class="btn btn-primary" type="button" (click)="openCreate()">Create shipment</button>
   </div>
   @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
   @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
@@ -31,7 +32,9 @@
         </tbody>
       </table>
     </div>
-    <form class="admin-form-card" [formGroup]="form" (ngSubmit)="create()">
+    @if (createOpen()) {
+      <div class="admin-modal-backdrop" (click)="closeCreate()" aria-hidden="true"></div>
+      <form class="admin-modal admin-modal--wide" role="dialog" aria-modal="true" [formGroup]="form" (ngSubmit)="create()">
       <p class="eyebrow">Fulfillment</p><h2>Create a shipment</h2>
       <p class="muted-copy">Pick the order being dispatched. Progress: Pending → Packed → Shipped → Delivered (Returned on failure).</p>
       <div class="admin-form-grid">
@@ -84,7 +87,11 @@
         </div>
         <small>Leave it empty, paste the carrier's reference, or let the store generate one.</small>
       </div>
-      <button class="btn btn-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Creating…' : 'Create shipment' }}</button>
+      <div class="admin-form-actions">
+        <button class="btn btn-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Creating…' : 'Create shipment' }}</button>
+        <button class="btn btn-outline" type="button" [disabled]="saving()" (click)="closeCreate()">Cancel</button>
+      </div>
     </form>
+    }
   }
 </section>

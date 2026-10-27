@@ -229,6 +229,15 @@ public sealed class AdminCatalogController(
         return StatusCode(StatusCodes.Status201Created, ApiResponse<CategoryDto>.Ok(category, "Category created."));
     }
 
+    [HttpPost("categories/ensure-path")]
+    public async Task<ActionResult<ApiResponse<CategoryDto>>> EnsureCategoryPath(
+        CategoryPathRequest request,
+        CancellationToken cancellationToken)
+    {
+        var category = await catalog.EnsureCategoryPathAsync(request.Path, cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, ApiResponse<CategoryDto>.Ok(category, "Category path resolved."));
+    }
+
     [HttpPut("categories/{id:int}")]
     public async Task<ActionResult<ApiResponse<CategoryDto>>> UpdateCategory(
         int id,

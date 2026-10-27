@@ -1,3 +1,4 @@
+using System.Text;
 using ClothingStore.Application.Contracts;
 using ClothingStore.Application.DTOs;
 using ClothingStore.Domain.Constants;
@@ -489,6 +490,97 @@ internal sealed class CatalogAdminService(
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return ToCategoryDto(category);
+    }
+
+    public async Task<CategoryDto> EnsureCategoryPathAsync(string path, CancellationToken cancellationToken)
+    {
+        var segments = (path ?? string.Empty)
+            .Split('>', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(x => x.Length > 0)
+            .ToArray();
+        if (segments.Length < 2)
+            throw new ServiceException(400, "category_path_invalid",
+                "Provide a path like 'Men > Shirts > Slim Fit' — a department followed by at least one category.");
+
+        var root = segments[0].ToLowerInvariant();
+        var department = await db.Departments.SingleOrDefaultAsync(
+            x => x.IsActive && (x.Name.ToLower() == root || x.Slug.ToLower() == root),
+            cancellationToken);
+        if (department is null)
+            throw new ServiceException(404, "department_not_found", $"Department '{segments[0]}' was not found.");
+
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        int? parentId = null;
+        Category? current = null;
+        foreach (var segment in segments.Skip(1))
+        {
+            var match = segment.ToLowerInvariant();
+            var slug = Slugify(segment);
+            current = await db.Categories
+                .Where(x =>
+                    x.DepartmentId == department.DepartmentId &&
+                    x.ParentCategoryId == parentId &&
+                    !x.IsDeleted &&
+                    (x.Name.ToLower() == match || x.Slug == slug || x.Slug.ToLower() == match))
+                .OrderByDescending(x => x.IsActive)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (current is null)
+            {
+                slug = await UniqueCategorySlugAsync(slug, cancellationToken);
+                var maxSort = await db.Categories
+                    .Where(x => x.DepartmentId == department.DepartmentId && x.ParentCategoryId == parentId && !x.IsDeleted)
+                    .Select(x => (int?)x.SortOrder)
+                    .MaxAsync(cancellationToken) ?? -1;
+                current = new Category
+                {
+                    DepartmentId = department.DepartmentId,
+                    ParentCategoryId = parentId,
+                    Name = segment,
+                    Slug = slug,
+                    SortOrder = maxSort + 1,
+                    IsActive = true,
+                    IsDeleted = false
+                };
+                db.Categories.Add(current);
+                await SaveWithConflictTranslationAsync(cancellationToken);
+                audit.Record("Categories", current.CategoryId.ToString(), "Insert",
+                    $"Created category '{current.Slug}' from path '{path}'.");
+                await db.SaveChangesAsync(cancellationToken);
+            }
+            parentId = current.CategoryId;
+        }
+        await transaction.CommitAsync(cancellationToken);
+        return ToCategoryDto(current!);
+    }
+
+    private async Task<string> UniqueCategorySlugAsync(string baseSlug, CancellationToken cancellationToken)
+    {
+        var slug = baseSlug;
+        var index = 2;
+        while (await db.Categories.AnyAsync(x => x.Slug == slug, cancellationToken))
+            slug = $"{baseSlug}-{index++}";
+        return slug;
+    }
+
+    private static string Slugify(string value)
+    {
+        var builder = new StringBuilder(value.Length);
+        var dash = false;
+        foreach (var c in value.Trim().ToLowerInvariant())
+        {
+            if (char.IsLetterOrDigit(c))
+            {
+                builder.Append(c);
+                dash = false;
+            }
+            else if (!dash && builder.Length > 0)
+            {
+                builder.Append('-');
+                dash = true;
+            }
+        }
+        var slug = builder.ToString().Trim('-');
+        return slug.Length == 0 ? "category" : slug;
     }
 
     public async Task<CategoryDto> UpdateCategoryAsync(

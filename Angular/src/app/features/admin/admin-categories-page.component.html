@@ -1,7 +1,10 @@
 <section class="admin-page">
   <div class="admin-page-heading">
     <div><p class="eyebrow">Catalog / Taxonomy</p><h1 class="page-title">Categories.</h1></div>
-    <button class="btn btn-primary" type="button" (click)="createMode()">Add category</button>
+    <div class="admin-form-actions">
+      <button class="btn btn-outline" type="button" (click)="openPathMode()">Add by path</button>
+      <button class="btn btn-primary" type="button" (click)="createMode()">Add category</button>
+    </div>
   </div>
   @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
   @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
@@ -32,7 +35,8 @@
   }
 
   @if (editing()) {
-    <form class="admin-form-card" [formGroup]="form" (ngSubmit)="save()">
+    <div class="admin-modal-backdrop" (click)="cancel()" aria-hidden="true"></div>
+    <form class="admin-modal admin-modal--wide" role="dialog" aria-modal="true" [formGroup]="form" (ngSubmit)="save()">
       <h2>{{ editingId() ? 'Edit category' : 'Create category' }}</h2>
       <div class="admin-form-grid">
         <div class="field">
@@ -65,5 +69,26 @@
         <button class="btn btn-outline" type="button" (click)="cancel()">Cancel</button>
       </div>
     </form>
+  }
+
+  @if (pathMode()) {
+    <div class="admin-modal-backdrop" (click)="closePathMode()" aria-hidden="true"></div>
+    <section class="admin-modal admin-modal--wide" role="dialog" aria-modal="true" aria-labelledby="path-title">
+      <form (submit)="$event.preventDefault(); submitPath()">
+        <p class="eyebrow">Categorization engine</p>
+        <h2 id="path-title">Create categories by path.</h2>
+        <p class="muted-copy">Type a full path — the engine walks it node by node: existing categories are reused and missing ones are created automatically at their exact position.</p>
+        <div class="field">
+          <label for="category-path">Path</label>
+          <input id="category-path" class="control" [formControl]="pathControl" placeholder="Men > Shirts > Casual Shirts > Slim Fit" autocomplete="off">
+          <small>The first segment must be a department (e.g. Men). Every deeper segment becomes a child of the previous one.</small>
+        </div>
+        @if (pathControl.touched && pathControl.invalid) { <span class="field-error">Enter a path.</span> }
+        <div class="admin-form-actions">
+          <button class="btn btn-primary" type="submit" [disabled]="pathSaving()">{{ pathSaving() ? 'Resolving…' : 'Resolve path' }}</button>
+          <button class="btn btn-outline" type="button" [disabled]="pathSaving()" (click)="closePathMode()">Cancel</button>
+        </div>
+      </form>
+    </section>
   }
 </section>

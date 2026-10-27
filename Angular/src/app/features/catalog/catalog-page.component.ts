@@ -41,10 +41,14 @@ export class CatalogPageComponent implements OnInit {
   readonly loading = signal(true);
   readonly error = signal('');
   readonly searchMode = signal(false);
+  readonly categoryMode = signal(false);
   readonly currentSearch = signal('');
   readonly sortBy = signal<ProductQuery['SortBy']>('newest');
   readonly pageNumber = signal(1);
   readonly filtersOpen = signal(false);
+  readonly openGroups = signal(new Set(['price', 'category']));
+  readonly selectedCategorySlug = signal<string | null>(null);
+  readonly priceBounds = { min: 0, max: 50000 };
   readonly skeletons = [1, 2, 3, 4, 5, 6, 7, 8];
   readonly filterForm = new FormGroup({
     minPrice: new FormControl('', { nonNullable: true }),
@@ -110,6 +114,7 @@ export class CatalogPageComponent implements OnInit {
       Available: parseChoice(form.available),
       VolumeMl: parseOptionalNumber(form.volumeMl),
       Attribute: form.attribute.trim() || null,
+      Category: this.selectedCategorySlug(),
     };
     this.filtersOpen.set(false);
     void this.router.navigate([], {
@@ -136,8 +141,10 @@ export class CatalogPageComponent implements OnInit {
       Available: null,
       VolumeMl: null,
       Attribute: null,
+      Category: null,
       PageNumber: null,
     };
+    this.selectedCategorySlug.set(null);
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams,
@@ -179,6 +186,46 @@ export class CatalogPageComponent implements OnInit {
     this.filtersOpen.update((open) => !open);
   }
 
+  isGroupOpen(name: string): boolean {
+    return this.openGroups().has(name);
+  }
+
+  toggleGroup(name: string): void {
+    const next = new Set(this.openGroups());
+    next.has(name) ? next.delete(name) : next.add(name);
+    this.openGroups.set(next);
+  }
+
+  toggleCategoryFilter(category: CategoryDto): void {
+    this.selectedCategorySlug.update((current) => current === category.slug ? null : category.slug);
+  }
+
+  minPriceRangeValue(): number {
+    return Number(this.filterForm.controls.minPrice.value) || this.priceBounds.min;
+  }
+
+  maxPriceRangeValue(): number {
+    return Number(this.filterForm.controls.maxPrice.value) || this.priceBounds.max;
+  }
+
+  minPricePct(): number {
+    return Math.min(100, (this.minPriceRangeValue() / this.priceBounds.max) * 100);
+  }
+
+  maxPricePct(): number {
+    return Math.min(100, (this.maxPriceRangeValue() / this.priceBounds.max) * 100);
+  }
+
+  onPriceRange(which: 'min' | 'max', event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = Number(input.value);
+    if (which === 'min') {
+      this.filterForm.controls.minPrice.setValue(String(Math.min(value, this.maxPriceRangeValue())));
+    } else {
+      this.filterForm.controls.maxPrice.setValue(String(Math.max(value, this.minPriceRangeValue())));
+    }
+  }
+
   reload(): void {
     this.loadResults();
   }
@@ -192,6 +239,7 @@ export class CatalogPageComponent implements OnInit {
     this.pageNumber.set(query.PageNumber ?? 1);
     this.sortBy.set(query.SortBy ?? 'newest');
     this.searchMode.set(this.currentContext.searchMode);
+    this.categoryMode.set(this.currentContext.categoryMode);
     if (this.currentContext.searchMode) {
       this.updateTitle('Search results');
     }
@@ -298,6 +346,7 @@ export class CatalogPageComponent implements OnInit {
   }
 
   private syncFilterForm(query: ParamMap): void {
+    this.selectedCategorySlug.set(query.get('Category'));
     this.filterForm.patchValue({
       minPrice: query.get('MinPrice') ?? '',
       maxPrice: query.get('MaxPrice') ?? '',

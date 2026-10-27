@@ -22,6 +22,9 @@ export class AdminCategoriesPageComponent implements OnInit {
   readonly saving = signal(false);
   readonly error = signal('');
   readonly message = signal('');
+  readonly pathMode = signal(false);
+  readonly pathSaving = signal(false);
+  readonly pathControl = new FormControl('', { nonNullable: true, validators: [Validators.required] });
   readonly form = new FormGroup({
     departmentId: new FormControl<number | null>(null, Validators.required),
     parentCategoryId: new FormControl<number | null>(null),
@@ -104,8 +107,44 @@ export class AdminCategoriesPageComponent implements OnInit {
   }
 
   cancel(): void {
-    this.editing.set(false);
-    this.editingId.set(null);
+    if (!this.saving()) {
+      this.editing.set(false);
+      this.editingId.set(null);
+    }
+  }
+
+  openPathMode(): void {
+    this.pathMode.set(true);
+    this.pathControl.setValue('');
+    this.error.set('');
+  }
+
+  closePathMode(): void {
+    if (!this.pathSaving()) {
+      this.pathMode.set(false);
+    }
+  }
+
+  submitPath(): void {
+    this.pathControl.markAsTouched();
+    this.error.set('');
+    const path = this.pathControl.value.trim();
+    if (this.pathControl.invalid || this.pathSaving()) {
+      return;
+    }
+    this.pathSaving.set(true);
+    this.admin.ensureCategoryPath(path).subscribe({
+      next: (leaf) => {
+        this.pathSaving.set(false);
+        this.pathMode.set(false);
+        this.message.set(`Path resolved — "${leaf.name}" is ready inside ${path}.`);
+        this.load();
+      },
+      error: (failure: unknown) => {
+        this.error.set(parseApiFailure(failure, 'The category path could not be created.').message);
+        this.pathSaving.set(false);
+      },
+    });
   }
 
   save(): void {

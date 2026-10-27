@@ -143,6 +143,10 @@ export class AdminApiService {
     return this.api.post<CategoryDto>('/admin/categories', request);
   }
 
+  ensureCategoryPath(path: string): Observable<CategoryDto> {
+    return this.api.post<CategoryDto>('/admin/categories/ensure-path', { path });
+  }
+
   updateCategory(id: number, request: CategoryWriteRequest): Observable<CategoryDto> {
     return this.api.put<CategoryDto>(`/admin/categories/${id}`, request);
   }

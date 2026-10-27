@@ -1,4 +1,4 @@
-import { AsyncPipe } from '@angular/common';
+import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
@@ -8,13 +8,13 @@ import { CartStateService } from '../../core/services/cart-state.service';
 import { CatalogApiService } from '../../core/services/catalog-api.service';
 
 interface CategoryMenuItem extends CategoryDto {
-  depth: number;
+  children: CategoryMenuItem[];
 }
 
 @Component({
   selector: 'tcs-site-header',
   standalone: true,
-  imports: [AsyncPipe, ReactiveFormsModule, RouterLink, RouterLinkActive],
+  imports: [AsyncPipe, NgTemplateOutlet, ReactiveFormsModule, RouterLink, RouterLinkActive],
   templateUrl: './site-header.component.html',
   styleUrl: './site-header.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -25,6 +25,7 @@ export class SiteHeaderComponent implements OnInit {
   readonly mobileMenuOpen = signal(false);
   readonly loadingSlug = signal<string | null>(null);
   readonly departmentError = signal<string | null>(null);
+  readonly menuColumns = signal<CategoryMenuItem[][]>([]);
   readonly searchForm = new FormGroup({
     search: new FormControl('', { nonNullable: true }),
   });
@@ -68,13 +69,21 @@ export class SiteHeaderComponent implements OnInit {
 
   openDepartment(department: DepartmentDto): void {
     this.openSlug.set(department.slug);
-    if (this.categoryTrees.has(department.slug) || this.loadingSlug() === department.slug) {
+    const cached = this.categoryTrees.get(department.slug);
+    if (cached) {
+      this.menuColumns.set([cached]);
       return;
     }
+    if (this.loadingSlug() === department.slug) {
+      return;
+    }
+    this.menuColumns.set([]);
     this.loadingSlug.set(department.slug);
     this.catalog.getDepartmentCategories(department.slug).subscribe({
       next: (categories) => {
-        this.categoryTrees.set(department.slug, this.toTree(categories));
+        const tree = this.toTree(categories);
+        this.categoryTrees.set(department.slug, tree);
+        this.menuColumns.set([tree]);
         this.loadingSlug.set(null);
       },
       error: () => {
@@ -84,15 +93,25 @@ export class SiteHeaderComponent implements OnInit {
     });
   }
 
+  hoverCategory(columnIndex: number, item: CategoryMenuItem): void {
+    const columns = this.menuColumns().slice(0, columnIndex + 1);
+    if (item.children.length > 0) {
+      columns.push(item.children);
+    }
+    this.menuColumns.set(columns);
+  }
+
   closeDepartment(slug: string): void {
     if (this.openSlug() === slug) {
       this.openSlug.set(null);
+      this.menuColumns.set([]);
     }
   }
 
   closeAllMenus(): void {
     this.openSlug.set(null);
     this.mobileMenuOpen.set(false);
+    this.menuColumns.set([]);
   }
 
   toggleMobileMenu(): void {
@@ -112,23 +131,26 @@ export class SiteHeaderComponent implements OnInit {
   }
 
   private toTree(categories: CategoryDto[]): CategoryMenuItem[] {
-    const byParent = new Map<number | null, CategoryDto[]>();
+    const nodes = new Map<number, CategoryMenuItem>();
     for (const category of categories) {
-      const siblings = byParent.get(category.parentCategoryId) ?? [];
-      siblings.push(category);
-      byParent.set(category.parentCategoryId, siblings);
+      nodes.set(category.categoryId, { ...category, children: [] });
     }
-    const flattened: CategoryMenuItem[] = [];
-    const addChildren = (parentId: number | null, depth: number): void => {
-      const siblings = (byParent.get(parentId) ?? [])
-        .slice()
-        .sort((left, right) => left.sortOrder - right.sortOrder);
-      for (const category of siblings) {
-        flattened.push({ ...category, depth });
-        addChildren(category.categoryId, depth + 1);
+    const roots: CategoryMenuItem[] = [];
+    for (const node of nodes.values()) {
+      const parent = node.parentCategoryId === null ? null : nodes.get(node.parentCategoryId);
+      if (parent) {
+        parent.children.push(node);
+      } else {
+        roots.push(node);
       }
+    }
+    const sortNodes = (items: CategoryMenuItem[]): CategoryMenuItem[] => {
+      items.sort((left, right) => left.sortOrder - right.sortOrder || left.name.localeCompare(right.name));
+      for (const item of items) {
+        sortNodes(item.children);
+      }
+      return items;
     };
-    addChildren(null, 0);
-    return flattened;
+    return sortNodes(roots);
   }
 }

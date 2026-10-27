@@ -27,6 +27,7 @@ export class AdminShipmentsPageComponent implements OnInit {
   readonly orderSearch = new FormControl('', { nonNullable: true });
   readonly selectedOrder = signal<OrderDto | null>(null);
   readonly orderPickerOpen = signal(false);
+  readonly createOpen = signal(false);
   readonly form = new FormGroup({
     carrier: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(80)] }),
     trackingNumber: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(80)] }),
@@ -94,6 +95,24 @@ export class AdminShipmentsPageComponent implements OnInit {
 
   clearOrder(): void {
     this.selectedOrder.set(null);
+  }
+
+  openCreate(): void {
+    this.createOpen.set(true);
+    this.error.set('');
+    this.orderSearch.setValue('');
+    this.orderPickerOpen.set(false);
+    if (!this.form.controls.trackingNumber.value.trim()) {
+      this.generateTrackingNumber();
+    }
+  }
+
+  closeCreate(): void {
+    if (!this.saving()) {
+      this.createOpen.set(false);
+      this.selectedOrder.set(null);
+      this.orderPickerOpen.set(false);
+    }
   }
 
   shipmentBadgeClass(status: string): string {
@@ -165,6 +184,7 @@ export class AdminShipmentsPageComponent implements OnInit {
         this.form.reset({ carrier: '', trackingNumber: '' });
         this.selectedOrder.set(null);
         this.saving.set(false);
+        this.createOpen.set(false);
         this.load();
       },
       error: (failure: unknown) => {

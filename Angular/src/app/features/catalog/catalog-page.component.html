@@ -58,50 +58,101 @@
       </div>
       <form [formGroup]="filterForm" (ngSubmit)="applyFilters()">
         <div class="filter-group">
-          <span class="filter-label">Price range (PKR)</span>
-          <div class="price-inputs">
-            <label>
-              <span class="sr-only">Minimum price</span>
-              <input class="control" type="number" min="0" step="1" formControlName="minPrice" placeholder="From">
-            </label>
-            <label>
-              <span class="sr-only">Maximum price</span>
-              <input class="control" type="number" min="0" step="1" formControlName="maxPrice" placeholder="To">
-            </label>
+          <button class="filter-group__head" type="button" (click)="toggleGroup('price')" [attr.aria-expanded]="isGroupOpen('price')">
+            Price
+            <span class="filter-group__toggle" aria-hidden="true">{{ isGroupOpen('price') ? '−' : '+' }}</span>
+          </button>
+          @if (isGroupOpen('price')) {
+            <div class="filter-group__body">
+              <div class="price-slider" aria-hidden="true">
+                <span class="price-slider__rail"></span>
+                <span class="price-slider__fill" [style.left.%]="minPricePct()" [style.right.%]="100 - maxPricePct()"></span>
+                <input type="range" [min]="priceBounds.min" [max]="priceBounds.max" step="100" [value]="minPriceRangeValue()" (input)="onPriceRange('min', $event)">
+                <input type="range" [min]="priceBounds.min" [max]="priceBounds.max" step="100" [value]="maxPriceRangeValue()" (input)="onPriceRange('max', $event)">
+              </div>
+              <div class="price-inputs price-inputs--labeled">
+                <label class="price-field"><span>Rs</span><input class="control" type="number" min="0" step="1" formControlName="minPrice" placeholder="0"></label>
+                <span class="price-range__to">to</span>
+                <label class="price-field"><span>Rs</span><input class="control" type="number" min="0" step="1" formControlName="maxPrice" placeholder="50000"></label>
+              </div>
+            </div>
+          }
+        </div>
+        @if (!categoryMode() && departmentCategories().length > 0) {
+          <div class="filter-group">
+            <button class="filter-group__head" type="button" (click)="toggleGroup('category')" [attr.aria-expanded]="isGroupOpen('category')">
+              Category
+              <span class="filter-group__toggle" aria-hidden="true">{{ isGroupOpen('category') ? '−' : '+' }}</span>
+            </button>
+            @if (isGroupOpen('category')) {
+              <div class="filter-group__body filter-checklist">
+                @for (item of departmentCategories(); track item.categoryId) {
+                  <label class="filter-check" [style.padding-left.rem]="item.parentCategoryId === null ? 0 : 1">
+                    <input type="checkbox" [checked]="selectedCategorySlug() === item.slug" (change)="toggleCategoryFilter(item)">
+                    <span>{{ item.name }}</span>
+                    <span class="filter-check__count">({{ item.productCount }})</span>
+                  </label>
+                }
+              </div>
+            }
           </div>
+        }
+        <div class="filter-group">
+          <button class="filter-group__head" type="button" (click)="toggleGroup('sale')" [attr.aria-expanded]="isGroupOpen('sale')">
+            Sale status
+            <span class="filter-group__toggle" aria-hidden="true">{{ isGroupOpen('sale') ? '−' : '+' }}</span>
+          </button>
+          @if (isGroupOpen('sale')) {
+            <div class="filter-group__body">
+              <select class="control" id="on-sale" formControlName="onSale" aria-label="Sale status">
+                <option value="any">Any</option>
+                <option value="true">On sale</option>
+                <option value="false">Not on sale</option>
+              </select>
+            </div>
+          }
         </div>
         <div class="filter-group">
-          <label class="filter-label" for="on-sale">Sale status</label>
-          <select class="control" id="on-sale" formControlName="onSale">
-            <option value="any">Any</option>
-            <option value="true">On sale</option>
-            <option value="false">Not on sale</option>
-          </select>
+          <button class="filter-group__head" type="button" (click)="toggleGroup('availability')" [attr.aria-expanded]="isGroupOpen('availability')">
+            Availability
+            <span class="filter-group__toggle" aria-hidden="true">{{ isGroupOpen('availability') ? '−' : '+' }}</span>
+          </button>
+          @if (isGroupOpen('availability')) {
+            <div class="filter-group__body">
+              <select class="control" id="availability" formControlName="available" aria-label="Availability">
+                <option value="any">Any</option>
+                <option value="true">In stock</option>
+                <option value="false">Out of stock</option>
+              </select>
+            </div>
+          }
         </div>
         <div class="filter-group">
-          <label class="filter-label" for="availability">Availability</label>
-          <select class="control" id="availability" formControlName="available">
-            <option value="any">Any</option>
-            <option value="true">In stock</option>
-            <option value="false">Out of stock</option>
-          </select>
+          <button class="filter-group__head" type="button" (click)="toggleGroup('volume')" [attr.aria-expanded]="isGroupOpen('volume')">
+            Perfume volume
+            <span class="filter-group__toggle" aria-hidden="true">{{ isGroupOpen('volume') ? '−' : '+' }}</span>
+          </button>
+          @if (isGroupOpen('volume')) {
+            <div class="filter-group__body">
+              <div class="filter-volume">
+                <input class="control" id="volume" type="number" min="1" step="1" formControlName="volumeMl" placeholder="e.g. 50">
+                <span>ml</span>
+              </div>
+            </div>
+          }
         </div>
         <div class="filter-group">
-          <label class="filter-label" for="volume">Perfume volume</label>
-          <div class="filter-volume">
-            <input class="control" id="volume" type="number" min="1" step="1" formControlName="volumeMl" placeholder="e.g. 50">
-            <span>ml</span>
-          </div>
+          <button class="filter-group__head" type="button" (click)="toggleGroup('attribute')" [attr.aria-expanded]="isGroupOpen('attribute')">
+            Product attribute
+            <span class="filter-group__toggle" aria-hidden="true">{{ isGroupOpen('attribute') ? '−' : '+' }}</span>
+          </button>
+          @if (isGroupOpen('attribute')) {
+            <div class="filter-group__body">
+              <input class="control" id="attribute" formControlName="attribute" placeholder="fabric:Cotton" aria-label="Product attribute">
+              <small>Use the API format slug:value.</small>
+            </div>
+          }
         </div>
-        <div class="filter-group">
-          <label class="filter-label" for="attribute">Product attribute</label>
-          <input class="control" id="attribute" formControlName="attribute" placeholder="fabric:Cotton">
-          <small>Use the API format slug:value.</small>
-        </div>
-        <p class="filter-note">
-          Color and size IDs are accepted by the API, but it does not expose global color/size filter lists.
-          Choose exact options on each product page.
-        </p>
         <button class="btn btn-primary filter-apply" type="submit">Apply filters</button>
       </form>
     </aside>
