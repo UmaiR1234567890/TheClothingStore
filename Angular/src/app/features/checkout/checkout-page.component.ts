@@ -98,6 +98,13 @@ export class CheckoutPageComponent implements OnInit {
     });
   }
 
+  dismissUncertainty(): void {
+    clearPendingCheckoutKey();
+    this.idempotencyKey.set(crypto.randomUUID());
+    this.outcomeUncertain.set(false);
+    this.error.set('');
+  }
+
   cartHasUnavailable(): boolean {
     return this.cart()?.items.some((line) => !line.isAvailable || line.quantity > line.quantityAvailable) ?? false;
   }

@@ -22,7 +22,14 @@
       <a class="text-link" routerLink="/cart">Back to your bag</a>
     </div>
 
-    @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
+    @if (error()) {
+      <p class="notice notice-error" role="alert">
+        {{ error() }}
+        @if (outcomeUncertain()) {
+          <button class="text-button" type="button" (click)="dismissUncertainty()">Dismiss &amp; start fresh</button>
+        }
+      </p>
+    }
     @if (cartLoading()) {
       <div class="state-panel"><span class="spinner" aria-label="Loading checkout"></span></div>
     } @else if (!cart() || cart()!.items.length === 0) {
@@ -111,6 +118,7 @@
           @if (outcomeUncertain()) {
             <p class="notice notice-error" role="alert">
               The previous order request may have reached the store. This page will not submit another order with a new key. Verify the order before continuing.
+              <button class="text-button" type="button" (click)="dismissUncertainty()">I verified — start a new order</button>
             </p>
           }
           @if (cartHasUnavailable()) {

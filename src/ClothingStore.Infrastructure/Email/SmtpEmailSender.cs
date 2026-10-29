@@ -1,9 +1,10 @@
-using System.Net;
-using System.Net.Mail;
 using ClothingStore.Application.Contracts;
+using MailKit.Net.Smtp;
+using MailKit.Security;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using MimeKit;
 
 namespace ClothingStore.Infrastructure.Email;
 
@@ -29,23 +30,18 @@ internal sealed class SmtpEmailSender(
             return;
         }
 
-        using var mail = new MailMessage
+        var mime = new MimeMessage();
+        mime.From.Add(new MailboxAddress(settings.FromName, settings.FromAddress));
+        mime.To.Add(string.IsNullOrWhiteSpace(message.ToName)
+            ? MailboxAddress.Parse(message.ToAddress)
+            : new MailboxAddress(message.ToName, message.ToAddress));
+        mime.Subject = message.Subject;
+        mime.Body = new BodyBuilder
         {
-            From = new MailAddress(settings.FromAddress, settings.FromName),
-            Subject = message.Subject,
-            Body = message.HtmlBody,
-            IsBodyHtml = true
-        };
-        mail.To.Add(string.IsNullOrWhiteSpace(message.ToName)
-            ? new MailAddress(message.ToAddress)
-            : new MailAddress(message.ToAddress, message.ToName));
-        if (!string.IsNullOrWhiteSpace(message.TextBody))
-        {
-            mail.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(
-                message.TextBody, null, "text/plain"));
-        }
+            HtmlBody = message.HtmlBody,
+            TextBody = message.TextBody ?? string.Empty,
+        }.ToMessageBody();
 
-        using var client = new SmtpClient();
         if (string.Equals(settings.DeliveryMethod, "SpecifiedPickupDirectory", StringComparison.OrdinalIgnoreCase))
         {
             var directory = settings.PickupDirectoryLocation;
@@ -54,43 +50,45 @@ internal sealed class SmtpEmailSender(
             if (!Path.IsPathRooted(directory))
                 directory = Path.Combine(environment.ContentRootPath, directory);
             Directory.CreateDirectory(directory);
-            client.DeliveryMethod = SmtpDeliveryMethod.SpecifiedPickupDirectory;
-            client.PickupDirectoryLocation = directory;
-        }
-        else
-        {
-            if (string.IsNullOrWhiteSpace(settings.SmtpHost))
-                throw new InvalidOperationException("Email:SmtpHost must be configured for network delivery.");
-            client.DeliveryMethod = SmtpDeliveryMethod.Network;
-            client.Host = settings.SmtpHost;
-            client.Port = settings.SmtpPort;
-            client.EnableSsl = settings.EnableSsl;
-            if (!string.IsNullOrWhiteSpace(settings.Username))
-                client.Credentials = new NetworkCredential(settings.Username, settings.Password);
+            var file = Path.Combine(directory, $"{DateTime.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}.eml");
+            await using (var stream = File.Create(file))
+            {
+                await mime.WriteToAsync(stream, cancellationToken);
+            }
+            logger.LogInformation(
+                "Email '{Subject}' to {ToAddress} was written as an .eml file in {Directory} (no real email is sent in pickup mode).",
+                message.Subject, message.ToAddress, directory);
+            return;
         }
 
-        cancellationToken.ThrowIfCancellationRequested();
+        if (string.IsNullOrWhiteSpace(settings.SmtpHost))
+            throw new InvalidOperationException("Email:SmtpHost must be configured for network delivery.");
+
+        using var client = new SmtpClient();
         try
         {
-            await client.SendMailAsync(mail);
+            var socketOptions = settings.SmtpPort == 465
+                ? SecureSocketOptions.SslOnConnect
+                : settings.EnableSsl
+                    ? SecureSocketOptions.StartTls
+                    : SecureSocketOptions.None;
+            await client.ConnectAsync(settings.SmtpHost, settings.SmtpPort, socketOptions, cancellationToken);
+            if (!string.IsNullOrWhiteSpace(settings.Username))
+                await client.AuthenticateAsync(settings.Username, settings.Password ?? string.Empty, cancellationToken);
+            await client.SendAsync(mime, cancellationToken);
+            logger.LogInformation(
+                "Sent '{Subject}' to {ToAddress} via SMTP {Host}:{Port}.",
+                message.Subject, message.ToAddress, settings.SmtpHost, settings.SmtpPort);
         }
         catch (Exception exception)
         {
-            logger.LogError(exception, "Failed to send '{Subject}' to {ToAddress}.", message.Subject, message.ToAddress);
-            throw;
+            logger.LogError(exception, "Failed to send '{Subject}' to {ToAddress} via {Host}:{Port}. The order itself is unaffected.",
+                message.Subject, message.ToAddress, settings.SmtpHost, settings.SmtpPort);
         }
-
-        if (client.DeliveryMethod == SmtpDeliveryMethod.SpecifiedPickupDirectory)
+        finally
         {
-            logger.LogInformation(
-                "Email '{Subject}' to {ToAddress} was written as an .eml file in {Directory} (no real email is sent in pickup mode).",
-                message.Subject, message.ToAddress, client.PickupDirectoryLocation);
-        }
-        else
-        {
-            logger.LogInformation(
-                "Sent '{Subject}' to {ToAddress} via SMTP {Host}:{Port}.",
-                message.Subject, message.ToAddress, client.Host, client.Port);
+            if (client.IsConnected)
+                await client.DisconnectAsync(true, cancellationToken);
         }
     }
 }
