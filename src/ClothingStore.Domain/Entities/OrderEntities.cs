@@ -64,6 +64,7 @@ public sealed class Shipment
     public string? Carrier { get; set; }
     public string? TrackingNumber { get; set; }
     public string Status { get; set; } = ShipmentStatuses.Pending;
+    public DateTime? PackedAt { get; set; }
     public DateTime? ShippedAt { get; set; }
     public DateTime? DeliveredAt { get; set; }
     public DateTime CreatedAt { get; set; }

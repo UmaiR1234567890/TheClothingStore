@@ -27,11 +27,25 @@
       <section class="cart-lines" aria-label="Items in your bag">
         @for (line of cart()!.items; track line.cartItemId) {
           <article class="cart-line">
-            <div class="cart-line__image" aria-hidden="true">
-              <span>{{ productMark(line.productName) }}</span>
-            </div>
+            @if (line.imageUrl && line.productSlug) {
+              <a class="cart-line__image cart-line__image--link" [routerLink]="['/products', line.productSlug]" [attr.aria-label]="'View ' + line.productName">
+                <img [src]="line.imageUrl" [alt]="line.productName" loading="lazy">
+              </a>
+            } @else {
+              <div class="cart-line__image" aria-hidden="true">
+                @if (line.imageUrl) {
+                  <img [src]="line.imageUrl" [alt]="line.productName" loading="lazy">
+                } @else {
+                  <span>{{ productMark(line.productName) }}</span>
+                }
+              </div>
+            }
             <div class="cart-line__details">
-              <h2>{{ line.productName }}</h2>
+              @if (line.productSlug) {
+                <h2><a [routerLink]="['/products', line.productSlug]">{{ line.productName }}</a></h2>
+              } @else {
+                <h2>{{ line.productName }}</h2>
+              }
               <p>{{ optionText(line) }}</p>
               <span class="cart-line__sku">SKU {{ line.sku }}</span>
               @if (!line.isAvailable) {

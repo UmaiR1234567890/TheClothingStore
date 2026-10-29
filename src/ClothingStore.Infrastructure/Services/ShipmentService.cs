@@ -140,20 +140,26 @@ internal sealed class ShipmentService(ClothingStoreDbContext db, AuditLogWriter 
     private static void SetStatus(Shipment shipment, string status)
     {
         shipment.Status = status;
+        if (status == ShipmentStatuses.Packed)
+            shipment.PackedAt = DateTime.UtcNow;
         if (status == ShipmentStatuses.Shipped)
             shipment.ShippedAt = DateTime.UtcNow;
         if (status == ShipmentStatuses.Delivered)
             shipment.DeliveredAt = DateTime.UtcNow;
+        if (status is ShipmentStatuses.Shipped or ShipmentStatuses.Delivered)
+            shipment.PackedAt ??= DateTime.UtcNow;
+        if (status == ShipmentStatuses.Delivered)
+            shipment.ShippedAt ??= DateTime.UtcNow;
     }
 
     private static string? Normalize(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static ShipmentDto ToDto(Shipment shipment, string? orderNumber = null) =>
-        new(shipment.ShipmentId, shipment.OrderId, shipment.Carrier, shipment.TrackingNumber, shipment.Status, shipment.ShippedAt, shipment.DeliveredAt, orderNumber ?? shipment.Order?.OrderNumber);
+        new(shipment.ShipmentId, shipment.OrderId, shipment.Carrier, shipment.TrackingNumber, shipment.Status, shipment.CreatedAt, shipment.PackedAt, shipment.ShippedAt, shipment.DeliveredAt, orderNumber ?? shipment.Order?.OrderNumber);
 
     private static System.Linq.Expressions.Expression<Func<Shipment, ShipmentDto>> ToDtoExpression() =>
-        x => new ShipmentDto(x.ShipmentId, x.OrderId, x.Carrier, x.TrackingNumber, x.Status, x.ShippedAt, x.DeliveredAt, x.Order.OrderNumber);
+        x => new ShipmentDto(x.ShipmentId, x.OrderId, x.Carrier, x.TrackingNumber, x.Status, x.CreatedAt, x.PackedAt, x.ShippedAt, x.DeliveredAt, x.Order.OrderNumber);
 
     private static void ValidatePage(int page, int size)
     {

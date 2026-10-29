@@ -110,7 +110,13 @@
 
         @if (sizeOptions().length > 0) {
           <fieldset class="option-group">
-            <legend>Size <span>{{ selectedSizeLabel() || '— choose —' }}</span></legend>
+            <legend>
+              Size <span>{{ selectedSizeLabel() || '— choose —' }}</span>
+              <button class="size-chart-link" type="button" (click)="sizeChartOpen.set(true)">
+                <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16.7 4.4 20 7.7 8.6 19.1 5.3 15.8Zm0 0 2.2-2.3a1.4 1.4 0 0 1 2 0l1.3 1.3a1.4 1.4 0 0 1 0 2L20 7.7M5.3 15.8 3 21l5.2-1.9"/></svg>
+                Size chart
+              </button>
+            </legend>
             <div class="option-list option-list--sizes">
               @for (option of sizeOptions(); track option.id) {
                 <button
@@ -188,11 +194,76 @@
             <p class="product-description">Product details will be updated as they become available.</p>
           }
         </div>
+
+        <div class="product-accordion">
+          <button class="product-accordion__head" type="button" (click)="returnsOpen.set(!returnsOpen())" [attr.aria-expanded]="returnsOpen()">
+            <span>Return &amp; Exchange</span>
+            <span aria-hidden="true">{{ returnsOpen() ? '−' : '+' }}</span>
+          </button>
+          @if (returnsOpen()) {
+            <div class="product-accordion__body">
+              <p><strong>Exchange/Return:</strong> Items can be exchanged within 10 days at any Clothing Store outlet or by sending them to the factory. Items must be unused, in original packaging, with tags and invoice intact. No cash refunds — only e-vouchers are issued.</p>
+              <p><strong>Non-Exchangeable Items:</strong> Items discounted by more than 30%, sale/discount campaign items (except valid sale-order issues), fragrances, and accessories (except belts) cannot be exchanged.</p>
+              <p><strong>Complaints:</strong> Defects, damage, missing or wrong items must be reported within 24 hours of delivery with clear photos of the product, tags/barcode, and packaging.</p>
+            </div>
+          }
+        </div>
       </div>
     </div>
     }
   }
 </section>
+
+@if (bagConfirmOpen()) {
+  <div class="pdp-modal-backdrop" role="dialog" aria-modal="true" aria-label="Added to bag" (click)="bagConfirmOpen.set(false)"></div>
+  <div class="pdp-modal">
+    @if (product(); as item) {
+      <p class="pdp-modal__eyebrow">Added to your bag</p>
+      <h3>{{ item.name }}</h3>
+      <p class="pdp-modal__variant">
+        @if (selectedColorLabel()) { {{ selectedColorLabel() }} }
+        @if (selectedSizeLabel()) { / {{ selectedSizeLabel() }} }
+        @if (selectedVolume()) { / {{ selectedVolume() }} ml }
+        × {{ quantity() }}
+      </p>
+    }
+    <div class="pdp-modal__actions">
+      <a class="btn btn-accent" routerLink="/checkout" (click)="bagConfirmOpen.set(false)">Checkout</a>
+      <a class="btn btn-outline" [routerLink]="continueShoppingUrl()" (click)="bagConfirmOpen.set(false)">Continue shopping</a>
+    </div>
+  </div>
+}
+
+@if (sizeChartOpen()) {
+  <div class="pdp-modal-backdrop" role="dialog" aria-modal="true" aria-label="Size chart" (click)="sizeChartOpen.set(false)"></div>
+  <div class="pdp-modal pdp-modal--wide">
+    <div class="pdp-modal__head">
+      <h3>Size chart</h3>
+      <button class="pdp-modal__close" type="button" aria-label="Close size chart" (click)="sizeChartOpen.set(false)">×</button>
+    </div>
+    <div class="size-chart">
+      <div class="size-chart__group">
+        <h4>Clothing (letter sizes)</h4>
+        <table><thead><tr><th>Size</th><th>XS</th><th>S</th><th>M</th><th>L</th><th>XL</th><th>XXL</th></tr></thead>
+        <tbody><tr><td>Chest (in)</td><td>34–35</td><td>36–37</td><td>38–39</td><td>40–41</td><td>42–43</td><td>44–45</td></tr>
+        <tr><td>Waist (in)</td><td>26–27</td><td>28–29</td><td>30–31</td><td>32–33</td><td>34–35</td><td>36–37</td></tr></tbody></table>
+      </div>
+      <div class="size-chart__group">
+        <h4>Formal shirts (collar)</h4>
+        <table><thead><tr><th>Collar</th><th>14</th><th>14.5</th><th>15</th><th>15.5</th><th>16</th><th>16.5</th><th>17</th><th>17.5</th><th>18.5</th></tr></thead>
+        <tbody><tr><td>Neck (in)</td><td>14</td><td>14.5</td><td>15</td><td>15.5</td><td>16</td><td>16.5</td><td>17</td><td>17.5</td><td>18.5</td></tr>
+        <tr><td>Chest (in)</td><td>36</td><td>38</td><td>40</td><td>42</td><td>44</td><td>46</td><td>48</td><td>50</td><td>52</td></tr></tbody></table>
+      </div>
+      <div class="size-chart__group">
+        <h4>Footwear (EU)</h4>
+        <table><thead><tr><th>EU</th><th>39</th><th>40</th><th>41</th><th>42</th><th>43</th><th>44</th><th>45</th><th>46</th></tr></thead>
+        <tbody><tr><td>UK</td><td>5.5</td><td>6.5</td><td>7</td><td>8</td><td>9</td><td>9.5</td><td>10.5</td><td>11</td></tr>
+        <tr><td>Foot (cm)</td><td>24.6</td><td>25.4</td><td>26.0</td><td>26.8</td><td>27.6</td><td>28.3</td><td>29.0</td><td>29.8</td></tr></tbody></table>
+      </div>
+      <p class="size-chart__note">Measurements are approximate — check the product's own fit notes when available.</p>
+    </div>
+  </div>
+}
 
 @if (related().length > 0) {
   <section class="related-section container">

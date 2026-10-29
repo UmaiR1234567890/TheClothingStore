@@ -252,7 +252,7 @@ internal sealed class CartService(
     {
         var items = await db.CartItems.AsNoTracking()
             .Where(x => x.CartId == cartId)
-            .Include(x => x.ProductVariant).ThenInclude(x => x.Product)
+            .Include(x => x.ProductVariant).ThenInclude(x => x.Product).ThenInclude(x => x.Images)
             .Include(x => x.ProductVariant).ThenInclude(x => x.Inventory)
             .Include(x => x.ProductVariant).ThenInclude(x => x.Color)
             .Include(x => x.ProductVariant).ThenInclude(x => x.Size)
@@ -267,11 +267,18 @@ internal sealed class CartService(
             var variantIsActive = variant.IsActive && !variant.IsDeleted &&
                                   variant.Product.Status == "Active" && !variant.Product.IsDeleted;
             var quantityAvailable = variantIsActive ? EffectivePriceResolver.Available(variant) : 0;
+            var imageUrl = variant.Product.Images
+                .Where(image => image.ColorId == variant.ColorId || image.ColorId == null)
+                .OrderByDescending(image => image.IsPrimary).ThenBy(image => image.DisplayOrder)
+                .Select(image => image.ImageUrl)
+                .FirstOrDefault();
             return new CartLineDto(
                 item.CartItemId,
                 variant.ProductVariantId,
                 variant.Product.Name,
                 variant.Sku,
+                variant.Product.Slug,
+                imageUrl,
                 EffectivePriceResolver.ToOptions(variant),
                 item.Quantity,
                 price,

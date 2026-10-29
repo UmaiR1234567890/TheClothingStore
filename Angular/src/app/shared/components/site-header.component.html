@@ -43,10 +43,10 @@
     </form>
 
     <div class="header-actions">
-      <a class="header-action" routerLink="/track">
+      <button class="header-action header-action--button" type="button" (click)="openTrack()">
         <span class="header-action__eyebrow">Orders</span>
         <span>Track order</span>
-      </a>
+      </button>
       @if (auth.user$ | async; as user) {
         <a class="header-action header-account" routerLink="/account/profile">
           <span class="header-action__eyebrow">Welcome</span>
@@ -97,36 +97,39 @@
           </button>
           @if (openSlug() === department.slug) {
             <div class="mega-menu" [id]="'department-menu-' + department.slug" (mouseenter)="openDepartment(department)" (mouseleave)="closeDepartment(department.slug)">
-              <div class="mega-menu__categories mega-menu__flyout">
-                @if (loadingSlug() === department.slug) {
-                  <span class="mega-menu__loading">Loading categories…</span>
-                } @else {
-                  @for (column of menuColumns(); track $index; let columnIndex = $index) {
-                    <ul class="mega-menu__col">
-                      @for (item of column; track item.categoryId) {
-                        <li>
-                          <a
-                            class="mega-menu__link"
-                            [class.mega-menu__link--parent]="item.children.length > 0"
-                            [routerLink]="['/category', item.categoryId, item.slug]"
-                            (mouseenter)="hoverCategory(columnIndex, item)"
-                            (focus)="hoverCategory(columnIndex, item)"
-                            (click)="closeAllMenus()">
-                            <span>{{ item.name }}</span>
-                            @if (item.children.length > 0) {
-                              <span class="mega-menu__arrow" aria-hidden="true">›</span>
-                            }
-                          </a>
-                        </li>
-                      }
-                    </ul>
+              @if (loadingSlug() === department.slug) {
+                <ul class="mega-menu__panel"><li><span class="mega-menu__loading">Loading categories…</span></li></ul>
+              } @else {
+                <ul class="mega-menu__panel">
+                  @for (item of categoryTree(department.slug); track item.categoryId) {
+                    <ng-container *ngTemplateOutlet="menuItem; context: { $implicit: item }"></ng-container>
                   } @empty {
-                    <span class="mega-menu__loading">Categories are not available right now.</span>
+                    <li><span class="mega-menu__loading">Categories are not available right now.</span></li>
                   }
-                }
-              </div>
+                </ul>
+              }
             </div>
           }
+          <ng-template #menuItem let-item>
+            <li class="mega-menu__item">
+              <a
+                class="mega-menu__link"
+                [routerLink]="['/category', item.categoryId, item.slug]"
+                (click)="closeAllMenus()">
+                <span class="mega-menu__text">{{ item.name }}</span>
+                @if (item.children.length > 0) {
+                  <span class="mega-menu__arrow" aria-hidden="true">›</span>
+                }
+              </a>
+              @if (item.children.length > 0) {
+                <ul class="mega-menu__panel mega-menu__panel--sub">
+                  @for (child of item.children; track child.categoryId) {
+                    <ng-container *ngTemplateOutlet="menuItem; context: { $implicit: child }"></ng-container>
+                  }
+                </ul>
+              }
+            </li>
+          </ng-template>
         </div>
       }
       @if (departmentError()) {
@@ -135,3 +138,57 @@
     </div>
   </nav>
 </header>
+
+@if (trackOpen()) {
+  <div class="track-modal-backdrop" role="dialog" aria-modal="true" aria-label="Track your order" (click)="closeTrack()"></div>
+  <div class="track-modal">
+    <div class="track-modal__head">
+      <div>
+        <span class="eyebrow">Order tracking</span>
+        <h3>Where's my order?</h3>
+      </div>
+      <button class="track-modal__close" type="button" aria-label="Close" (click)="closeTrack()">×</button>
+    </div>
+    <form class="track-modal__form" [formGroup]="trackForm" (ngSubmit)="submitTrack()">
+      <label>
+        <span>Order number</span>
+        <input type="text" formControlName="orderNumber" placeholder="TCS261024195052-EF8DA886" autocomplete="off">
+      </label>
+      <label>
+        <span>Email used at checkout</span>
+        <input type="email" formControlName="email" placeholder="you@example.com" autocomplete="email">
+      </label>
+      @if (trackError()) {
+        <p class="track-modal__error" role="alert">{{ trackError() }}</p>
+      }
+      <button class="btn btn-accent track-modal__submit" type="submit" [disabled]="trackLoading()">
+        {{ trackLoading() ? 'Checking…' : 'Track order' }}
+      </button>
+    </form>
+    @if (trackResult(); as order) {
+      <div class="track-modal__result">
+        <div class="track-modal__order">
+          <div><span class="eyebrow">Order</span><strong>{{ order.orderNumber }}</strong></div>
+          <span class="track-modal__status">{{ order.status }}</span>
+        </div>
+        @if (order.payments.length > 0) {
+          <div class="track-modal__payment">
+            <div><span class="eyebrow">Payment</span><strong>{{ order.payments[0].method }} — {{ order.payments[0].status }}</strong></div>
+            <strong class="track-modal__pay-amount">{{ order.totalAmount | currency:'PKR':'code':'1.0-2' }}</strong>
+          </div>
+        } @else {
+          <div class="track-modal__payment">
+            <div><span class="eyebrow">Payment</span><strong>Awaiting payment</strong></div>
+            <strong class="track-modal__pay-amount">{{ order.totalAmount | currency:'PKR':'code':'1.0-2' }}</strong>
+          </div>
+        }
+        @for (shipment of order.shipments; track shipment.shipmentId) {
+          <tcs-shipment-timeline [shipment]="shipment" />
+        } @empty {
+          <p class="track-modal__empty">No shipment has been created for this order yet — it's being prepared.</p>
+        }
+      </div>
+    }
+    <a class="track-modal__full" routerLink="/track" (click)="closeTrack()">Open full tracking page</a>
+  </div>
+}

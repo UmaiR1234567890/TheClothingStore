@@ -21,6 +21,8 @@ public sealed record CartLineDto(
     int ProductVariantId,
     string ProductName,
     string Sku,
+    string? ProductSlug,
+    string? ImageUrl,
     VariantOptionDto Options,
     int Quantity,
     decimal UnitPrice,
@@ -119,6 +121,8 @@ public sealed record ShipmentDto(
     string? Carrier,
     string? TrackingNumber,
     string Status,
+    DateTime CreatedAt,
+    DateTime? PackedAt,
     DateTime? ShippedAt,
     DateTime? DeliveredAt,
     string? OrderNumber = null);

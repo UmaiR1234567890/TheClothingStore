@@ -394,7 +394,7 @@ internal sealed class CheckoutService(
             order.Payments.Select(x => new PaymentDto(
                 x.PaymentId, x.OrderId, x.Amount, x.Method, x.Provider, x.ProviderReference, x.Status, x.CreatedAt, x.ProcessedAt)).ToArray(),
             order.Shipments.Select(x => new ShipmentDto(
-                x.ShipmentId, x.OrderId, x.Carrier, x.TrackingNumber, x.Status, x.ShippedAt, x.DeliveredAt)).ToArray());
+                x.ShipmentId, x.OrderId, x.Carrier, x.TrackingNumber, x.Status, x.CreatedAt, x.PackedAt, x.ShippedAt, x.DeliveredAt)).ToArray());
 
     private static bool IsPurchasable(ProductVariant variant) =>
         variant.IsActive && !variant.IsDeleted &&

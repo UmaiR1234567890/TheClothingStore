@@ -88,6 +88,8 @@ export interface CartLineDto {
   productVariantId: number;
   productName: string;
   sku: string;
+  productSlug: string | null;
+  imageUrl: string | null;
   options: VariantOptionDto;
   quantity: number;
   unitPrice: number;
@@ -160,6 +162,8 @@ export interface ShipmentDto {
   carrier: string | null;
   trackingNumber: string | null;
   status: string;
+  createdAt: string;
+  packedAt: string | null;
   shippedAt: string | null;
   deliveredAt: string | null;
   orderNumber?: string | null;

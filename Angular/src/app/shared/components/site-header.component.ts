@@ -1,11 +1,15 @@
-import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
+import { AsyncPipe, CurrencyPipe, NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
-import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { CategoryDto, DepartmentDto } from '../../core/models/catalog.models';
+import { OrderDto } from '../../core/models/commerce.models';
 import { CartStateService } from '../../core/services/cart-state.service';
 import { CatalogApiService } from '../../core/services/catalog-api.service';
+import { OrderApiService } from '../../core/services/order-api.service';
+import { parseApiFailure } from '../../core/services/api-error.service';
+import { ShipmentTimelineComponent } from './shipment-timeline.component';
 
 interface CategoryMenuItem extends CategoryDto {
   children: CategoryMenuItem[];
@@ -14,7 +18,7 @@ interface CategoryMenuItem extends CategoryDto {
 @Component({
   selector: 'tcs-site-header',
   standalone: true,
-  imports: [AsyncPipe, NgTemplateOutlet, ReactiveFormsModule, RouterLink, RouterLinkActive],
+  imports: [AsyncPipe, CurrencyPipe, NgTemplateOutlet, ReactiveFormsModule, RouterLink, RouterLinkActive, ShipmentTimelineComponent],
   templateUrl: './site-header.component.html',
   styleUrl: './site-header.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -25,9 +29,16 @@ export class SiteHeaderComponent implements OnInit {
   readonly mobileMenuOpen = signal(false);
   readonly loadingSlug = signal<string | null>(null);
   readonly departmentError = signal<string | null>(null);
-  readonly menuColumns = signal<CategoryMenuItem[][]>([]);
   readonly searchForm = new FormGroup({
     search: new FormControl('', { nonNullable: true }),
+  });
+  readonly trackOpen = signal(false);
+  readonly trackLoading = signal(false);
+  readonly trackError = signal('');
+  readonly trackResult = signal<OrderDto | null>(null);
+  readonly trackForm = new FormGroup({
+    orderNumber: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),
   });
   private readonly categoryTrees = new Map<string, CategoryMenuItem[]>();
 
@@ -36,6 +47,7 @@ export class SiteHeaderComponent implements OnInit {
     private readonly catalog: CatalogApiService,
     private readonly cartState: CartStateService,
     private readonly router: Router,
+    private readonly orders: OrderApiService,
   ) {}
 
   get cartCount$() {
@@ -48,6 +60,36 @@ export class SiteHeaderComponent implements OnInit {
       error: () => this.departmentError.set('Departments are temporarily unavailable.'),
     });
     this.cartState.refresh();
+  }
+
+  openTrack(): void {
+    this.trackOpen.set(true);
+    this.trackError.set('');
+  }
+
+  closeTrack(): void {
+    this.trackOpen.set(false);
+  }
+
+  submitTrack(): void {
+    if (this.trackForm.invalid) {
+      this.trackForm.markAllAsTouched();
+      return;
+    }
+    this.trackLoading.set(true);
+    this.trackError.set('');
+    const { orderNumber, email } = this.trackForm.getRawValue();
+    this.orders.getGuestTracking(orderNumber.trim(), email.trim()).subscribe({
+      next: (order) => {
+        this.trackResult.set(order);
+        this.trackLoading.set(false);
+      },
+      error: (failure: unknown) => {
+        this.trackError.set(parseApiFailure(failure, 'Order not found — check the order number and email.').message);
+        this.trackResult.set(null);
+        this.trackLoading.set(false);
+      },
+    });
   }
 
   submitSearch(): void {
@@ -69,21 +111,13 @@ export class SiteHeaderComponent implements OnInit {
 
   openDepartment(department: DepartmentDto): void {
     this.openSlug.set(department.slug);
-    const cached = this.categoryTrees.get(department.slug);
-    if (cached) {
-      this.menuColumns.set([cached]);
+    if (this.categoryTrees.has(department.slug) || this.loadingSlug() === department.slug) {
       return;
     }
-    if (this.loadingSlug() === department.slug) {
-      return;
-    }
-    this.menuColumns.set([]);
     this.loadingSlug.set(department.slug);
     this.catalog.getDepartmentCategories(department.slug).subscribe({
       next: (categories) => {
-        const tree = this.toTree(categories);
-        this.categoryTrees.set(department.slug, tree);
-        this.menuColumns.set([tree]);
+        this.categoryTrees.set(department.slug, this.toTree(categories));
         this.loadingSlug.set(null);
       },
       error: () => {
@@ -93,25 +127,15 @@ export class SiteHeaderComponent implements OnInit {
     });
   }
 
-  hoverCategory(columnIndex: number, item: CategoryMenuItem): void {
-    const columns = this.menuColumns().slice(0, columnIndex + 1);
-    if (item.children.length > 0) {
-      columns.push(item.children);
-    }
-    this.menuColumns.set(columns);
-  }
-
   closeDepartment(slug: string): void {
     if (this.openSlug() === slug) {
       this.openSlug.set(null);
-      this.menuColumns.set([]);
     }
   }
 
   closeAllMenus(): void {
     this.openSlug.set(null);
     this.mobileMenuOpen.set(false);
-    this.menuColumns.set([]);
   }
 
   toggleMobileMenu(): void {

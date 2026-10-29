@@ -241,7 +241,7 @@ internal sealed class OrderService(ClothingStoreDbContext db) : IOrderService
             order.Payments.Select(x => new PaymentDto(
                 x.PaymentId, x.OrderId, x.Amount, x.Method, x.Provider, x.ProviderReference, x.Status, x.CreatedAt, x.ProcessedAt, order.OrderNumber)).ToArray(),
             order.Shipments.Select(x => new ShipmentDto(
-                x.ShipmentId, x.OrderId, x.Carrier, x.TrackingNumber, x.Status, x.ShippedAt, x.DeliveredAt, order.OrderNumber)).ToArray());
+                x.ShipmentId, x.OrderId, x.Carrier, x.TrackingNumber, x.Status, x.CreatedAt, x.PackedAt, x.ShippedAt, x.DeliveredAt, order.OrderNumber)).ToArray());
 
     private static void ValidateOrderStatus(string status)
     {

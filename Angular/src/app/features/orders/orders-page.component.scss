@@ -431,3 +431,15 @@
     background: #fff;
   }
 }
+
+.tracking-steps__label {
+  flex: 0 1 auto;
+}
+
+.tracking-steps__time {
+  margin-left: auto;
+  color: #98a0ab;
+  font-size: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+}

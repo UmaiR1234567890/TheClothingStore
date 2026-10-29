@@ -41,6 +41,14 @@ export class ProductDetailPageComponent implements OnInit {
   readonly error = signal('');
   readonly cartMessage = signal('');
   readonly cartError = signal('');
+  readonly bagConfirmOpen = signal(false);
+  readonly sizeChartOpen = signal(false);
+  readonly returnsOpen = signal(false);
+  readonly continueShoppingUrl = computed(() => {
+    const product = this.product();
+    const category = product?.categories?.[0];
+    return category ? ['/category', category.categoryId, category.slug] : ['/'];
+  });
   readonly related = signal<ProductCardDto[]>([]);
   readonly now = signal(Date.now());
   readonly selectedVariant = computed(() => this.matchingVariant());
@@ -210,6 +218,7 @@ export class ProductDetailPageComponent implements OnInit {
       next: (cart) => {
         this.cartState.setCount(cart.totalQuantity);
         this.cartMessage.set('Added to your bag.');
+        this.bagConfirmOpen.set(true);
         this.adding.set(false);
       },
       error: (failure: unknown) => {

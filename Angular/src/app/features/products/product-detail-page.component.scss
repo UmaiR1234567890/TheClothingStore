@@ -434,3 +434,178 @@
   font-size: 13px;
   font-weight: 600;
 }
+
+.size-chart-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 0;
+  padding: 0;
+  margin-left: 0.75rem;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.size-chart-link:hover {
+  color: var(--ink);
+}
+
+.product-accordion {
+  margin-top: 1.4rem;
+  border-top: 1px solid var(--line);
+}
+
+.product-accordion__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 0;
+  padding: 0.95rem 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.product-accordion__body {
+  padding: 0 0 1.1rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.65;
+}
+
+.product-accordion__body p {
+  margin: 0 0 0.65rem;
+}
+
+.product-accordion__body strong {
+  color: var(--ink);
+}
+
+.pdp-modal-backdrop {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  background: rgb(25 28 24 / 45%);
+}
+
+.pdp-modal {
+  position: fixed;
+  z-index: 95;
+  top: 50%;
+  left: 50%;
+  width: min(92vw, 420px);
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--line);
+  padding: 1.5rem;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.pdp-modal--wide {
+  width: min(94vw, 720px);
+  max-height: 86vh;
+  overflow-y: auto;
+}
+
+.pdp-modal__eyebrow {
+  margin: 0 0 0.3rem;
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pdp-modal h3 {
+  margin: 0 0 0.25rem;
+  font-family: "Bodoni MT", Didot, Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.pdp-modal__variant {
+  margin: 0 0 1.1rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.pdp-modal__actions {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.pdp-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.8rem;
+  margin-bottom: 0.9rem;
+}
+
+.pdp-modal__close {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.pdp-modal__close:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.size-chart__group {
+  margin-bottom: 1.2rem;
+}
+
+.size-chart__group h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.size-chart table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+
+.size-chart th,
+.size-chart td {
+  border: 1px solid var(--line);
+  padding: 0.45rem 0.4rem;
+  text-align: center;
+}
+
+.size-chart th {
+  background: var(--paper);
+  font-weight: 700;
+}
+
+.size-chart td:first-child {
+  font-weight: 700;
+  text-align: left;
+}
+
+.size-chart__note {
+  color: var(--muted);
+  font-size: 0.68rem;
+}

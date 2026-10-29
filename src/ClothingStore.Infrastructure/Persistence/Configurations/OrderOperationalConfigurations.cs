@@ -133,6 +133,7 @@ internal sealed class ShipmentConfiguration : IEntityTypeConfiguration<Shipment>
         builder.Property(x => x.Carrier).HasMaxLength(80);
         builder.Property(x => x.TrackingNumber).HasMaxLength(80);
         builder.Property(x => x.Status).HasMaxLength(20).HasDefaultValue("Pending").IsRequired();
+        builder.Property(x => x.PackedAt).HasColumnType("datetime2(0)");
         builder.Property(x => x.ShippedAt).HasColumnType("datetime2(0)");
         builder.Property(x => x.DeliveredAt).HasColumnType("datetime2(0)");
         builder.Property(x => x.CreatedAt).HasColumnType("datetime2(0)").HasDefaultValueSql("SYSUTCDATETIME()");
