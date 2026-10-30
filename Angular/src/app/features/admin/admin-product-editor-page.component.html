@@ -22,7 +22,7 @@
       <h2>Product information</h2>
       <div class="admin-form-grid">
         <div class="field"><label for="product-name">Name</label><input id="product-name" class="control" formControlName="name"></div>
-        <div class="field"><label for="product-slug">Slug</label><input id="product-slug" class="control" formControlName="slug"></div>
+        <div class="field"><label for="product-slug">Slug</label><div class="field-inline"><input id="product-slug" class="control" formControlName="slug"><button class="btn btn-outline btn-small" type="button" (click)="generateSlug()">Generate</button></div></div>
       </div>
       <div class="admin-form-grid">
         <div class="field"><label for="product-brand">Brand</label><input id="product-brand" class="control" formControlName="brand"></div>

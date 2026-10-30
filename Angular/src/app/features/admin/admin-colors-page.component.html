@@ -1,0 +1,54 @@
+<section class="admin-page">
+  <div class="admin-page__head">
+    <div>
+      <p class="eyebrow">Catalog</p>
+      <h1 class="page-title">Colors.</h1>
+      <p class="muted-copy">Global colors available to product variants. Deleting is blocked while a color is used by a variant.</p>
+    </div>
+    <button class="btn btn-primary" type="button" (click)="createMode()">Add color</button>
+  </div>
+
+  @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
+  @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
+
+  @if (editing()) {
+    <form class="admin-form-card" [formGroup]="form" (ngSubmit)="save()">
+      <h2>{{ editingId() ? 'Edit color' : 'Add color' }}</h2>
+      <div class="admin-form-grid">
+        <div class="field"><label for="color-name">Color name</label><input id="color-name" class="control" formControlName="name" maxlength="80" placeholder="e.g. Emerald"></div>
+        <div class="field"><label for="color-hex">Hex color</label><input id="color-hex" class="control" type="color" formControlName="hexCode" style="height:44px;padding:4px 6px;cursor:pointer;"></div>
+        <div class="field"><label for="color-sort">Sort order</label><input id="color-sort" class="control" type="number" min="0" step="1" formControlName="sortOrder"></div>
+      </div>
+      @if (form.controls.name.touched && form.controls.name.invalid) { <span class="field-error">Enter a color name (up to 80 characters).</span> }
+      <div class="admin-form-actions">
+        <button class="btn btn-primary" type="submit" [disabled]="saving() || form.invalid">{{ saving() ? 'Saving…' : 'Save color' }}</button>
+        <button class="btn btn-outline" type="button" (click)="editing.set(false)">Cancel</button>
+      </div>
+    </form>
+  }
+
+  @if (loading()) {
+    <div class="state-panel"><span class="spinner" aria-label="Loading colors"></span></div>
+  } @else if (colors().length === 0) {
+    <div class="state-panel"><h2>No colors yet</h2><p>Add the first color to use in variants.</p></div>
+  } @else {
+    <table class="admin-table">
+      <thead><tr><th>Swatch</th><th>Name</th><th>Hex</th><th>Sort</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        @for (color of colors(); track color.colorId) {
+          <tr>
+            <td><span class="color-swatch" [style.background]="color.hexCode || '#ece9e1'" [title]="color.hexCode ?? 'no color set'"></span></td>
+            <td><strong>{{ color.name }}</strong></td>
+            <td><code>{{ color.hexCode ?? '—' }}</code></td>
+            <td>{{ color.sortOrder }}</td>
+            <td><span class="admin-badge" [class.admin-badge--muted]="!color.isActive">{{ color.isActive ? 'Active' : 'Inactive' }}</span></td>
+            <td class="admin-table__actions">
+              <button class="text-button" type="button" (click)="edit(color)">Edit</button>
+              <button class="text-button text-button--danger" type="button" (click)="remove(color)">Delete</button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</section>

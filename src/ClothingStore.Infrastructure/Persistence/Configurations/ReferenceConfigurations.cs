@@ -58,6 +58,24 @@ internal sealed class SizeConfiguration : IEntityTypeConfiguration<Size>
         builder.Property(x => x.IsActive).HasDefaultValue(true);
         builder.Property(x => x.CreatedAt).HasColumnType("datetime2(0)").HasDefaultValueSql("SYSUTCDATETIME()");
         builder.HasIndex(x => new { x.SizeType, x.Name }).IsUnique().HasDatabaseName("UX_Sizes_Type_Name");
+        builder.HasIndex(x => x.SizeGroupId).HasDatabaseName("IX_Sizes_SizeGroupId");
+        builder.HasOne(x => x.SizeGroup)
+            .WithMany(x => x.Sizes)
+            .HasForeignKey(x => x.SizeGroupId)
+            .OnDelete(DeleteBehavior.SetNull);
+    }
+}
+
+internal sealed class SizeGroupConfiguration : IEntityTypeConfiguration<SizeGroup>
+{
+    public void Configure(EntityTypeBuilder<SizeGroup> builder)
+    {
+        builder.ToTable("SizeGroups", "dbo", table => table.ExcludeFromMigrations());
+        builder.HasKey(x => x.SizeGroupId).HasName("PK_SizeGroups");
+        builder.Property(x => x.GroupName).HasMaxLength(80).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true);
+        builder.Property(x => x.SortOrder).HasDefaultValue(0);
+        builder.HasIndex(x => x.GroupName).IsUnique().HasDatabaseName("UX_SizeGroups_GroupName");
     }
 }
 

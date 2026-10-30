@@ -115,6 +115,14 @@ export class AdminProductEditorPageComponent implements OnInit {
     return this.departments().find((department) => department.departmentId === id)?.name ?? '';
   }
 
+  generateSlug(): void {
+    const name = this.form.controls.name.value.trim();
+    if (name) {
+      this.form.controls.slug.setValue(
+        name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''));
+    }
+  }
+
   attributeName(slug: string): string {
     return this.attributes().find((attribute) => attribute.slug === slug)?.name ?? slug;
   }

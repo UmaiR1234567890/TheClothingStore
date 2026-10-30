@@ -126,6 +126,21 @@
           </div>
         </div>
 
+        <div class="field">
+          <label for="size-group">Select size group for variants</label>
+          <select id="size-group" class="control" (change)="onSizeGroupChange($event)">
+            <option value="">— choose a size group —</option>
+            @for (group of sizeGroups(); track group.sizeGroupId) {
+              <option [value]="group.sizeGroupId" [selected]="activeSizeGroupId() === group.sizeGroupId">
+                {{ group.groupName }} ({{ group.items.length }} sizes)
+              </option>
+            }
+          </select>
+        </div>
+        @if (isPerfume()) {
+        } @else if (!activeSizeGroup()) {
+          <p class="notice notice-info" role="status">Please choose a Size Group above to configure color/size options for this product.</p>
+        } @else {
         <fieldset class="variant-picker">
           <legend class="variant-picker__label">Colors
             <span class="variant-picker__tools">
@@ -174,6 +189,7 @@
               <small class="muted-copy">No sizes selected creates a single {{ colorByKey(key)?.name ?? 'standard' }} variant without a size.</small>
             }
           </fieldset>
+        }
         }
 
         @if (bulkForm.controls.skuBase.touched && bulkForm.controls.skuBase.invalid) { <span class="field-error">Enter a SKU base (up to 40 characters).</span> }

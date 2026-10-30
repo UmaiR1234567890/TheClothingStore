@@ -112,6 +112,15 @@ public interface ICatalogAdminService
     Task<IReadOnlyList<DepartmentDto>> GetAdminDepartmentsAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<ColorOptionDto>> GetAdminColorsAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<SizeOptionDto>> GetAdminSizesAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<SizeGroupDto>> GetSizeGroupsAsync(CancellationToken cancellationToken);
+    Task<SizeGroupDto> CreateSizeGroupAsync(SizeGroupWriteRequest request, CancellationToken cancellationToken);
+    Task<SizeGroupDto> UpdateSizeGroupAsync(int id, SizeGroupWriteRequest request, CancellationToken cancellationToken);
+    Task DeleteSizeGroupAsync(int id, CancellationToken cancellationToken);
+    Task<SizeOptionDto> AddSizeGroupItemAsync(int groupId, SizeGroupItemWriteRequest request, CancellationToken cancellationToken);
+    Task RemoveSizeGroupItemAsync(int groupId, int sizeId, CancellationToken cancellationToken);
+    Task<ColorOptionDto> CreateColorAsync(ColorWriteRequest request, CancellationToken cancellationToken);
+    Task<ColorOptionDto> UpdateColorAsync(int id, ColorWriteRequest request, CancellationToken cancellationToken);
+    Task DeleteColorAsync(int id, CancellationToken cancellationToken);
     Task<DepartmentDto> CreateDepartmentAsync(DepartmentWriteRequest request, CancellationToken cancellationToken);
     Task<DepartmentDto> UpdateDepartmentAsync(int id, DepartmentWriteRequest request, CancellationToken cancellationToken);
     Task SetDepartmentStatusAsync(int id, bool active, CancellationToken cancellationToken);

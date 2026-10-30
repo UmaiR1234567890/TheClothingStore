@@ -28,9 +28,20 @@ public sealed class Color
     public ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
 }
 
+public sealed class SizeGroup
+{
+    public int SizeGroupId { get; set; }
+    public string GroupName { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public int SortOrder { get; set; }
+    public ICollection<Size> Sizes { get; set; } = new List<Size>();
+}
+
 public sealed class Size
 {
     public int SizeId { get; set; }
+    public int? SizeGroupId { get; set; }
+    public SizeGroup? SizeGroup { get; set; }
     public string SizeType { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public int SortOrder { get; set; }

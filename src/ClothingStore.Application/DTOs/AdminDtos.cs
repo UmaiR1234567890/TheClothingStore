@@ -109,3 +109,35 @@ public sealed record AdminCustomerDto(
     string? Phone,
     bool IsDeleted,
     DateTime CreatedAt);
+
+public sealed record SizeGroupDto(
+    int SizeGroupId,
+    string GroupName,
+    bool IsActive,
+    int SortOrder,
+    IReadOnlyList<SizeOptionDto> Items);
+
+public sealed class SizeGroupWriteRequest
+{
+    [Required, StringLength(80)]
+    public string GroupName { get; init; } = string.Empty;
+    public int SortOrder { get; init; }
+    public bool IsActive { get; init; } = true;
+}
+
+public sealed class SizeGroupItemWriteRequest
+{
+    [Required, StringLength(30)]
+    public string Name { get; init; } = string.Empty;
+    public int SortOrder { get; init; }
+}
+
+public sealed class ColorWriteRequest
+{
+    [Required, StringLength(80)]
+    public string Name { get; init; } = string.Empty;
+    [StringLength(7)]
+    public string? HexCode { get; init; }
+    public int SortOrder { get; init; }
+    public bool IsActive { get; init; } = true;
+}

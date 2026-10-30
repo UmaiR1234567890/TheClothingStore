@@ -33,6 +33,7 @@ import {
   ProductImageDto,
   ProductVariantDto,
   SaleDto,
+  SizeGroupDto,
   SizeOptionDto,
 } from '../models/catalog.models';
 import { OrderDto, PaymentDto, ShipmentDto } from '../models/commerce.models';
@@ -121,6 +122,42 @@ export class AdminApiService {
 
   getSizes(): Observable<SizeOptionDto[]> {
     return this.api.get<SizeOptionDto[]>('/admin/sizes');
+  }
+
+  getSizeGroups(): Observable<SizeGroupDto[]> {
+    return this.api.get<SizeGroupDto[]>('/admin/size-groups');
+  }
+
+  createSizeGroup(request: { groupName: string; sortOrder?: number; isActive?: boolean }): Observable<SizeGroupDto> {
+    return this.api.post<SizeGroupDto>('/admin/size-groups', request);
+  }
+
+  updateSizeGroup(id: number, request: { groupName: string; sortOrder?: number; isActive?: boolean }): Observable<SizeGroupDto> {
+    return this.api.put<SizeGroupDto>(`/admin/size-groups/${id}`, request);
+  }
+
+  deleteSizeGroup(id: number): Observable<unknown> {
+    return this.api.delete(`/admin/size-groups/${id}`);
+  }
+
+  addSizeGroupItem(groupId: number, request: { name: string; sortOrder?: number }): Observable<SizeOptionDto> {
+    return this.api.post<SizeOptionDto>(`/admin/size-groups/${groupId}/items`, request);
+  }
+
+  removeSizeGroupItem(groupId: number, sizeId: number): Observable<unknown> {
+    return this.api.delete(`/admin/size-groups/${groupId}/items/${sizeId}`);
+  }
+
+  createColor(request: { name: string; hexCode?: string | null; sortOrder?: number; isActive?: boolean }): Observable<ColorOptionDto> {
+    return this.api.post<ColorOptionDto>('/admin/colors', request);
+  }
+
+  updateColor(id: number, request: { name: string; hexCode?: string | null; sortOrder?: number; isActive?: boolean }): Observable<ColorOptionDto> {
+    return this.api.put<ColorOptionDto>(`/admin/colors/${id}`, request);
+  }
+
+  deleteColor(id: number): Observable<unknown> {
+    return this.api.delete(`/admin/colors/${id}`);
   }
 
   createDepartment(request: DepartmentWriteRequest): Observable<DepartmentDto> {

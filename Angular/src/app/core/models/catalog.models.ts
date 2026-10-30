@@ -14,6 +14,14 @@ export interface ColorOptionDto {
   isActive: boolean;
 }
 
+export interface SizeGroupDto {
+  sizeGroupId: number;
+  groupName: string;
+  isActive: boolean;
+  sortOrder: number;
+  items: SizeOptionDto[];
+}
+
 export interface SizeOptionDto {
   sizeId: number;
   sizeType: string;

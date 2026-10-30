@@ -778,6 +778,121 @@ internal sealed class CatalogAdminService(
         }
     }
 
+    public async Task<IReadOnlyList<SizeGroupDto>> GetSizeGroupsAsync(CancellationToken cancellationToken) =>
+        await db.SizeGroups.AsNoTracking()
+            .Include(x => x.Sizes)
+            .OrderBy(x => x.SortOrder).ThenBy(x => x.GroupName)
+            .Select(x => new SizeGroupDto(
+                x.SizeGroupId, x.GroupName, x.IsActive, x.SortOrder,
+                x.Sizes.Where(s => s.IsActive).OrderBy(s => s.SortOrder).ThenBy(s => s.Name)
+                    .Select(s => new SizeOptionDto(s.SizeId, s.SizeType, s.Name, s.SortOrder, s.IsActive)).ToList()))
+            .ToListAsync(cancellationToken);
+
+    public async Task<SizeGroupDto> CreateSizeGroupAsync(SizeGroupWriteRequest request, CancellationToken cancellationToken)
+    {
+        var name = request.GroupName.Trim();
+        if (await db.SizeGroups.AnyAsync(x => x.GroupName.ToLower() == name.ToLower(), cancellationToken))
+            throw new ServiceException(409, "duplicate_size_group", "A size group with this name already exists.");
+        var group = new SizeGroup { GroupName = name, SortOrder = request.SortOrder, IsActive = request.IsActive };
+        db.SizeGroups.Add(group);
+        await db.SaveChangesAsync(cancellationToken);
+        return new SizeGroupDto(group.SizeGroupId, group.GroupName, group.IsActive, group.SortOrder, []);
+    }
+
+    public async Task<SizeGroupDto> UpdateSizeGroupAsync(int id, SizeGroupWriteRequest request, CancellationToken cancellationToken)
+    {
+        var group = await db.SizeGroups.FindAsync([id], cancellationToken)
+            ?? throw new ServiceException(404, "size_group_not_found", "The size group does not exist.");
+        var name = request.GroupName.Trim();
+        if (await db.SizeGroups.AnyAsync(x => x.SizeGroupId != id && x.GroupName.ToLower() == name.ToLower(), cancellationToken))
+            throw new ServiceException(409, "duplicate_size_group", "A size group with this name already exists.");
+        group.GroupName = name;
+        group.SortOrder = request.SortOrder;
+        group.IsActive = request.IsActive;
+        await db.SaveChangesAsync(cancellationToken);
+        return (await GetSizeGroupsAsync(cancellationToken)).Single(x => x.SizeGroupId == id);
+    }
+
+    public async Task DeleteSizeGroupAsync(int id, CancellationToken cancellationToken)
+    {
+        var group = await db.SizeGroups.Include(x => x.Sizes).SingleOrDefaultAsync(x => x.SizeGroupId == id, cancellationToken)
+            ?? throw new ServiceException(404, "size_group_not_found", "The size group does not exist.");
+        if (await db.ProductVariants.AnyAsync(x => x.SizeId.HasValue && group.Sizes.Select(s => s.SizeId).Contains(x.SizeId.Value) && !x.IsDeleted, cancellationToken))
+            throw new ServiceException(409, "size_group_in_use", "This size group is used by product variants and cannot be deleted.");
+        db.Sizes.RemoveRange(group.Sizes);
+        db.SizeGroups.Remove(group);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<SizeOptionDto> AddSizeGroupItemAsync(int groupId, SizeGroupItemWriteRequest request, CancellationToken cancellationToken)
+    {
+        var group = await db.SizeGroups.FindAsync([groupId], cancellationToken)
+            ?? throw new ServiceException(404, "size_group_not_found", "The size group does not exist.");
+        var name = request.Name.Trim();
+        var sizeType = group.GroupName.Contains("Shoe", StringComparison.OrdinalIgnoreCase) ||
+                       group.GroupName.Contains("Footwear", StringComparison.OrdinalIgnoreCase)
+            ? "Footwear" : "Clothing";
+        if (await db.Sizes.AnyAsync(x => x.SizeType == sizeType && x.Name.ToLower() == name.ToLower(), cancellationToken))
+            throw new ServiceException(409, "duplicate_size", "A size with this value already exists.");
+        var size = new Size
+        {
+            SizeGroupId = groupId,
+            SizeType = sizeType,
+            Name = name,
+            SortOrder = request.SortOrder != 0 ? request.SortOrder : (group.Sizes.Count == 0 ? 1 : group.Sizes.Max(x => x.SortOrder) + 1),
+            IsActive = true,
+        };
+        db.Sizes.Add(size);
+        await db.SaveChangesAsync(cancellationToken);
+        return new SizeOptionDto(size.SizeId, size.SizeType, size.Name, size.SortOrder, size.IsActive);
+    }
+
+    public async Task RemoveSizeGroupItemAsync(int groupId, int sizeId, CancellationToken cancellationToken)
+    {
+        var size = await db.Sizes.SingleOrDefaultAsync(x => x.SizeId == sizeId && x.SizeGroupId == groupId, cancellationToken)
+            ?? throw new ServiceException(404, "size_not_found", "The size does not exist in this group.");
+        if (await db.ProductVariants.AnyAsync(x => x.SizeId == sizeId && !x.IsDeleted, cancellationToken))
+            throw new ServiceException(409, "size_in_use", "This size is used by product variants and cannot be removed.");
+        db.Sizes.Remove(size);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<ColorOptionDto> CreateColorAsync(ColorWriteRequest request, CancellationToken cancellationToken)
+    {
+        var name = request.Name.Trim();
+        if (await db.Colors.AnyAsync(x => x.Name.ToLower() == name.ToLower(), cancellationToken))
+            throw new ServiceException(409, "duplicate_color", "A color with this name already exists.");
+        var color = new Color { Name = name, HexCode = request.HexCode, SortOrder = request.SortOrder, IsActive = request.IsActive };
+        db.Colors.Add(color);
+        await db.SaveChangesAsync(cancellationToken);
+        return new ColorOptionDto(color.ColorId, color.Name, color.HexCode, color.SortOrder, color.IsActive);
+    }
+
+    public async Task<ColorOptionDto> UpdateColorAsync(int id, ColorWriteRequest request, CancellationToken cancellationToken)
+    {
+        var color = await db.Colors.FindAsync([id], cancellationToken)
+            ?? throw new ServiceException(404, "color_not_found", "The color does not exist.");
+        var name = request.Name.Trim();
+        if (await db.Colors.AnyAsync(x => x.ColorId != id && x.Name.ToLower() == name.ToLower(), cancellationToken))
+            throw new ServiceException(409, "duplicate_color", "A color with this name already exists.");
+        color.Name = name;
+        color.HexCode = request.HexCode;
+        color.SortOrder = request.SortOrder;
+        color.IsActive = request.IsActive;
+        await db.SaveChangesAsync(cancellationToken);
+        return new ColorOptionDto(color.ColorId, color.Name, color.HexCode, color.SortOrder, color.IsActive);
+    }
+
+    public async Task DeleteColorAsync(int id, CancellationToken cancellationToken)
+    {
+        var color = await db.Colors.FindAsync([id], cancellationToken)
+            ?? throw new ServiceException(404, "color_not_found", "The color does not exist.");
+        if (await db.ProductVariants.AnyAsync(x => x.ColorId == id && !x.IsDeleted, cancellationToken))
+            throw new ServiceException(409, "color_in_use", "This color is used by product variants and cannot be deleted.");
+        db.Colors.Remove(color);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task ValidateCategoryParentAsync(
         int departmentId,
         int? parentId,

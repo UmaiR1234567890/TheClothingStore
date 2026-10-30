@@ -224,6 +224,16 @@ export const routes: Routes = [
           .then((module) => module.AdminAttributesPageComponent),
       },
       {
+        path: 'colors',
+        loadComponent: () => import('./features/admin/admin-colors-page.component')
+          .then((module) => module.AdminColorsPageComponent),
+      },
+      {
+        path: 'size-groups',
+        loadComponent: () => import('./features/admin/admin-size-groups-page.component')
+          .then((module) => module.AdminSizeGroupsPageComponent),
+      },
+      {
         path: 'sales',
         loadComponent: () => import('./features/admin/admin-sales-page.component')
           .then((module) => module.AdminSalesPageComponent),

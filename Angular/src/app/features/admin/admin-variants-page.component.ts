@@ -1,9 +1,9 @@
 import { CurrencyPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { ColorOptionDto, ProductDetailDto, ProductVariantDto, SizeOptionDto } from '../../core/models/catalog.models';
+import { ColorOptionDto, ProductDetailDto, ProductVariantDto, SizeGroupDto, SizeOptionDto } from '../../core/models/catalog.models';
 import { VariantWriteRequest } from '../../core/models/admin.models';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { parseApiFailure } from '../../core/services/api-error.service';
@@ -32,6 +32,10 @@ export class AdminVariantsPageComponent implements OnInit {
   readonly product = signal<ProductDetailDto | null>(null);
   readonly colors = signal<ColorOptionDto[]>([]);
   readonly sizes = signal<SizeOptionDto[]>([]);
+  readonly sizeGroups = signal<SizeGroupDto[]>([]);
+  readonly activeSizeGroupId = signal<number | null>(null);
+  readonly activeSizeGroup = computed(() =>
+    this.sizeGroups().find((group) => group.sizeGroupId === this.activeSizeGroupId()) ?? null);
   readonly editingId = signal<number | null>(null);
   readonly loading = signal(true);
   readonly saving = signal(false);
@@ -83,12 +87,14 @@ export class AdminVariantsPageComponent implements OnInit {
       product: this.admin.getProduct(this.productId()),
       colors: this.admin.getColors(),
       sizes: this.admin.getSizes(),
+      groups: this.admin.getSizeGroups(),
     }).subscribe({
-      next: ({ product, colors, sizes }) => {
+      next: ({ product, colors, sizes, groups }) => {
         this.product.set(product);
         this.stockDrafts.set({});
         this.colors.set(colors.filter((color) => color.isActive));
         this.sizes.set(sizes.filter((size) => size.isActive));
+        this.sizeGroups.set(groups.filter((group) => group.isActive));
         if (this.isPerfume()) {
           this.form.controls.volumeMl.addValidators(Validators.required);
         } else {
@@ -112,11 +118,21 @@ export class AdminVariantsPageComponent implements OnInit {
     if (this.isPerfume()) {
       return [];
     }
+    const group = this.activeSizeGroup();
+    if (group) {
+      return group.items;
+    }
     const categories = this.product()?.categories.map((category) => category.slug.toLowerCase()) ?? [];
     const requiredType = categories.some((slug) => slug === 'footwear' || slug === 'shoes')
       ? 'Footwear'
       : 'Clothing';
     return this.sizes().filter((size) => size.sizeType === requiredType);
+  }
+
+  onSizeGroupChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.activeSizeGroupId.set(value === '' ? null : Number(value));
+    this.clearColors();
   }
 
   colorByKey(key: string): ColorOptionDto | null {

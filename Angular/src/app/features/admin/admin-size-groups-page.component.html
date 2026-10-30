@@ -1,0 +1,63 @@
+<section class="admin-page">
+  <div class="admin-page__head">
+    <div>
+      <p class="eyebrow">Catalog</p>
+      <h1 class="page-title">Size groups.</h1>
+      <p class="muted-copy">Groups feed the "Select size group" dropdown on the variants page — each group holds its own set of sizes.</p>
+    </div>
+    <button class="btn btn-primary" type="button" (click)="createMode()">Add size group</button>
+  </div>
+
+  @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
+  @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
+
+  @if (editing()) {
+    <form class="admin-form-card" [formGroup]="form" (ngSubmit)="save()">
+      <h2>{{ editingId() ? 'Edit size group' : 'Add size group' }}</h2>
+      <div class="admin-form-grid">
+        <div class="field"><label for="sg-name">Group name</label><input id="sg-name" class="control" formControlName="groupName" maxlength="80" placeholder='e.g. "Men&apos;s Shoes - EURO"'></div>
+        <div class="field"><label for="sg-sort">Sort order</label><input id="sg-sort" class="control" type="number" min="0" step="1" formControlName="sortOrder"></div>
+      </div>
+      @if (form.controls.groupName.touched && form.controls.groupName.invalid) { <span class="field-error">Enter a group name (up to 80 characters).</span> }
+      <div class="admin-form-actions">
+        <button class="btn btn-primary" type="submit" [disabled]="saving() || form.invalid">{{ saving() ? 'Saving…' : 'Save group' }}</button>
+        <button class="btn btn-outline" type="button" (click)="editing.set(false)">Cancel</button>
+      </div>
+    </form>
+  }
+
+  @if (loading()) {
+    <div class="state-panel"><span class="spinner" aria-label="Loading size groups"></span></div>
+  } @else if (groups().length === 0) {
+    <div class="state-panel"><h2>No size groups</h2><p>Create a group (e.g. "Clothing - Letter") then add its sizes.</p></div>
+  } @else {
+    @for (group of groups(); track group.sizeGroupId) {
+      <section class="admin-form-card size-group-card">
+        <div class="size-group-card__head">
+          <div>
+            <h2>{{ group.groupName }}</h2>
+            <p class="muted-copy">{{ group.items.length }} size{{ group.items.length === 1 ? '' : 's' }} · Sort {{ group.sortOrder }}<span class="admin-badge" [class.admin-badge--muted]="!group.isActive">{{ group.isActive ? 'Active' : 'Inactive' }}</span></p>
+          </div>
+          <div class="admin-table__actions">
+            <button class="text-button" type="button" (click)="edit(group)">Edit</button>
+            <button class="text-button text-button--danger" type="button" (click)="removeGroup(group)">Delete</button>
+          </div>
+        </div>
+        <div class="size-chips">
+          @for (item of group.items; track item.sizeId) {
+            <span class="size-chip">{{ item.name }}<button class="size-chip__x" type="button" title="Remove size" (click)="removeItem(group.sizeGroupId, item.sizeId)">×</button></span>
+          } @empty {
+            <span class="muted-copy">No sizes yet — add the first one below.</span>
+          }
+        </div>
+        <div class="size-group-card__add">
+          <input class="control" placeholder='Add a size — "42", "XL", "15.5"…' maxlength="30"
+                 [value]="itemDrafts()[group.sizeGroupId]"
+                 (input)="setItemDraft(group.sizeGroupId, $any($event.target).value)"
+                 (keyup.enter)="addItem(group.sizeGroupId)">
+          <button class="btn btn-outline btn-small" type="button" (click)="addItem(group.sizeGroupId)">Add</button>
+        </div>
+      </section>
+    }
+  }
+</section>

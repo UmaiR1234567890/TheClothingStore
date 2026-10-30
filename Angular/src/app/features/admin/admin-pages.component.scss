@@ -1245,3 +1245,56 @@
   margin: 10px 0 0;
   border-radius: 10px;
 }
+
+.color-swatch {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid #d8d4cc;
+  vertical-align: middle;
+}
+
+.size-group-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.size-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.size-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid #e2dfd8;
+  border-radius: 20px;
+  background: #faf9f6;
+  font-size: 0.85rem;
+}
+
+.size-chip__x {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: #9ca3af;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.size-chip__x:hover { color: #b3261e; }
+
+.size-group-card__add {
+  display: flex;
+  gap: 8px;
+  max-width: 380px;
+}

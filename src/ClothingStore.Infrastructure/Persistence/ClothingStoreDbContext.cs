@@ -17,6 +17,7 @@ public sealed class ClothingStoreDbContext
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<Color> Colors => Set<Color>();
     public DbSet<Size> Sizes => Set<Size>();
+    public DbSet<SizeGroup> SizeGroups => Set<SizeGroup>();
     public DbSet<ProductAttribute> ProductAttributes => Set<ProductAttribute>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Product> Products => Set<Product>();

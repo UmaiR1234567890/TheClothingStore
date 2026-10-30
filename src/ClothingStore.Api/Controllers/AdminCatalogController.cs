@@ -181,6 +181,51 @@ public sealed class AdminCatalogController(
     public async Task<ActionResult<ApiResponse<IReadOnlyList<SizeOptionDto>>>> GetSizes(CancellationToken cancellationToken) =>
         Ok(ApiResponse<IReadOnlyList<SizeOptionDto>>.Ok(await catalog.GetAdminSizesAsync(cancellationToken)));
 
+    [HttpGet("size-groups")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<SizeGroupDto>>>> GetSizeGroups(CancellationToken cancellationToken) =>
+        Ok(ApiResponse<IReadOnlyList<SizeGroupDto>>.Ok(await catalog.GetSizeGroupsAsync(cancellationToken)));
+
+    [HttpPost("size-groups")]
+    public async Task<ActionResult<ApiResponse<SizeGroupDto>>> CreateSizeGroup(SizeGroupWriteRequest request, CancellationToken cancellationToken) =>
+        StatusCode(StatusCodes.Status201Created, ApiResponse<SizeGroupDto>.Ok(await catalog.CreateSizeGroupAsync(request, cancellationToken), "Size group created."));
+
+    [HttpPut("size-groups/{id:int}")]
+    public async Task<ActionResult<ApiResponse<SizeGroupDto>>> UpdateSizeGroup(int id, SizeGroupWriteRequest request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<SizeGroupDto>.Ok(await catalog.UpdateSizeGroupAsync(id, request, cancellationToken)));
+
+    [HttpDelete("size-groups/{id:int}")]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteSizeGroup(int id, CancellationToken cancellationToken)
+    {
+        await catalog.DeleteSizeGroupAsync(id, cancellationToken);
+        return Ok(ApiResponse<object>.Ok(new { }, "Size group deleted."));
+    }
+
+    [HttpPost("size-groups/{groupId:int}/items")]
+    public async Task<ActionResult<ApiResponse<SizeOptionDto>>> AddSizeGroupItem(int groupId, SizeGroupItemWriteRequest request, CancellationToken cancellationToken) =>
+        StatusCode(StatusCodes.Status201Created, ApiResponse<SizeOptionDto>.Ok(await catalog.AddSizeGroupItemAsync(groupId, request, cancellationToken), "Size added."));
+
+    [HttpDelete("size-groups/{groupId:int}/items/{sizeId:int}")]
+    public async Task<ActionResult<ApiResponse<object>>> RemoveSizeGroupItem(int groupId, int sizeId, CancellationToken cancellationToken)
+    {
+        await catalog.RemoveSizeGroupItemAsync(groupId, sizeId, cancellationToken);
+        return Ok(ApiResponse<object>.Ok(new { }, "Size removed."));
+    }
+
+    [HttpPost("colors")]
+    public async Task<ActionResult<ApiResponse<ColorOptionDto>>> CreateColor(ColorWriteRequest request, CancellationToken cancellationToken) =>
+        StatusCode(StatusCodes.Status201Created, ApiResponse<ColorOptionDto>.Ok(await catalog.CreateColorAsync(request, cancellationToken), "Color created."));
+
+    [HttpPut("colors/{id:int}")]
+    public async Task<ActionResult<ApiResponse<ColorOptionDto>>> UpdateColor(int id, ColorWriteRequest request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<ColorOptionDto>.Ok(await catalog.UpdateColorAsync(id, request, cancellationToken)));
+
+    [HttpDelete("colors/{id:int}")]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteColor(int id, CancellationToken cancellationToken)
+    {
+        await catalog.DeleteColorAsync(id, cancellationToken);
+        return Ok(ApiResponse<object>.Ok(new { }, "Color deleted."));
+    }
+
     [HttpPost("departments")]
     public async Task<ActionResult<ApiResponse<DepartmentDto>>> CreateDepartment(
         DepartmentWriteRequest request,
