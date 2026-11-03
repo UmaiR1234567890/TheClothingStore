@@ -1,4 +1,4 @@
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe, TitleCasePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -11,7 +11,7 @@ import { parseApiFailure } from '../../core/services/api-error.service';
 @Component({
   selector: 'tcs-admin-products-page',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, ReactiveFormsModule, RouterLink],
+  imports: [CurrencyPipe, DatePipe, TitleCasePipe, ReactiveFormsModule, RouterLink],
   templateUrl: './admin-products-page.component.html',
   styleUrl: './admin-pages.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -21,6 +21,7 @@ export class AdminProductsPageComponent implements OnInit {
   readonly loading = signal(true);
   readonly error = signal('');
   readonly pageNumber = signal(1);
+  readonly statusFilter = signal<'all' | 'active' | 'inactive' | 'deleted'>('all');
   readonly searchControl = new FormControl('', { nonNullable: true });
   readonly promoteTarget = signal<AdminProductCardDto | null>(null);
   readonly promotions = signal<SaleDto[]>([]);
@@ -43,11 +44,16 @@ export class AdminProductsPageComponent implements OnInit {
     this.load(1);
   }
 
+  setFilter(filter: 'all' | 'active' | 'inactive' | 'deleted'): void {
+    this.statusFilter.set(filter);
+    this.load(1);
+  }
+
   load(page: number): void {
     this.pageNumber.set(page);
     this.loading.set(true);
     this.error.set('');
-    this.admin.getProducts(page, 20, this.searchControl.value.trim() || undefined).subscribe({
+    this.admin.getProducts(page, 20, this.searchControl.value.trim() || undefined, this.statusFilter()).subscribe({
       next: (result) => {
         this.result.set(result);
         this.loading.set(false);

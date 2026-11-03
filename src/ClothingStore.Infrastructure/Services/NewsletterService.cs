@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ClothingStore.Infrastructure.Services;
 
-internal sealed class NewsletterService(ClothingStoreDbContext db) : INewsletterService
+internal sealed class NewsletterService(ClothingStoreDbContext db, IEmailSender emailSender) : INewsletterService
 {
     public async Task<NewsletterResultDto> SubscribeAsync(string email, CancellationToken cancellationToken)
     {
@@ -20,6 +20,10 @@ internal sealed class NewsletterService(ClothingStoreDbContext db) : INewsletter
                 subscription.SubscribedAt = DateTime.UtcNow;
                 subscription.UnsubscribedAt = null;
                 await db.SaveChangesAsync(cancellationToken);
+            }
+            else
+            {
+                return new NewsletterResultDto("AlreadySubscribed");
             }
             return new NewsletterResultDto("Subscribed");
         }
@@ -42,6 +46,15 @@ internal sealed class NewsletterService(ClothingStoreDbContext db) : INewsletter
             if (!raced)
                 throw;
         }
+        await emailSender.SendAsync(new EmailMessage(
+            normalized,
+            null,
+            "Welcome to The Clothing Store",
+            "<h2 style=\"font-family:serif\">Hello!</h2>" +
+            "<p>Thanks for joining <strong>The Clothing Store</strong>. You'll be the first to hear about new drops, sales, and style updates.</p>" +
+            "<p style=\"color:#888\">Welcome aboard — we're glad you're here.</p>",
+            "Hello! Thanks for joining The Clothing Store. You'll be the first to hear about new drops, sales, and style updates."),
+            cancellationToken);
         return new NewsletterResultDto("Subscribed");
     }
 

@@ -124,4 +124,17 @@
     </div>
     }
   }
+
+  @if (deleting(); as image) {
+    <div class="admin-modal-backdrop" (click)="deleting.set(null)">
+      <div class="admin-modal admin-modal--compact" role="alertdialog" (click)="$event.stopPropagation()">
+        <h2>Remove image</h2>
+        <p>Remove this image reference from the product? The file stays on disk.</p>
+        <div class="admin-form-actions">
+          <button class="btn btn-danger" type="button" (click)="confirmRemove()" [disabled]="deletingBusy()">{{ deletingBusy() ? 'Removing…' : 'Remove image' }}</button>
+          <button class="btn btn-outline" type="button" (click)="deleting.set(null)">Cancel</button>
+        </div>
+      </div>
+    </div>
+  }
 </section>

@@ -18,12 +18,13 @@ export class AdminColorsPageComponent implements OnInit {
   readonly saving = signal(false);
   readonly editing = signal(false);
   readonly editingId = signal<number | null>(null);
+  readonly deleting = signal<ColorOptionDto | null>(null);
+  readonly deletingBusy = signal(false);
   readonly error = signal('');
   readonly message = signal('');
   readonly form = new FormGroup({
     name: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(80)] }),
     hexCode: new FormControl('#000000', { nonNullable: true, validators: [Validators.pattern(/^#[0-9a-fA-F]{6}$/)] }),
-    sortOrder: new FormControl(0, { nonNullable: true }),
   });
 
   constructor(private readonly admin: AdminApiService) {}
@@ -49,13 +50,13 @@ export class AdminColorsPageComponent implements OnInit {
 
   createMode(): void {
     this.editingId.set(null);
-    this.form.reset({ name: '', hexCode: '#000000', sortOrder: 0 });
+    this.form.reset({ name: '', hexCode: '#000000' });
     this.editing.set(true);
   }
 
   edit(color: ColorOptionDto): void {
     this.editingId.set(color.colorId);
-    this.form.patchValue({ name: color.name, hexCode: color.hexCode ?? '#000000', sortOrder: color.sortOrder });
+    this.form.patchValue({ name: color.name, hexCode: color.hexCode ?? '#000000' });
     this.editing.set(true);
   }
 
@@ -68,7 +69,7 @@ export class AdminColorsPageComponent implements OnInit {
     const request = {
       name: this.form.controls.name.value.trim(),
       hexCode: this.form.controls.hexCode.value,
-      sortOrder: this.form.controls.sortOrder.value,
+      sortOrder: 0,
       isActive: true,
     };
     const id = this.editingId();
@@ -89,14 +90,43 @@ export class AdminColorsPageComponent implements OnInit {
     });
   }
 
-  remove(color: ColorOptionDto): void {
+  toggleActive(color: ColorOptionDto): void {
+    this.error.set('');
+    this.admin.updateColor(color.colorId, {
+      name: color.name, hexCode: color.hexCode, sortOrder: color.sortOrder, isActive: !color.isActive,
+    }).subscribe({
+      next: () => this.load(),
+      error: (failure: unknown) => this.error.set(parseApiFailure(failure, 'Color status could not be updated.').message),
+    });
+  }
+
+  askDelete(color: ColorOptionDto): void {
+    this.deleting.set(color);
+  }
+
+  cancelDelete(): void {
+    this.deleting.set(null);
+  }
+
+  confirmDelete(): void {
+    const color = this.deleting();
+    if (!color || this.deletingBusy()) {
+      return;
+    }
+    this.deletingBusy.set(true);
     this.error.set('');
     this.admin.deleteColor(color.colorId).subscribe({
       next: () => {
-        this.message.set(`"${color.name}" deleted.`);
+        this.message.set(`"${color.name}" permanently deleted.`);
+        this.deleting.set(null);
+        this.deletingBusy.set(false);
         this.load();
       },
-      error: (failure: unknown) => this.error.set(parseApiFailure(failure, 'Color could not be deleted.').message),
+      error: (failure: unknown) => {
+        this.error.set(parseApiFailure(failure, 'Color could not be deleted.').message);
+        this.deleting.set(null);
+        this.deletingBusy.set(false);
+      },
     });
   }
 }

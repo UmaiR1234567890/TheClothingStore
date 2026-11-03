@@ -33,13 +33,22 @@ public sealed class AuthController(IAuthService auth) : ControllerBase
         return Ok(ApiResponse<AuthTokenDto>.Ok(result, "Signed in."));
     }
 
-    [Authorize]
+    [HttpPost("refresh")]
+    public async Task<ActionResult<ApiResponse<AuthTokenDto>>> Refresh(
+        RefreshRequest request, CancellationToken cancellationToken)
+    {
+        var result = await auth.RefreshAsync(request.RefreshToken, cancellationToken);
+        return Ok(ApiResponse<AuthTokenDto>.Ok(result, "Token refreshed."));
+    }
+
     [HttpPost("logout")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-    public ActionResult<ApiResponse<object>> Logout() =>
-        Ok(ApiResponse<object>.Ok(
-            new { tokenRevoked = false },
-            "Discard the access token on this device. It remains valid until its short expiry."));
+    public async Task<ActionResult<ApiResponse<object>>> Logout(
+        RefreshRequest request, CancellationToken cancellationToken)
+    {
+        await auth.LogoutAsync(request.RefreshToken, cancellationToken);
+        return Ok(ApiResponse<object>.Ok(new { tokenRevoked = true }, "Signed out."));
+    }
 
     [Authorize]
     [HttpGet("me")]

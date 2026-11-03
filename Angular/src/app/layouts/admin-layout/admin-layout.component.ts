@@ -13,7 +13,7 @@ import { AuthService } from '../../core/auth/auth.service';
     .admin-sidebar { position:fixed; z-index:50; inset:0 auto 0 0; display:flex; width:248px; flex-direction:column; padding:1.4rem 1rem; color:#e9e9e2; background:#202420; }
     .admin-brand { display:grid; gap:.3rem; padding:.6rem .65rem 1.6rem; font-family:"Bodoni MT",Didot,Georgia,serif; font-size:1.05rem; letter-spacing:.06em; }
     .admin-brand small { color:#b8beaf; font-family:"Avenir Next",Avenir,"Segoe UI",sans-serif; font-size:.57rem; letter-spacing:.19em; }
-    .admin-sidebar nav { display:grid; gap:.22rem; }
+    .admin-sidebar nav { display:grid; flex:1; gap:.22rem; overflow-y:auto; min-height:0; padding-right:.2rem; }
     .admin-sidebar nav a { display:flex; min-height:42px; align-items:center; gap:.8rem; border-radius:4px; padding:.6rem .7rem; color:#d4d7cf; font-size:.82rem; }
     .admin-sidebar nav a span { color:#9ca393; font-size:.64rem; letter-spacing:.08em; }
     .admin-sidebar nav a:hover,.admin-sidebar nav a.is-active { color:white; background:#343b32; }

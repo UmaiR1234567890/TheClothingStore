@@ -10,6 +10,13 @@
     </form>
     <span class="muted-copy">{{ result()?.totalCount ?? 0 }} records</span>
   </div>
+  <div class="admin-toolbar" role="group" aria-label="Filter products by status">
+    <div class="filter-chips">
+      @for (f of ['all', 'active', 'inactive', 'deleted']; track f) {
+        <button class="filter-chip" type="button" [class.filter-chip--active]="statusFilter() === f" (click)="setFilter($any(f))">{{ f === 'all' ? 'All products' : (f | titlecase) }}</button>
+      }
+    </div>
+  </div>
   @if (error()) { <div class="notice notice-error" role="alert">{{ error() }} <button class="text-button" type="button" (click)="load(pageNumber())">Retry</button></div> }
   @if (promoteMessage()) { <div class="notice notice-success" role="status">{{ promoteMessage() }}</div> }
   @if (loading()) {

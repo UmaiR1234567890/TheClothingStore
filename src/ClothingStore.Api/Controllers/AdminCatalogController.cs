@@ -19,9 +19,10 @@ public sealed class AdminCatalogController(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] string? search = null,
+        [FromQuery] string? status = null,
         CancellationToken cancellationToken = default) =>
         Ok(ApiResponse<PagedResult<AdminProductCardDto>>.Ok(
-            await catalog.GetProductsAsync(pageNumber, pageSize, search, cancellationToken)));
+            await catalog.GetProductsAsync(pageNumber, pageSize, search, status, cancellationToken)));
 
     [HttpGet("products/{id:int}")]
     public async Task<ActionResult<ApiResponse<ProductDetailDto>>> GetProduct(int id, CancellationToken cancellationToken) =>
@@ -204,6 +205,10 @@ public sealed class AdminCatalogController(
     public async Task<ActionResult<ApiResponse<SizeOptionDto>>> AddSizeGroupItem(int groupId, SizeGroupItemWriteRequest request, CancellationToken cancellationToken) =>
         StatusCode(StatusCodes.Status201Created, ApiResponse<SizeOptionDto>.Ok(await catalog.AddSizeGroupItemAsync(groupId, request, cancellationToken), "Size added."));
 
+    [HttpPut("size-groups/{groupId:int}/items/{sizeId:int}")]
+    public async Task<ActionResult<ApiResponse<SizeOptionDto>>> RenameSizeGroupItem(int groupId, int sizeId, SizeGroupItemWriteRequest request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<SizeOptionDto>.Ok(await catalog.RenameSizeGroupItemAsync(groupId, sizeId, request, cancellationToken)));
+
     [HttpDelete("size-groups/{groupId:int}/items/{sizeId:int}")]
     public async Task<ActionResult<ApiResponse<object>>> RemoveSizeGroupItem(int groupId, int sizeId, CancellationToken cancellationToken)
     {
@@ -335,6 +340,13 @@ public sealed class AdminCatalogController(
         CancellationToken cancellationToken) =>
         Ok(ApiResponse<ProductAttributeDefinitionDto>.Ok(
             await catalog.UpdateAttributeDefinitionAsync(id, request, cancellationToken)));
+
+    [HttpDelete("attributes/{id:int}")]
+    public async Task<IActionResult> DeleteAttribute(int id, CancellationToken cancellationToken)
+    {
+        await catalog.DeleteAttributeDefinitionAsync(id, cancellationToken);
+        return NoContent();
+    }
 
     [HttpPatch("attributes/{id:int}/status")]
     public async Task<ActionResult<ApiResponse<object>>> SetAttributeStatus(

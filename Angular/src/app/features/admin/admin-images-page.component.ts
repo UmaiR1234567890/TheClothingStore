@@ -286,13 +286,30 @@ export class AdminImagesPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  readonly deleting = signal<ProductImageDto | null>(null);
+  readonly deletingBusy = signal(false);
+
   remove(image: ProductImageDto): void {
-    if (!window.confirm('Remove this image reference?')) {
+    this.deleting.set(image);
+  }
+
+  confirmRemove(): void {
+    const image = this.deleting();
+    if (!image || this.deletingBusy()) {
       return;
     }
+    this.deletingBusy.set(true);
     this.admin.deleteImage(image.productImageId).subscribe({
-      next: () => this.load(),
-      error: (failure: unknown) => this.error.set(parseApiFailure(failure, 'The image could not be removed.').message),
+      next: () => {
+        this.deleting.set(null);
+        this.deletingBusy.set(false);
+        this.load();
+      },
+      error: (failure: unknown) => {
+        this.error.set(parseApiFailure(failure, 'The image could not be removed.').message);
+        this.deleting.set(null);
+        this.deletingBusy.set(false);
+      },
     });
   }
 

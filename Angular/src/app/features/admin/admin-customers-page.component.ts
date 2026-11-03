@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AdminCustomerDto } from '../../core/models/admin.models';
 import { PagedResult } from '../../core/models/api.models';
@@ -9,7 +10,7 @@ import { parseApiFailure } from '../../core/services/api-error.service';
 @Component({
   selector: 'tcs-admin-customers-page',
   standalone: true,
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, ReactiveFormsModule, RouterLink],
   templateUrl: './admin-customers-page.component.html',
   styleUrl: './admin-pages.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -20,6 +21,7 @@ export class AdminCustomersPageComponent implements OnInit {
   readonly error = signal('');
   readonly message = signal('');
   readonly pageNumber = signal(1);
+  readonly searchControl = new FormControl('', { nonNullable: true });
 
   constructor(private readonly admin: AdminApiService) {}
 
@@ -27,11 +29,15 @@ export class AdminCustomersPageComponent implements OnInit {
     this.load(1);
   }
 
+  search(): void {
+    this.load(1);
+  }
+
   load(page: number): void {
     this.pageNumber.set(page);
     this.loading.set(true);
     this.error.set('');
-    this.admin.getCustomers(page, 20).subscribe({
+    this.admin.getCustomers(page, 20, this.searchControl.value.trim() || undefined).subscribe({
       next: (customers) => {
         this.customers.set(customers);
         this.loading.set(false);

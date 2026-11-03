@@ -18,10 +18,18 @@ internal sealed class CatalogAdminService(
         int page,
         int size,
         string? search,
+        string? status,
         CancellationToken cancellationToken)
     {
         ValidatePage(page, size);
         var query = db.Products.AsNoTracking();
+        query = (status ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "active" => query.Where(x => !x.IsDeleted && x.Status == "Active"),
+            "inactive" => query.Where(x => !x.IsDeleted && x.Status != "Active"),
+            "deleted" => query.Where(x => x.IsDeleted),
+            _ => query
+        };
         if (!string.IsNullOrWhiteSpace(search))
         {
             var term = search.Trim();
@@ -478,7 +486,7 @@ internal sealed class CatalogAdminService(
             DepartmentId = request.DepartmentId,
             ParentCategoryId = request.ParentCategoryId,
             Name = request.Name.Trim(),
-            Slug = request.Slug.Trim(),
+            Slug = string.IsNullOrWhiteSpace(request.Slug) ? Slugify(request.Name) : request.Slug.Trim(),
             SortOrder = request.SortOrder,
             IsActive = true,
             IsDeleted = false
@@ -629,12 +637,9 @@ internal sealed class CatalogAdminService(
         var hasChildren = await db.Categories.AnyAsync(x => x.ParentCategoryId == id && !x.IsDeleted, cancellationToken);
         if (hasChildren)
             throw new ServiceException(409, "category_has_children", "Move or delete child categories before deleting this category.");
-        category.IsDeleted = true;
-        category.IsActive = false;
-        category.DeletedAt = DateTime.UtcNow;
-        category.UpdatedAt = DateTime.UtcNow;
-        audit.Record("Categories", id.ToString(), "Delete", "Soft-deleted category.");
-        await db.SaveChangesAsync(cancellationToken);
+        db.Categories.Remove(category);
+        audit.Record("Categories", id.ToString(), "Delete", "Permanently deleted category.");
+        await SaveWithConflictTranslationAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<ProductAttributeDefinitionDto>> GetAttributeDefinitionsAsync(
@@ -652,7 +657,7 @@ internal sealed class CatalogAdminService(
         var attribute = new ProductAttribute
         {
             Name = request.Name.Trim(),
-            Slug = request.Slug.Trim(),
+            Slug = string.IsNullOrWhiteSpace(request.Slug) ? Slugify(request.Name) : request.Slug.Trim(),
             IsActive = true
         };
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
@@ -691,6 +696,18 @@ internal sealed class CatalogAdminService(
         attribute.IsActive = active;
         audit.Record("ProductAttributes", id.ToString(), "Update", $"Set attribute active status to {active}.");
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeleteAttributeDefinitionAsync(int id, CancellationToken cancellationToken)
+    {
+        var attribute = await db.ProductAttributes.SingleOrDefaultAsync(
+            x => x.ProductAttributeId == id,
+            cancellationToken);
+        if (attribute is null)
+            throw new ServiceException(404, "attribute_not_found", "Product attribute was not found.");
+        db.ProductAttributes.Remove(attribute);
+        audit.Record("ProductAttributes", id.ToString(), "Delete", "Permanently deleted attribute definition.");
+        await SaveWithConflictTranslationAsync(cancellationToken);
     }
 
     private async Task<Product> LoadProductAsync(int productId, CancellationToken cancellationToken)
@@ -843,6 +860,20 @@ internal sealed class CatalogAdminService(
             IsActive = true,
         };
         db.Sizes.Add(size);
+        await db.SaveChangesAsync(cancellationToken);
+        return new SizeOptionDto(size.SizeId, size.SizeType, size.Name, size.SortOrder, size.IsActive);
+    }
+
+    public async Task<SizeOptionDto> RenameSizeGroupItemAsync(int groupId, int sizeId, SizeGroupItemWriteRequest request, CancellationToken cancellationToken)
+    {
+        var size = await db.Sizes.SingleOrDefaultAsync(x => x.SizeId == sizeId && x.SizeGroupId == groupId, cancellationToken)
+            ?? throw new ServiceException(404, "size_not_found", "The size does not exist in this group.");
+        var name = request.Name.Trim();
+        if (await db.Sizes.AnyAsync(x => x.SizeId != sizeId && x.SizeType == size.SizeType && x.Name.ToLower() == name.ToLower(), cancellationToken))
+            throw new ServiceException(409, "duplicate_size", "A size with this value already exists.");
+        size.Name = name;
+        if (request.SortOrder != 0)
+            size.SortOrder = request.SortOrder;
         await db.SaveChangesAsync(cancellationToken);
         return new SizeOptionDto(size.SizeId, size.SizeType, size.Name, size.SortOrder, size.IsActive);
     }

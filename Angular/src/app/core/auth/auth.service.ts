@@ -71,12 +71,31 @@ export class AuthService {
     );
   }
 
+  private refreshInFlight$: Observable<AuthTokenDto | null> | null = null;
+
+  refreshAccess(): Observable<AuthTokenDto | null> {
+    const refreshToken = this.tokenStore.refreshToken;
+    if (!refreshToken) {
+      return of(null);
+    }
+    this.refreshInFlight$ ??= this.api.post<AuthTokenDto>('/auth/refresh', { refreshToken }).pipe(
+      map((result) => this.acceptToken(result) && result),
+      catchError(() => {
+        this.clearLocalSession();
+        return of(null);
+      }),
+      finalize(() => { this.refreshInFlight$ = null; }),
+    );
+    return this.refreshInFlight$;
+  }
+
   logout(): Observable<void> {
-    if (!this.tokenStore.token) {
+    const refreshToken = this.tokenStore.refreshToken;
+    if (!refreshToken) {
       this.clearLocalSession();
       return of(void 0);
     }
-    return this.api.post<object>('/auth/logout', null).pipe(
+    return this.api.post<object>('/auth/logout', { refreshToken }).pipe(
       map(() => void 0),
       catchError(() => of(void 0)),
       finalize(() => this.clearLocalSession()),
@@ -105,7 +124,7 @@ export class AuthService {
   }
 
   private acceptToken(result: AuthTokenDto): AuthUserDto {
-    this.tokenStore.set(result.accessToken);
+    this.tokenStore.setPair(result.accessToken, result.refreshToken);
     this.userSubject.next(result.user);
     return result.user;
   }

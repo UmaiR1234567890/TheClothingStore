@@ -1,9 +1,10 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, throwError } from 'rxjs';
+import { catchError, switchMap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthTokenStore } from '../auth/auth-token.store';
+import { AuthService } from '../auth/auth.service';
 
 export const apiAuthInterceptor: HttpInterceptorFn = (request, next) => {
   if (!request.url.startsWith(environment.apiBaseUrl)) {
@@ -12,6 +13,7 @@ export const apiAuthInterceptor: HttpInterceptorFn = (request, next) => {
 
   const tokenStore = inject(AuthTokenStore);
   const router = inject(Router);
+  const auth = inject(AuthService);
   const token = tokenStore.token;
   const requiresBearer = isProtectedApiPath(request.url.slice(environment.apiBaseUrl.length));
   const authenticatedRequest = request.clone({
@@ -23,11 +25,26 @@ export const apiAuthInterceptor: HttpInterceptorFn = (request, next) => {
 
   return next(authenticatedRequest).pipe(
     catchError((error: unknown) => {
-      if (error instanceof HttpErrorResponse && error.status === 401 && token && requiresBearer) {
-        tokenStore.clear();
-        if (isProtectedFrontendRoute(router.url)) {
-          void router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
-        }
+      if (error instanceof HttpErrorResponse && error.status === 401 && token && requiresBearer
+          && !request.url.endsWith('/auth/refresh') && !request.headers.has('X-Retry-After-Refresh')) {
+        return auth.refreshAccess().pipe(
+          switchMap((refreshed) => {
+            if (!refreshed) {
+              tokenStore.clear();
+              if (isProtectedFrontendRoute(router.url)) {
+                void router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
+              }
+              return throwError(() => error);
+            }
+            return next(request.clone({
+              withCredentials: true,
+              setHeaders: {
+                Authorization: `Bearer ${tokenStore.token}`,
+                'X-Retry-After-Refresh': '1',
+              },
+            }));
+          }),
+        );
       }
       return throwError(() => error);
     }),

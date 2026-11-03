@@ -121,7 +121,7 @@ public sealed class CartController(
         Response.Cookies.Append(GuestCookie, token.Value.ToString("D"), new CookieOptions
         {
             HttpOnly = true,
-            Secure = Request.IsHttps || !environment.IsDevelopment(),
+            Secure = Request.IsHttps,
             SameSite = SameSiteMode.Lax,
             Path = "/",
             IsEssential = true,

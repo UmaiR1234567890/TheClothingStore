@@ -42,8 +42,8 @@ import { OrderDto, PaymentDto, ShipmentDto } from '../models/commerce.models';
 export class AdminApiService {
   constructor(private readonly api: ApiClient) {}
 
-  getProducts(pageNumber = 1, pageSize = 20, search?: string): Observable<PagedResult<AdminProductCardDto>> {
-    return this.api.get<PagedResult<AdminProductCardDto>>('/admin/products', { pageNumber, pageSize, search });
+  getProducts(pageNumber = 1, pageSize = 20, search?: string, status?: string): Observable<PagedResult<AdminProductCardDto>> {
+    return this.api.get<PagedResult<AdminProductCardDto>>('/admin/products', { pageNumber, pageSize, search, status });
   }
 
   getProduct(id: number): Observable<ProductDetailDto> {
@@ -144,6 +144,10 @@ export class AdminApiService {
     return this.api.post<SizeOptionDto>(`/admin/size-groups/${groupId}/items`, request);
   }
 
+  renameSizeGroupItem(groupId: number, sizeId: number, request: { name: string; sortOrder?: number }): Observable<SizeOptionDto> {
+    return this.api.put<SizeOptionDto>(`/admin/size-groups/${groupId}/items/${sizeId}`, request);
+  }
+
   removeSizeGroupItem(groupId: number, sizeId: number): Observable<unknown> {
     return this.api.delete(`/admin/size-groups/${groupId}/items/${sizeId}`);
   }
@@ -206,6 +210,10 @@ export class AdminApiService {
 
   updateAttribute(id: number, request: ProductAttributeDefinitionWriteRequest): Observable<ProductAttributeDefinitionDto> {
     return this.api.put<ProductAttributeDefinitionDto>(`/admin/attributes/${id}`, request);
+  }
+
+  deleteAttribute(id: number): Observable<unknown> {
+    return this.api.delete(`/admin/attributes/${id}`);
   }
 
   setAttributeStatus(id: number, status: string): Observable<object> {
@@ -303,8 +311,8 @@ export class AdminApiService {
     return this.api.patch<ShipmentDto>(`/admin/shipments/${id}/status`, { status });
   }
 
-  getCustomers(pageNumber = 1, pageSize = 20): Observable<PagedResult<AdminCustomerDto>> {
-    return this.api.get<PagedResult<AdminCustomerDto>>('/admin/customers', { pageNumber, pageSize });
+  getCustomers(pageNumber = 1, pageSize = 20, search?: string): Observable<PagedResult<AdminCustomerDto>> {
+    return this.api.get<PagedResult<AdminCustomerDto>>('/admin/customers', { pageNumber, pageSize, search });
   }
 
   getCustomer(id: number): Observable<AdminCustomerDto> {

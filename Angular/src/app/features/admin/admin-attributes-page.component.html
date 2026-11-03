@@ -19,6 +19,7 @@
               <td><div class="admin-inline-actions">
                 <button type="button" (click)="edit(attribute)">Edit</button>
                 <button type="button" (click)="setStatus(attribute, attribute.isActive ? 'Inactive' : 'Active')">{{ attribute.isActive ? 'Deactivate' : 'Activate' }}</button>
+                <button type="button" class="is-danger" (click)="askDelete(attribute)">Delete</button>
               </div></td>
             </tr>
           } @empty { <tr><td colspan="4">No attribute definitions found.</td></tr> }
@@ -28,16 +29,29 @@
   }
 
   @if (editing()) {
-    <form class="admin-form-card" [formGroup]="form" (ngSubmit)="save()">
-      <h2>{{ editingId() ? 'Edit definition' : 'Create definition' }}</h2>
-      <div class="admin-form-grid">
-        <div class="field"><label for="attribute-name">Name</label><input id="attribute-name" class="control" formControlName="name"></div>
-        <div class="field"><label for="attribute-slug">Slug</label><input id="attribute-slug" class="control" formControlName="slug"></div>
+    <div class="admin-modal-backdrop" (click)="editing.set(false)">
+      <form class="admin-modal admin-modal--compact" [formGroup]="form" (ngSubmit)="save()" (click)="$event.stopPropagation()">
+        <h2>{{ editingId() ? 'Edit definition' : 'Add attribute' }}</h2>
+        <div class="field"><label for="attribute-name">Name</label><input id="attribute-name" class="control" formControlName="name" placeholder="e.g. Fabric"></div>
+        <p class="muted-copy">Slug is generated automatically.</p>
+        <div class="admin-form-actions">
+          <button class="btn btn-primary" type="submit" [disabled]="saving() || form.invalid">{{ saving() ? 'Saving…' : 'Save attribute' }}</button>
+          <button class="btn btn-outline" type="button" (click)="editing.set(false)">Cancel</button>
+        </div>
+      </form>
+    </div>
+  }
+
+  @if (deleting(); as attribute) {
+    <div class="admin-modal-backdrop" (click)="deleting.set(null)">
+      <div class="admin-modal admin-modal--compact" role="alertdialog" (click)="$event.stopPropagation()">
+        <h2>Delete attribute</h2>
+        <p>Permanently delete <strong>"{{ attribute.name }}"</strong>? This cannot be undone and is blocked while products use the attribute.</p>
+        <div class="admin-form-actions">
+          <button class="btn btn-danger" type="button" (click)="confirmDelete()" [disabled]="deletingBusy()">{{ deletingBusy() ? 'Deleting…' : 'Delete attribute' }}</button>
+          <button class="btn btn-outline" type="button" (click)="deleting.set(null)">Cancel</button>
+        </div>
       </div>
-      <div class="admin-form-actions">
-        <button class="btn btn-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save definition' }}</button>
-        <button class="btn btn-outline" type="button" (click)="editing.set(false)">Cancel</button>
-      </div>
-    </form>
+    </div>
   }
 </section>

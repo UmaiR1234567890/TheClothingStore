@@ -28,6 +28,8 @@ public interface IAuthService
 {
     Task<AuthTokenDto> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken);
     Task<AuthTokenDto> LoginAsync(LoginRequest request, CancellationToken cancellationToken);
+    Task<AuthTokenDto> RefreshAsync(string refreshToken, CancellationToken cancellationToken);
+    Task LogoutAsync(string refreshToken, CancellationToken cancellationToken);
     Task<AuthUserDto> GetCurrentUserAsync(string identityUserId, CancellationToken cancellationToken);
     Task ChangePasswordAsync(string identityUserId, ChangePasswordRequest request, CancellationToken cancellationToken);
     Task RequestPasswordResetAsync(string email, CancellationToken cancellationToken);
@@ -45,7 +47,7 @@ public interface ICustomerService
     Task<CustomerAddressDto> UpdateAddressAsync(int customerId, int addressId, AddressWriteRequest request, CancellationToken cancellationToken);
     Task DeleteAddressAsync(int customerId, int addressId, CancellationToken cancellationToken);
     Task SetDefaultAddressAsync(int customerId, int addressId, CancellationToken cancellationToken);
-    Task<PagedResult<AdminCustomerDto>> GetCustomersAsync(int page, int size, CancellationToken cancellationToken);
+    Task<PagedResult<AdminCustomerDto>> GetCustomersAsync(int page, int size, string? search, CancellationToken cancellationToken);
     Task<AdminCustomerDto> GetAdminCustomerAsync(int customerId, CancellationToken cancellationToken);
     Task SetCustomerStatusAsync(int customerId, bool active, CancellationToken cancellationToken);
 }
@@ -95,7 +97,7 @@ public interface INewsletterService
 
 public interface ICatalogAdminService
 {
-    Task<PagedResult<AdminProductCardDto>> GetProductsAsync(int page, int size, string? search, CancellationToken cancellationToken);
+    Task<PagedResult<AdminProductCardDto>> GetProductsAsync(int page, int size, string? search, string? status, CancellationToken cancellationToken);
     Task<ProductDetailDto> GetProductAsync(int productId, CancellationToken cancellationToken);
     Task<ProductDetailDto> CreateProductAsync(ProductWriteRequest request, CancellationToken cancellationToken);
     Task<ProductDetailDto> UpdateProductAsync(int productId, ProductWriteRequest request, CancellationToken cancellationToken);
@@ -117,6 +119,7 @@ public interface ICatalogAdminService
     Task<SizeGroupDto> UpdateSizeGroupAsync(int id, SizeGroupWriteRequest request, CancellationToken cancellationToken);
     Task DeleteSizeGroupAsync(int id, CancellationToken cancellationToken);
     Task<SizeOptionDto> AddSizeGroupItemAsync(int groupId, SizeGroupItemWriteRequest request, CancellationToken cancellationToken);
+    Task<SizeOptionDto> RenameSizeGroupItemAsync(int groupId, int sizeId, SizeGroupItemWriteRequest request, CancellationToken cancellationToken);
     Task RemoveSizeGroupItemAsync(int groupId, int sizeId, CancellationToken cancellationToken);
     Task<ColorOptionDto> CreateColorAsync(ColorWriteRequest request, CancellationToken cancellationToken);
     Task<ColorOptionDto> UpdateColorAsync(int id, ColorWriteRequest request, CancellationToken cancellationToken);
@@ -130,6 +133,7 @@ public interface ICatalogAdminService
     Task<CategoryDto> UpdateCategoryAsync(int id, CategoryWriteRequest request, CancellationToken cancellationToken);
     Task SetCategoryStatusAsync(int id, bool active, CancellationToken cancellationToken);
     Task DeleteCategoryAsync(int id, CancellationToken cancellationToken);
+    Task DeleteAttributeDefinitionAsync(int id, CancellationToken cancellationToken);
     Task<IReadOnlyList<ProductAttributeDefinitionDto>> GetAttributeDefinitionsAsync(CancellationToken cancellationToken);
     Task<ProductAttributeDefinitionDto> CreateAttributeDefinitionAsync(ProductAttributeDefinitionWriteRequest request, CancellationToken cancellationToken);
     Task<ProductAttributeDefinitionDto> UpdateAttributeDefinitionAsync(int id, ProductAttributeDefinitionWriteRequest request, CancellationToken cancellationToken);

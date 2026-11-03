@@ -25,7 +25,13 @@ public sealed class LoginRequest
 }
 
 public sealed record AuthUserDto(string UserId, string Email, int? CustomerId, IReadOnlyList<string> Roles);
-public sealed record AuthTokenDto(string AccessToken, string TokenType, int ExpiresInSeconds, AuthUserDto User);
+public sealed record AuthTokenDto(string AccessToken, string TokenType, int ExpiresInSeconds, AuthUserDto User, string RefreshToken);
+
+public sealed record RefreshRequest
+{
+    [Required]
+    public string RefreshToken { get; init; } = string.Empty;
+}
 
 public sealed class ChangePasswordRequest
 {

@@ -344,8 +344,15 @@
     gap: 0.75rem;
   }
 
-  .header-account {
+  .header-action__eyebrow {
     display: none;
+  }
+
+  .header-account > span:last-child {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
@@ -645,4 +652,86 @@
 
 .track-modal__pay-amount {
   font-size: 0.85rem;
+}
+
+.track-banner {
+  border: 1px solid #e5c9c0;
+  border-radius: 8px;
+  padding: 0.7rem 0.9rem;
+  color: #8f3b2b;
+  background: #faf0ec;
+  font-size: 0.82rem;
+}
+
+.track-steps {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.track-step {
+  position: relative;
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.32rem 0 0.32rem 0;
+}
+
+.track-step + .track-step::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: -0.32rem;
+  height: 0.7rem;
+  border-left: 2px solid #d7d0c8;
+}
+
+.track-step__dot {
+  width: 12px;
+  height: 12px;
+  margin-top: 4px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid #c9c2b8;
+  background: #f1ece5;
+}
+
+.track-step__body {
+  display: grid;
+  gap: 1px;
+}
+
+.track-step__body strong {
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.track-step__body small {
+  color: #8d8579;
+  font-size: 0.72rem;
+}
+
+.track-step.is-done .track-step__dot {
+  border-color: #2f6d3c;
+  background: #2f6d3c;
+}
+
+.track-step.is-done + .track-step::before {
+  border-color: #2f6d3c;
+}
+
+.track-step.is-current .track-step__dot {
+  border-color: #a13c28;
+  background: #a13c28;
+  box-shadow: 0 0 0 4px rgba(161, 60, 40, 0.18);
+}
+
+.track-step.is-current strong {
+  color: #a13c28;
+}
+
+.track-step.is-next .track-step__body strong {
+  color: #a9a297;
+  font-weight: 500;
 }

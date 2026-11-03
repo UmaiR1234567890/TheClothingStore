@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
 const TOKEN_STORAGE_KEY = 'tcs.access-token';
+const REFRESH_STORAGE_KEY = 'tcs.refresh-token';
 
 @Injectable({ providedIn: 'root' })
 export class AuthTokenStore {
@@ -12,6 +13,10 @@ export class AuthTokenStore {
     return this.tokenSubject.value;
   }
 
+  get refreshToken(): string | null {
+    return typeof localStorage === 'undefined' ? null : localStorage.getItem(REFRESH_STORAGE_KEY);
+  }
+
   set(token: string): void {
     this.tokenSubject.next(token);
     if (typeof sessionStorage !== 'undefined') {
@@ -19,10 +24,20 @@ export class AuthTokenStore {
     }
   }
 
+  setPair(accessToken: string, refreshToken: string): void {
+    this.set(accessToken);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(REFRESH_STORAGE_KEY, refreshToken);
+    }
+  }
+
   clear(): void {
     this.tokenSubject.next(null);
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+    }
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(REFRESH_STORAGE_KEY);
     }
   }
 

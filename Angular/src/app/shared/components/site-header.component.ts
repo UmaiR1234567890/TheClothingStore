@@ -1,4 +1,4 @@
-import { AsyncPipe, CurrencyPipe, NgTemplateOutlet } from '@angular/common';
+import { AsyncPipe, CurrencyPipe, DatePipe, NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
@@ -18,7 +18,7 @@ interface CategoryMenuItem extends CategoryDto {
 @Component({
   selector: 'tcs-site-header',
   standalone: true,
-  imports: [AsyncPipe, CurrencyPipe, NgTemplateOutlet, ReactiveFormsModule, RouterLink, RouterLinkActive, ShipmentTimelineComponent],
+  imports: [AsyncPipe, CurrencyPipe, DatePipe, NgTemplateOutlet, ReactiveFormsModule, RouterLink, RouterLinkActive, ShipmentTimelineComponent],
   templateUrl: './site-header.component.html',
   styleUrl: './site-header.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -36,6 +36,32 @@ export class SiteHeaderComponent implements OnInit {
   readonly trackLoading = signal(false);
   readonly trackError = signal('');
   readonly trackResult = signal<OrderDto | null>(null);
+
+  trackSteps(order: OrderDto): { label: string; at: string | null; state: 'done' | 'current' | 'next' }[] {
+    const shipment = order.shipments[0] ?? null;
+    const paid = order.payments.find((p) => p.status === 'Captured') ?? order.payments[0] ?? null;
+    const isTerminal = order.status === 'Cancelled' || order.status === 'Refunded' || order.status === 'Returned';
+    const paidAt = paid && paid.status === 'Captured' ? (paid.processedAt ?? paid.createdAt) : null;
+    const milestones = [
+      { label: 'Order placed', at: order.placedAt },
+      { label: 'Processing', at: order.status === 'Pending' || isTerminal ? null : (shipment?.createdAt ?? order.placedAt) },
+      { label: 'Shipment created', at: shipment?.createdAt ?? null },
+      { label: 'Packed at warehouse', at: shipment?.packedAt ?? null },
+      { label: 'Shipped', at: shipment?.shippedAt ?? null },
+      { label: 'Delivered', at: shipment?.deliveredAt ?? null },
+      { label: 'Payment received', at: paidAt },
+      { label: 'Order completed', at: order.status === 'Completed' ? (paidAt ?? shipment?.deliveredAt ?? null) : null },
+    ];
+    if (isTerminal) {
+      return milestones.map((m, i) => ({ ...m, state: i === 0 ? 'done' as const : 'next' as const }));
+    }
+    let current = milestones.findIndex((m) => !m.at);
+    if (current < 0) current = milestones.length - 1;
+    return milestones.map((m, i) => ({
+      ...m,
+      state: i < current ? 'done' as const : i === current ? 'current' as const : 'next' as const,
+    }));
+  }
   readonly trackForm = new FormGroup({
     orderNumber: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),

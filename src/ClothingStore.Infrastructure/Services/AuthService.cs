@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using ClothingStore.Application.Contracts;
 using ClothingStore.Application.DTOs;
@@ -17,7 +18,8 @@ internal sealed class AuthService(
     ClothingStoreDbContext db,
     UserManager<ApplicationUser> users,
     SignInManager<ApplicationUser> signIn,
-    IOptions<JwtSettings> jwtOptions) : IAuthService
+    IOptions<JwtSettings> jwtOptions,
+    IEmailSender emailSender) : IAuthService
 {
     private readonly JwtSettings _jwt = jwtOptions.Value;
 
@@ -77,7 +79,17 @@ internal sealed class AuthService(
         customer.IdentityUserId = user.Id;
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return await CreateTokenAsync(user, customer.CustomerId);
+        await emailSender.SendAsync(new EmailMessage(
+            email,
+            request.FirstName.Trim(),
+            "Welcome to The Clothing Store",
+            $"<h2 style=\"font-family:serif\">Welcome, {request.FirstName.Trim()}!</h2>" +
+            "<p>Your account is ready — you're now a member of <strong>The Clothing Store</strong>.</p>" +
+            "<p>Browse the collection, save your details for faster checkout, and track every order from your account.</p>" +
+            "<p style=\"color:#888\">Glad to have you with us.</p>",
+            "Welcome! Your account is ready — you're now a member of The Clothing Store."),
+            cancellationToken);
+        return await CreateTokenAsync(user, customer.CustomerId, cancellationToken);
     }
 
     public async Task<AuthTokenDto> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
@@ -100,7 +112,7 @@ internal sealed class AuthService(
             .SingleOrDefaultAsync(cancellationToken);
         if (customer?.IsDeleted == true)
             throw new ServiceException(403, "customer_deactivated", "This customer account is inactive.");
-        return await CreateTokenAsync(user, customer?.CustomerId);
+        return await CreateTokenAsync(user, customer?.CustomerId, cancellationToken);
     }
 
     public async Task<AuthUserDto> GetCurrentUserAsync(string identityUserId, CancellationToken cancellationToken)
@@ -146,7 +158,34 @@ internal sealed class AuthService(
             "email_delivery_unavailable",
             "Password reset is unavailable because no email delivery provider is configured."));
 
-    private async Task<AuthTokenDto> CreateTokenAsync(ApplicationUser user, int? customerId)
+    public async Task<AuthTokenDto> RefreshAsync(string refreshToken, CancellationToken cancellationToken)
+    {
+        var hash = HashToken(refreshToken);
+        var token = await db.RefreshTokens.SingleOrDefaultAsync(x => x.TokenHash == hash, cancellationToken)
+            ?? throw new ServiceException(401, "invalid_refresh_token", "Your session expired; please sign in again.");
+        if (token.RevokedAt is not null || token.ExpiresAt <= DateTime.UtcNow)
+            throw new ServiceException(401, "expired_refresh_token", "Your session expired; please sign in again.");
+        var user = await users.FindByIdAsync(token.UserId)
+            ?? throw new ServiceException(401, "invalid_refresh_token", "Your session expired; please sign in again.");
+        var customerId = (await db.Customers.SingleOrDefaultAsync(x => x.IdentityUserId == user.Id, cancellationToken))?.CustomerId;
+        var next = await CreateTokenAsync(user, customerId, cancellationToken);
+        token.RevokedAt = DateTime.UtcNow;
+        token.ReplacedByTokenHash = HashToken(next.RefreshToken);
+        await db.SaveChangesAsync(cancellationToken);
+        return next;
+    }
+
+    public async Task LogoutAsync(string refreshToken, CancellationToken cancellationToken)
+    {
+        var token = await db.RefreshTokens.SingleOrDefaultAsync(x => x.TokenHash == HashToken(refreshToken), cancellationToken);
+        if (token is not null && token.RevokedAt is null)
+        {
+            token.RevokedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(cancellationToken);
+        }
+    }
+
+    private async Task<AuthTokenDto> CreateTokenAsync(ApplicationUser user, int? customerId, CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
         var expires = now.AddMinutes(_jwt.AccessTokenMinutes);
@@ -168,8 +207,20 @@ internal sealed class AuthService(
             user.Email ?? string.Empty,
             customerId,
             (await users.GetRolesAsync(user)).ToArray());
-        return new AuthTokenDto(new JwtSecurityTokenHandler().WriteToken(token), "Bearer", (int)(expires - now).TotalSeconds, authUser);
+        var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+        db.RefreshTokens.Add(new RefreshToken
+        {
+            UserId = user.Id,
+            TokenHash = HashToken(refreshToken),
+            CreatedAt = now,
+            ExpiresAt = now.AddDays(_jwt.RefreshTokenDays)
+        });
+        await db.SaveChangesAsync(cancellationToken);
+        return new AuthTokenDto(new JwtSecurityTokenHandler().WriteToken(token), "Bearer", (int)(expires - now).TotalSeconds, authUser, refreshToken);
     }
+
+    private static string HashToken(string token) =>
+        Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
     private static string? NormalizePhone(string? phone) =>
         string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();

@@ -12,6 +12,14 @@ import { parseApiFailure } from '../../core/services/api-error.service';
 
 const PENDING_CHECKOUT_KEY = 'tcs.pending-checkout-key';
 
+const newIdempotencyKey = (): string =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+      });
+
 @Component({
   selector: 'tcs-checkout-page',
   standalone: true,
@@ -31,7 +39,7 @@ export class CheckoutPageComponent implements OnInit {
   readonly outcomeUncertain = signal(false);
   readonly error = signal('');
   readonly addressError = signal('');
-  private readonly idempotencyKey = signal<string>(crypto.randomUUID());
+  private readonly idempotencyKey = signal<string>(newIdempotencyKey());
   readonly form = new FormGroup({
     shippingAddressId: new FormControl<number | null>(null),
     guestEmail: new FormControl('', { nonNullable: true, validators: [Validators.email, Validators.maxLength(256)] }),
@@ -100,7 +108,7 @@ export class CheckoutPageComponent implements OnInit {
 
   dismissUncertainty(): void {
     clearPendingCheckoutKey();
-    this.idempotencyKey.set(crypto.randomUUID());
+    this.idempotencyKey.set(newIdempotencyKey());
     this.outcomeUncertain.set(false);
     this.error.set('');
   }

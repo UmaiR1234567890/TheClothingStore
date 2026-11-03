@@ -14,9 +14,10 @@ public sealed class AdminCustomersController(ICustomerService customers) : Contr
     public async Task<ActionResult<ApiResponse<PagedResult<AdminCustomerDto>>>> GetCustomers(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null,
         CancellationToken cancellationToken = default) =>
         Ok(ApiResponse<PagedResult<AdminCustomerDto>>.Ok(
-            await customers.GetCustomersAsync(pageNumber, pageSize, cancellationToken)));
+            await customers.GetCustomersAsync(pageNumber, pageSize, search, cancellationToken)));
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<ApiResponse<AdminCustomerDto>>> GetCustomer(

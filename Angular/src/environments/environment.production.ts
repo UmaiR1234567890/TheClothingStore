@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiBaseUrl: '/api/v1',
+  apiBaseUrl: 'http://192.168.100.70:8080/api/v1',
   currency: 'PKR',
 } as const;

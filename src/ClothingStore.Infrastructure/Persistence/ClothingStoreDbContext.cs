@@ -42,6 +42,7 @@ public sealed class ClothingStoreDbContext
     public DbSet<Shipment> Shipments => Set<Shipment>();
     public DbSet<NewsletterSubscription> NewsletterSubscriptions => Set<NewsletterSubscription>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -55,6 +56,15 @@ public sealed class ClothingStoreDbContext
         modelBuilder.Entity<IdentityRoleClaim<string>>().ToTable("AspNetRoleClaims", "dbo");
         modelBuilder.Entity<IdentityUserLogin<string>>().ToTable("AspNetUserLogins", "dbo");
         modelBuilder.Entity<IdentityUserToken<string>>().ToTable("AspNetUserTokens", "dbo");
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.ToTable("RefreshTokens", "dbo");
+            entity.Property(x => x.TokenHash).HasMaxLength(128).IsRequired();
+            entity.HasIndex(x => x.TokenHash).IsUnique();
+            entity.Property(x => x.ReplacedByTokenHash).HasMaxLength(128);
+            entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ClothingStoreDbContext).Assembly);
     }

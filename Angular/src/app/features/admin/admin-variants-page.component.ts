@@ -58,7 +58,7 @@ export class AdminVariantsPageComponent implements OnInit {
   });
 
   readonly bulkForm = new FormGroup({
-    skuBase: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(40)] }),
+    skuBase: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(40)] }),
     regularPrice: new FormControl(0, { nonNullable: true, validators: [Validators.required, Validators.min(0)] }),
     initialStock: new FormControl(0, { nonNullable: true, validators: [Validators.required, Validators.min(0)] }),
     isActive: new FormControl(true, { nonNullable: true }),
@@ -229,8 +229,24 @@ export class AdminVariantsPageComponent implements OnInit {
     return this.sizes().find((size) => size.sizeId === sizeId)?.name ?? '';
   }
 
+  readonly skuMode = signal<'auto' | 'manual'>('auto');
+  readonly skuOverrides = signal<Record<string, string>>({});
+
+  setSkuMode(mode: 'auto' | 'manual'): void {
+    this.skuMode.set(mode);
+  }
+
+  setSkuOverride(key: string, value: string): void {
+    this.skuOverrides.update((map) => ({ ...map, [key]: value }));
+  }
+
+  skuFor(combo: VariantCombination): string {
+    return (this.skuOverrides()[combo.key] ?? '').trim() || combo.sku;
+  }
+
   private allCombinations(): VariantCombination[] {
-    const base = this.bulkForm.controls.skuBase.value.trim();
+    const base = this.bulkForm.controls.skuBase.value.trim()
+      || (this.product()?.slug ?? 'TCS').toUpperCase().slice(0, 40);
     const combos: VariantCombination[] = [];
     for (const key of this.selectedColorKeys()) {
       const color = this.colorByKey(key);
@@ -435,7 +451,11 @@ export class AdminVariantsPageComponent implements OnInit {
     const seen = new Set<string>();
     const variants: VariantWriteRequest[] = [];
     for (const combo of combos) {
-      let sku = combo.sku;
+      let sku = this.skuFor(combo);
+      if (this.skuMode() === 'manual' && (seen.has(sku.toUpperCase()) || known.has(sku.toUpperCase()))) {
+        this.error.set(`SKU "${sku}" already exists — choose a different value or switch to automatic generation.`);
+        return;
+      }
       let index = 2;
       while (seen.has(sku.toUpperCase()) || known.has(sku.toUpperCase())) {
         sku = `${combo.sku}-${index++}`.slice(0, 64);

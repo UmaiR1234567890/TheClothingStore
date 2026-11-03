@@ -18,11 +18,13 @@ export class AdminAttributesPageComponent implements OnInit {
   readonly saving = signal(false);
   readonly editing = signal(false);
   readonly editingId = signal<number | null>(null);
+  readonly deleting = signal<ProductAttributeDefinitionDto | null>(null);
+  readonly deletingBusy = signal(false);
   readonly error = signal('');
   readonly message = signal('');
   readonly form = new FormGroup({
     name: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(80)] }),
-    slug: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(80)] }),
+    slug: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(80)] }),
   });
 
   constructor(private readonly admin: AdminApiService) {}
@@ -90,6 +92,31 @@ export class AdminAttributesPageComponent implements OnInit {
     this.admin.setAttributeStatus(attribute.productAttributeId, status).subscribe({
       next: () => this.load(),
       error: (failure: unknown) => this.error.set(parseApiFailure(failure, 'Attribute status could not be updated.').message),
+    });
+  }
+
+  askDelete(attribute: ProductAttributeDefinitionDto): void {
+    this.deleting.set(attribute);
+  }
+
+  confirmDelete(): void {
+    const attribute = this.deleting();
+    if (!attribute || this.deletingBusy()) {
+      return;
+    }
+    this.deletingBusy.set(true);
+    this.admin.deleteAttribute(attribute.productAttributeId).subscribe({
+      next: () => {
+        this.message.set(`"${attribute.name}" permanently deleted.`);
+        this.deleting.set(null);
+        this.deletingBusy.set(false);
+        this.load();
+      },
+      error: (failure: unknown) => {
+        this.error.set(parseApiFailure(failure, 'Attribute could not be deleted.').message);
+        this.deleting.set(null);
+        this.deletingBusy.set(false);
+      },
     });
   }
 }

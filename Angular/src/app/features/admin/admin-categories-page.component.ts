@@ -186,13 +186,31 @@ export class AdminCategoriesPageComponent implements OnInit {
     });
   }
 
+  readonly deleting = signal<CategoryDto | null>(null);
+  readonly deletingBusy = signal(false);
+
   remove(category: CategoryDto): void {
-    if (!window.confirm(`Soft-delete “${category.name}”?`)) {
+    this.deleting.set(category);
+  }
+
+  confirmDelete(): void {
+    const category = this.deleting();
+    if (!category || this.deletingBusy()) {
       return;
     }
+    this.deletingBusy.set(true);
     this.admin.deleteCategory(category.categoryId).subscribe({
-      next: () => this.load(),
-      error: (failure: unknown) => this.error.set(parseApiFailure(failure, 'Category could not be deleted.').message),
+      next: () => {
+        this.message.set(`"${category.name}" permanently deleted.`);
+        this.deleting.set(null);
+        this.deletingBusy.set(false);
+        this.load();
+      },
+      error: (failure: unknown) => {
+        this.error.set(parseApiFailure(failure, 'Category could not be deleted.').message);
+        this.deleting.set(null);
+        this.deletingBusy.set(false);
+      },
     });
   }
 }

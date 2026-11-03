@@ -114,6 +114,14 @@
         <p class="muted-copy">Pick one or more colors — each color gets its own size selection. A variant is created for every color × size combination. Select a color without sizes to create a color-only variant.</p>
         <div class="admin-form-grid">
           <div class="field"><label for="bulk-sku">SKU base</label><input id="bulk-sku" class="control" formControlName="skuBase" maxlength="40" placeholder="e.g. TCS-SHIRT"><small>SKUs are built as BASE-COLOR-SIZE.</small></div>
+          <div class="field">
+            <label>SKU generation</label>
+            <div class="filter-chips">
+              <button class="filter-chip" type="button" [class.filter-chip--active]="skuMode() === 'auto'" (click)="setSkuMode('auto')">Automatic</button>
+              <button class="filter-chip" type="button" [class.filter-chip--active]="skuMode() === 'manual'" (click)="setSkuMode('manual')">Manual entry</button>
+            </div>
+            <small>{{ skuMode() === 'auto' ? 'SKUs auto-build from the base and deduplicate.' : 'Type an exact SKU in each row below — duplicates are rejected.' }}</small>
+          </div>
           <div class="field"><label for="bulk-price">Regular price (PKR)</label><input id="bulk-price" class="control" type="number" min="0" step="0.01" formControlName="regularPrice"></div>
         </div>
         <div class="admin-form-grid">
@@ -201,7 +209,14 @@
           @if (combinations().length > 0) {
             <div class="variant-builder__skus">
               @for (combo of combinations(); track combo.key) {
-                <div>{{ combo.sku }} — {{ combo.colorName ?? 'No color' }}{{ combo.sizeName ? ' / ' + combo.sizeName : '' }}</div>
+                @if (skuMode() === 'manual') {
+                  <div class="variant-sku-edit">
+                    <input class="control control--compact" maxlength="64" [value]="skuFor(combo)" (input)="setSkuOverride(combo.key, $any($event.target).value)" [attr.aria-label]="'SKU for ' + (combo.colorName ?? 'no color') + (combo.sizeName ? ' / ' + combo.sizeName : '')">
+                    <span class="muted-copy">{{ combo.colorName ?? 'No color' }}{{ combo.sizeName ? ' / ' + combo.sizeName : '' }}</span>
+                  </div>
+                } @else {
+                  <div>{{ combo.sku }} — {{ combo.colorName ?? 'No color' }}{{ combo.sizeName ? ' / ' + combo.sizeName : '' }}</div>
+                }
               }
             </div>
           }

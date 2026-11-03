@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { SizeGroupDto } from '../../core/models/catalog.models';
+import { SizeGroupDto, SizeOptionDto } from '../../core/models/catalog.models';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { parseApiFailure } from '../../core/services/api-error.service';
 
@@ -18,12 +18,14 @@ export class AdminSizeGroupsPageComponent implements OnInit {
   readonly saving = signal(false);
   readonly editing = signal(false);
   readonly editingId = signal<number | null>(null);
+  readonly deleting = signal<SizeGroupDto | null>(null);
+  readonly deletingBusy = signal(false);
+  readonly renaming = signal<{ groupId: number; sizeId: number; name: string } | null>(null);
+  readonly itemDrafts = signal<Record<number, string>>({});
   readonly error = signal('');
   readonly message = signal('');
-  readonly itemDrafts = signal<Record<number, string>>({});
   readonly form = new FormGroup({
     groupName: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(80)] }),
-    sortOrder: new FormControl(0, { nonNullable: true }),
   });
 
   constructor(private readonly admin: AdminApiService) {}
@@ -49,13 +51,13 @@ export class AdminSizeGroupsPageComponent implements OnInit {
 
   createMode(): void {
     this.editingId.set(null);
-    this.form.reset({ groupName: '', sortOrder: 0 });
+    this.form.reset({ groupName: '' });
     this.editing.set(true);
   }
 
   edit(group: SizeGroupDto): void {
     this.editingId.set(group.sizeGroupId);
-    this.form.patchValue({ groupName: group.groupName, sortOrder: group.sortOrder });
+    this.form.patchValue({ groupName: group.groupName });
     this.editing.set(true);
   }
 
@@ -65,11 +67,7 @@ export class AdminSizeGroupsPageComponent implements OnInit {
     if (this.form.invalid || this.saving()) {
       return;
     }
-    const request = {
-      groupName: this.form.controls.groupName.value.trim(),
-      sortOrder: this.form.controls.sortOrder.value,
-      isActive: true,
-    };
+    const request = { groupName: this.form.controls.groupName.value.trim(), sortOrder: 0, isActive: true };
     const id = this.editingId();
     this.saving.set(true);
     const operation = id === null ? this.admin.createSizeGroup(request) : this.admin.updateSizeGroup(id, request);
@@ -88,14 +86,29 @@ export class AdminSizeGroupsPageComponent implements OnInit {
     });
   }
 
-  removeGroup(group: SizeGroupDto): void {
+  askDelete(group: SizeGroupDto): void {
+    this.deleting.set(group);
+  }
+
+  confirmDelete(): void {
+    const group = this.deleting();
+    if (!group || this.deletingBusy()) {
+      return;
+    }
+    this.deletingBusy.set(true);
     this.error.set('');
     this.admin.deleteSizeGroup(group.sizeGroupId).subscribe({
       next: () => {
-        this.message.set(`"${group.groupName}" deleted.`);
+        this.message.set(`"${group.groupName}" permanently deleted.`);
+        this.deleting.set(null);
+        this.deletingBusy.set(false);
         this.load();
       },
-      error: (failure: unknown) => this.error.set(parseApiFailure(failure, 'Size group could not be deleted.').message),
+      error: (failure: unknown) => {
+        this.error.set(parseApiFailure(failure, 'Size group could not be deleted.').message);
+        this.deleting.set(null);
+        this.deletingBusy.set(false);
+      },
     });
   }
 
@@ -115,6 +128,38 @@ export class AdminSizeGroupsPageComponent implements OnInit {
         this.load();
       },
       error: (failure: unknown) => this.error.set(parseApiFailure(failure, 'Size could not be added.').message),
+    });
+  }
+
+  startRename(groupId: number, size: SizeOptionDto): void {
+    this.renaming.set({ groupId, sizeId: size.sizeId, name: size.name });
+  }
+
+  setRenameName(value: string): void {
+    const current = this.renaming();
+    if (current) {
+      this.renaming.set({ ...current, name: value });
+    }
+  }
+
+  saveRename(): void {
+    const current = this.renaming();
+    const name = current?.name.trim() ?? '';
+    if (!current || !name) {
+      this.renaming.set(null);
+      return;
+    }
+    this.error.set('');
+    this.admin.renameSizeGroupItem(current.groupId, current.sizeId, { name }).subscribe({
+      next: () => {
+        this.message.set(`Size renamed to "${name}".`);
+        this.renaming.set(null);
+        this.load();
+      },
+      error: (failure: unknown) => {
+        this.error.set(parseApiFailure(failure, 'Size could not be renamed.').message);
+        this.renaming.set(null);
+      },
     });
   }
 

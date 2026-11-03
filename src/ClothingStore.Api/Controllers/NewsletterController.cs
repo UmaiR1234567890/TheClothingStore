@@ -16,7 +16,9 @@ public sealed class NewsletterController(INewsletterService newsletter) : Contro
         var result = await newsletter.SubscribeAsync(request.Email, cancellationToken);
         return Ok(ApiResponse<NewsletterResultDto>.Ok(
             result,
-            "Subscription saved. Email confirmation is not configured."));
+            result.Status == "AlreadySubscribed"
+                ? "This email is already subscribed to our updates."
+                : "Subscription saved — welcome email on its way."));
     }
 
     [HttpPost("unsubscribe")]

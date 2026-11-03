@@ -1,5 +1,12 @@
 <section class="admin-page">
   <div class="admin-page-heading"><div><p class="eyebrow">People</p><h1 class="page-title">Customers.</h1></div></div>
+  <div class="admin-toolbar">
+    <form class="admin-toolbar__search" (submit)="$event.preventDefault(); search()">
+      <input class="control" [formControl]="searchControl" type="search" placeholder="Search name or email" aria-label="Search customers">
+      <button class="btn btn-outline btn-small" type="submit">Search</button>
+    </form>
+    <span class="muted-copy">{{ customers()?.totalCount ?? 0 }} records</span>
+  </div>
   @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
   @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
   @if (loading()) { <div class="state-panel"><span class="spinner" aria-label="Loading customers"></span></div> }

@@ -36,11 +36,11 @@ internal sealed class ShipmentService(ClothingStoreDbContext db, AuditLogWriter 
         if (request.Status != ShipmentStatuses.Pending)
             throw new ServiceException(400, "invalid_initial_shipment_status", "A shipment must start in Pending status.");
         var orderNumber = await db.Orders.AsNoTracking()
-            .Where(x => x.OrderId == request.OrderId && x.Status != OrderStatuses.Cancelled)
+            .Where(x => x.OrderId == request.OrderId && x.Status == OrderStatuses.Processing)
             .Select(x => x.OrderNumber)
             .SingleOrDefaultAsync(cancellationToken);
         if (orderNumber is null)
-            throw new ServiceException(404, "order_not_found", "An active order was not found.");
+            throw new ServiceException(400, "order_not_processing", "Only orders in Processing status can be shipped.");
 
         var shipment = new Shipment
         {

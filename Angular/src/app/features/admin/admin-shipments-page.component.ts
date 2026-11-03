@@ -43,7 +43,7 @@ export class AdminShipmentsPageComponent implements OnInit {
     });
     this.admin.getOrders(1, 100).subscribe({
       next: (result) => this.shippableOrders.set(
-        result.items.filter((order) => order.status !== 'Cancelled' && order.status !== 'Refunded')),
+        result.items.filter((order) => order.status === 'Processing')),
       error: () => this.shippableOrders.set([]),
     });
   }
@@ -95,6 +95,8 @@ export class AdminShipmentsPageComponent implements OnInit {
 
   clearOrder(): void {
     this.selectedOrder.set(null);
+    this.orderSearch.setValue('');
+    this.orderPickerOpen.set(true);
   }
 
   openCreate(): void {

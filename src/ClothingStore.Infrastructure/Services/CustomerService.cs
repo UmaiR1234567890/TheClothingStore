@@ -144,10 +144,15 @@ internal sealed class CustomerService(ClothingStoreDbContext db, AuditLogWriter 
         await transaction.CommitAsync(cancellationToken);
     }
 
-    public async Task<PagedResult<AdminCustomerDto>> GetCustomersAsync(int page, int size, CancellationToken cancellationToken)
+    public async Task<PagedResult<AdminCustomerDto>> GetCustomersAsync(int page, int size, string? search, CancellationToken cancellationToken)
     {
         ValidatePage(page, size);
         var query = db.Customers.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(x => x.Email.Contains(term) || x.FirstName.Contains(term) || x.LastName.Contains(term));
+        }
         var count = await query.CountAsync(cancellationToken);
         var items = await query.OrderByDescending(x => x.CreatedAt)
             .Skip((page - 1) * size).Take(size)

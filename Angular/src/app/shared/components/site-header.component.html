@@ -182,9 +182,21 @@
             <strong class="track-modal__pay-amount">{{ order.totalAmount | currency:'PKR':'code':'1.0-2' }}</strong>
           </div>
         }
-        @for (shipment of order.shipments; track shipment.shipmentId) {
-          <tcs-shipment-timeline [shipment]="shipment" />
-        } @empty {
+        @if (order.status === 'Cancelled' || order.status === 'Refunded' || order.status === 'Returned') {
+          <p class="track-banner">This order was {{ order.status }}. Contact support if you have questions.</p>
+        }
+        <ol class="track-steps">
+          @for (step of trackSteps(order); track step.label) {
+            <li class="track-step" [class.is-done]="step.state === 'done'" [class.is-current]="step.state === 'current'" [class.is-next]="step.state === 'next'">
+              <span class="track-step__dot" aria-hidden="true"></span>
+              <div class="track-step__body">
+                <strong>{{ step.label }}</strong>
+                @if (step.at) { <small>{{ step.at | date:'MMM d, y, h:mm a' }}</small> }
+              </div>
+            </li>
+          }
+        </ol>
+        @if (order.shipments.length === 0) {
           <p class="track-modal__empty">No shipment has been created for this order yet — it's being prepared.</p>
         }
       </div>
