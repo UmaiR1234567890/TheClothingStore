@@ -9,6 +9,17 @@
   </div>
 
   @if (error()) { <p class="notice notice-error" role="alert">{{ error() }}</p> }
+  @if (errorModal()) {
+    <div class="admin-modal-backdrop" (click)="closeErrorModal()">
+      <div class="admin-modal admin-modal--compact" role="alertdialog" (click)="$event.stopPropagation()">
+        <h2>Something went wrong</h2>
+        <p class="muted-copy">{{ errorModal() }}</p>
+        <div class="admin-form-actions">
+          <button class="btn btn-primary" type="button" (click)="closeErrorModal()">OK</button>
+        </div>
+      </div>
+    </div>
+  }
   @if (message()) { <p class="notice notice-success" role="status">{{ message() }}</p> }
 
   @if (editing()) {

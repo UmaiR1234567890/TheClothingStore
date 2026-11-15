@@ -18,6 +18,7 @@ interface VariantCombination {
 }
 
 const NO_COLOR_KEY = 'none';
+const FRAGRANCE_MARKERS = ['perfume', 'fragrance', 'scent', 'attar', 'oud'];
 
 @Component({
   selector: 'tcs-admin-variants-page',
@@ -110,13 +111,18 @@ export class AdminVariantsPageComponent implements OnInit {
     });
   }
 
+  readonly noColorKey = NO_COLOR_KEY;
+
   isPerfume(): boolean {
-    return this.product()?.categories.some((category) => category.slug.toLowerCase() === 'perfumes') ?? false;
+    return this.product()?.categories.some((category) => {
+      const slug = category.slug.toLowerCase();
+      return FRAGRANCE_MARKERS.some((marker) => slug.includes(marker));
+    }) ?? false;
   }
 
   availableSizes(): SizeOptionDto[] {
     if (this.isPerfume()) {
-      return [];
+      return this.activeSizeGroup()?.items ?? [];
     }
     const group = this.activeSizeGroup();
     if (group) {
@@ -248,7 +254,8 @@ export class AdminVariantsPageComponent implements OnInit {
     const base = this.bulkForm.controls.skuBase.value.trim()
       || (this.product()?.slug ?? 'TCS').toUpperCase().slice(0, 40);
     const combos: VariantCombination[] = [];
-    for (const key of this.selectedColorKeys()) {
+    const keys = this.isPerfume() ? [NO_COLOR_KEY] : this.selectedColorKeys();
+    for (const key of keys) {
       const color = this.colorByKey(key);
       const sizeIds = this.selectedSizesFor(key);
       if (sizeIds.length === 0) {
@@ -367,7 +374,7 @@ export class AdminVariantsPageComponent implements OnInit {
   save(): void {
     this.error.set('');
     this.message.set('');
-    if (this.editingId() !== null || this.isPerfume()) {
+    if (this.editingId() !== null) {
       this.saveSingle();
     } else {
       this.saveBulk();

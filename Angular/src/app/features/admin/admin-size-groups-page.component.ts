@@ -23,6 +23,11 @@ export class AdminSizeGroupsPageComponent implements OnInit {
   readonly renaming = signal<{ groupId: number; sizeId: number; name: string } | null>(null);
   readonly itemDrafts = signal<Record<number, string>>({});
   readonly error = signal('');
+  readonly errorModal = signal('');
+
+  closeErrorModal(): void {
+    this.errorModal.set('');
+  }
   readonly message = signal('');
   readonly form = new FormGroup({
     groupName: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(80)] }),
@@ -80,7 +85,7 @@ export class AdminSizeGroupsPageComponent implements OnInit {
         this.load();
       },
       error: (failure: unknown) => {
-        this.error.set(parseApiFailure(failure, 'Size group could not be saved.').message);
+        this.errorModal.set(parseApiFailure(failure, 'Size group could not be saved.').message);
         this.saving.set(false);
       },
     });
@@ -105,7 +110,7 @@ export class AdminSizeGroupsPageComponent implements OnInit {
         this.load();
       },
       error: (failure: unknown) => {
-        this.error.set(parseApiFailure(failure, 'Size group could not be deleted.').message);
+        this.errorModal.set(parseApiFailure(failure, 'Size group could not be deleted.').message);
         this.deleting.set(null);
         this.deletingBusy.set(false);
       },
@@ -127,7 +132,7 @@ export class AdminSizeGroupsPageComponent implements OnInit {
         this.itemDrafts.update((map) => ({ ...map, [groupId]: '' }));
         this.load();
       },
-      error: (failure: unknown) => this.error.set(parseApiFailure(failure, 'Size could not be added.').message),
+      error: (failure: unknown) => this.errorModal.set(parseApiFailure(failure, 'Size could not be added.').message),
     });
   }
 
@@ -157,7 +162,7 @@ export class AdminSizeGroupsPageComponent implements OnInit {
         this.load();
       },
       error: (failure: unknown) => {
-        this.error.set(parseApiFailure(failure, 'Size could not be renamed.').message);
+        this.errorModal.set(parseApiFailure(failure, 'Size could not be renamed.').message);
         this.renaming.set(null);
       },
     });
@@ -167,7 +172,7 @@ export class AdminSizeGroupsPageComponent implements OnInit {
     this.error.set('');
     this.admin.removeSizeGroupItem(groupId, sizeId).subscribe({
       next: () => this.load(),
-      error: (failure: unknown) => this.error.set(parseApiFailure(failure, 'Size could not be removed.').message),
+      error: (failure: unknown) => this.errorModal.set(parseApiFailure(failure, 'Size could not be removed.').message),
     });
   }
 }

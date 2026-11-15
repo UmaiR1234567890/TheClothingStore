@@ -61,7 +61,7 @@
     @if (editingId() !== null) {
       <div class="admin-modal-backdrop" (click)="resetForm()" aria-hidden="true"></div>
     }
-    @if (editingId() !== null || isPerfume()) {
+    @if (editingId() !== null) {
       <form class="admin-form-card" [class.admin-modal]="editingId() !== null" [class.admin-modal--wide]="editingId() !== null" role="dialog" [attr.aria-modal]="editingId() !== null" [formGroup]="form" (ngSubmit)="save()">
         <h2>{{ editingId() ? 'Edit variant' : 'Add variant' }}</h2>
         <p class="muted-copy">Choose from the active store colors and sizes. Perfume variants use volume instead.</p>
@@ -146,6 +146,38 @@
           </select>
         </div>
         @if (isPerfume()) {
+          @if (!activeSizeGroup()) {
+            <p class="notice notice-info" role="status">Please choose a Size Group above to configure sizes for this product.</p>
+          } @else {
+            <fieldset class="variant-picker variant-color-sizes">
+              <div class="variant-color-sizes__head">
+                <strong>Sizes</strong>
+                <span>
+                  <button class="text-button" type="button" (click)="selectAllSizes(noColorKey)">All</button>
+                  <button class="text-button" type="button" (click)="clearSizes(noColorKey)">None</button>
+                </span>
+              </div>
+              <div class="variant-size-list">
+                @for (size of availableSizes(); track size.sizeId) {
+                  @if (isCombinationTaken(null, size.sizeId)) {
+                    <span class="variant-size-chip variant-size-chip--taken" title="This size variant already exists">{{ size.name }}</span>
+                  } @else {
+                    <label class="variant-size-chip" [class.variant-size-chip--selected]="isSizeSelected(noColorKey, size.sizeId)">
+                      <input type="checkbox" [checked]="isSizeSelected(noColorKey, size.sizeId)" (change)="toggleSize(noColorKey, size.sizeId)">
+                      {{ size.name }}
+                    </label>
+                  }
+                } @empty {
+                  <span class="muted-copy">No sizes in the selected size group.</span>
+                }
+              </div>
+              @if (isColorOnlyTaken(null)) {
+                <small class="muted-copy">A variant without a size already exists — pick sizes to add more.</small>
+              } @else {
+                <small class="muted-copy">No sizes selected creates a single variant without a size.</small>
+              }
+            </fieldset>
+          }
         } @else if (!activeSizeGroup()) {
           <p class="notice notice-info" role="status">Please choose a Size Group above to configure color/size options for this product.</p>
         } @else {

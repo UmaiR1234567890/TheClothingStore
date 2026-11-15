@@ -57,7 +57,7 @@ internal sealed class SizeConfiguration : IEntityTypeConfiguration<Size>
         builder.Property(x => x.SortOrder).HasDefaultValue(0);
         builder.Property(x => x.IsActive).HasDefaultValue(true);
         builder.Property(x => x.CreatedAt).HasColumnType("datetime2(0)").HasDefaultValueSql("SYSUTCDATETIME()");
-        builder.HasIndex(x => new { x.SizeType, x.Name }).IsUnique().HasDatabaseName("UX_Sizes_Type_Name");
+        builder.HasIndex(x => new { x.SizeGroupId, x.Name }).IsUnique().HasDatabaseName("UX_Sizes_Group_Name");
         builder.HasIndex(x => x.SizeGroupId).HasDatabaseName("IX_Sizes_SizeGroupId");
         builder.HasOne(x => x.SizeGroup)
             .WithMany(x => x.Sizes)
