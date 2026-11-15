@@ -153,6 +153,18 @@ export class SiteHeaderComponent implements OnInit {
     });
   }
 
+  hoverOpen(department: DepartmentDto): void {
+    if (typeof window !== 'undefined' && window.innerWidth > 900) {
+      this.openDepartment(department);
+    }
+  }
+
+  hoverClose(slug: string): void {
+    if (typeof window !== 'undefined' && window.innerWidth > 900) {
+      this.closeDepartment(slug);
+    }
+  }
+
   closeDepartment(slug: string): void {
     if (this.openSlug() === slug) {
       this.openSlug.set(null);
@@ -162,6 +174,11 @@ export class SiteHeaderComponent implements OnInit {
   closeAllMenus(): void {
     this.openSlug.set(null);
     this.mobileMenuOpen.set(false);
+  }
+
+  openCart(): void {
+    this.closeAllMenus();
+    this.cartState.openDrawer();
   }
 
   toggleMobileMenu(): void {

@@ -3,6 +3,9 @@
   <span class="announcement-bar__right">Designed for the way you move</span>
 </div>
 <header class="header" (keydown.escape)="closeAllMenus()">
+  @if (mobileMenuOpen()) {
+    <div class="mobile-drawer-backdrop" (click)="closeAllMenus()"></div>
+  }
   <div class="header__main container">
     <button
       class="icon-button mobile-menu-button"
@@ -64,7 +67,7 @@
           <span>Sign in</span>
         </a>
       }
-      <a class="cart-link" routerLink="/cart" aria-label="Shopping bag">
+      <button class="cart-link" type="button" aria-label="Shopping bag" (click)="openCart()">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M5 8h14l1 13H4L5 8Z" />
           <path d="M9 9V6a3 3 0 0 1 6 0v3" />
@@ -75,17 +78,37 @@
             <span class="cart-count">{{ count > 99 ? '99+' : count }}</span>
           }
         }
-      </a>
+      </button>
     </div>
   </div>
 
   <nav id="department-navigation" class="department-nav" [class.department-nav--open]="mobileMenuOpen()" aria-label="Shop departments">
+    <div class="mobile-drawer-only drawer-head">
+      <span class="drawer-head__title">Menu</span>
+      <button class="drawer-head__close" type="button" aria-label="Close menu" (click)="closeAllMenus()">×</button>
+    </div>
+    <form class="mobile-drawer-only drawer-search" [formGroup]="searchForm" (ngSubmit)="submitSearch()">
+      <label class="sr-only" for="drawer-search">Search products</label>
+      <input
+        id="drawer-search"
+        type="search"
+        formControlName="search"
+        autocomplete="off"
+        placeholder="Search the collection">
+      <button type="submit" aria-label="Search">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="10.8" cy="10.8" r="6.8" />
+          <path d="m16 16 5 5" />
+        </svg>
+      </button>
+    </form>
     <div class="department-nav__inner container">
       @for (department of departments(); track department.departmentId) {
         <div
           class="department-nav__item"
-          (mouseenter)="openDepartment(department)"
-          (mouseleave)="closeDepartment(department.slug)">
+          [class.is-open]="openSlug() === department.slug"
+          (mouseenter)="hoverOpen(department)"
+          (mouseleave)="hoverClose(department.slug)">
           <button
             type="button"
             class="department-nav__button"
@@ -94,9 +117,10 @@
             (click)="toggleDepartment(department)">
             {{ department.name }}
             <span class="department-nav__chevron" aria-hidden="true"></span>
+            <span class="mobile-drawer-only department-nav__toggle" aria-hidden="true">{{ openSlug() === department.slug ? '−' : '+' }}</span>
           </button>
           @if (openSlug() === department.slug) {
-            <div class="mega-menu" [id]="'department-menu-' + department.slug" (mouseenter)="openDepartment(department)" (mouseleave)="closeDepartment(department.slug)">
+            <div class="mega-menu" [id]="'department-menu-' + department.slug" (mouseenter)="hoverOpen(department)" (mouseleave)="hoverClose(department.slug)">
               @if (loadingSlug() === department.slug) {
                 <ul class="mega-menu__panel"><li><span class="mega-menu__loading">Loading categories…</span></li></ul>
               } @else {
@@ -134,6 +158,18 @@
       }
       @if (departmentError()) {
         <span class="department-nav__error" role="status">{{ departmentError() }}</span>
+      }
+    </div>
+    <div class="mobile-drawer-only drawer-links">
+      <button class="drawer-links__item" type="button" (click)="closeAllMenus(); openTrack()">Track order</button>
+      @if (auth.user$ | async; as user) {
+        <a class="drawer-links__item" routerLink="/account/profile" (click)="closeAllMenus()">Profile <small>{{ user.email }}</small></a>
+        @if (user.roles.includes('Admin')) {
+          <a class="drawer-links__item" routerLink="/admin" (click)="closeAllMenus()">Admin</a>
+        }
+        <button class="drawer-links__item" type="button" (click)="signOut()">Sign out</button>
+      } @else {
+        <a class="drawer-links__item" routerLink="/login" (click)="closeAllMenus()">Sign in</a>
       }
     </div>
   </nav>

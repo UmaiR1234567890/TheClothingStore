@@ -131,7 +131,14 @@
           <h2>{{ cart()!.totalQuantity }} {{ cart()!.totalQuantity === 1 ? 'piece' : 'pieces' }}</h2>
           @for (line of cart()!.items; track line.cartItemId) {
             <div class="checkout-item">
-              <div><strong>{{ line.productName }}</strong><small>{{ line.sku }} · Qty {{ line.quantity }}</small></div>
+              <div class="checkout-item__thumb" aria-hidden="true">
+                @if (line.imageUrl) {
+                  <img [src]="line.imageUrl" [alt]="line.productName" loading="lazy">
+                } @else {
+                  <span>TCS</span>
+                }
+              </div>
+              <div class="checkout-item__info"><strong>{{ line.productName }}</strong><small>{{ line.sku }} · Qty {{ line.quantity }}</small></div>
               <span>{{ line.lineTotal | currency:'PKR':'code':'1.0-2' }}</span>
             </div>
           }

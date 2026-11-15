@@ -168,9 +168,38 @@
   font-size: 0.75rem;
 }
 
-.checkout-item div {
+.checkout-item {
+  align-items: center;
+}
+
+.checkout-item__info {
   display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
   gap: 0.25rem;
+}
+
+.checkout-item__thumb {
+  display: grid;
+  width: 48px;
+  height: 60px;
+  flex: 0 0 48px;
+  place-items: center;
+  overflow: hidden;
+  background: linear-gradient(145deg, #e3ded3, #b8b8aa);
+}
+
+.checkout-item__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.checkout-item__thumb span {
+  color: rgb(32 36 32 / 60%);
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
 }
 
 .checkout-item small {

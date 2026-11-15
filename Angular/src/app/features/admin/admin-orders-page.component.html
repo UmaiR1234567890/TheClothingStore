@@ -13,7 +13,7 @@
       <span>Status</span>
       <select class="admin-filter" [value]="status()" (change)="setStatusFilter($event)">
         <option value="">All statuses</option>
-        @for (item of statusOptions; track item) { <option [value]="item">{{ item }}</option> }
+        @for (item of statusOptions; track item) { <option [value]="item" [selected]="status() === item">{{ item }}</option> }
       </select>
     </label>
   </div>

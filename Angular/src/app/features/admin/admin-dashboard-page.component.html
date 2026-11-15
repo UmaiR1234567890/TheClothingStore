@@ -14,7 +14,7 @@
       <div class="dashboard-grid">
         <article class="metric-card"><span>Active products</span><strong>{{ data.productCount }}</strong><a routerLink="/admin/products">Manage products →</a></article>
         <article class="metric-card"><span>Customers</span><strong>{{ data.customerCount }}</strong><a routerLink="/admin/customers">View customers →</a></article>
-        <article class="metric-card"><span>Pending orders</span><strong>{{ data.pendingOrderCount }}</strong><a routerLink="/admin/orders?status=Pending">Review orders →</a></article>
+        <article class="metric-card"><span>Pending orders</span><strong>{{ data.pendingOrderCount }}</strong><a routerLink="/admin/orders" [queryParams]="{ status: 'Pending' }">Review orders →</a></article>
         <article class="metric-card metric-card--accent"><span>Captured revenue</span><strong>{{ data.capturedRevenue | currency:'PKR':'code':'1.0-2' }}</strong><small>From captured payments only</small></article>
       </div>
       <div class="admin-shortcuts">

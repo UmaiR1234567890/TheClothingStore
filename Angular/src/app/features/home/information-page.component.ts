@@ -25,7 +25,7 @@ const pages: Record<string, InformationContent> = {
       { label: 'Facebook', href: 'https://www.facebook.com/share/1CD6zPPMQC/', icon: 'facebook' },
       { label: 'Instagram', href: 'https://www.instagram.com/nexovatemarketing', icon: 'instagram' },
       { label: 'TikTok', href: 'https://www.tiktok.com/@nexovate.marketing', icon: 'tiktok' },
-      { label: 'Gmail', href: 'https://mail.google.com/mail/?view=cm&to=nexovatemarketing@gmail.com', icon: 'gmail' },
+      { label: 'Gmail', href: 'mailto:nexovatemarketing@gmail.com', icon: 'gmail' },
     ],
   },
   shipping: {

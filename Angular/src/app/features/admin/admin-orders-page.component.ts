@@ -1,7 +1,7 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { OrderDto } from '../../core/models/commerce.models';
 import { PagedResult } from '../../core/models/api.models';
 import { AdminApiService } from '../../core/services/admin-api.service';
@@ -25,9 +25,13 @@ export class AdminOrdersPageComponent implements OnInit {
   readonly status = signal('');
   readonly searchControl = new FormControl('', { nonNullable: true });
 
-  constructor(private readonly admin: AdminApiService) {}
+  constructor(private readonly admin: AdminApiService, private readonly route: ActivatedRoute) {}
 
   ngOnInit(): void {
+    const requested = this.route.snapshot.queryParamMap.get('status');
+    if (requested && this.statusOptions.includes(requested)) {
+      this.status.set(requested);
+    }
     this.load(1);
   }
 

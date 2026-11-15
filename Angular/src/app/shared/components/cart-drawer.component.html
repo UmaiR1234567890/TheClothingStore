@@ -1,0 +1,73 @@
+@if (cartState.drawerOpen()) {
+  <div class="cart-drawer-backdrop" (click)="cartState.closeDrawer()"></div>
+  <aside class="cart-drawer" role="dialog" aria-modal="true" aria-label="Shopping bag">
+    <div class="cart-drawer__head">
+      <div class="cart-drawer__title">
+        <h2>Shopping Bag</h2>
+        @if (cartState.cart(); as cart) {
+          <span>{{ itemsLabel(cart.totalQuantity) }}</span>
+        }
+      </div>
+      <button class="cart-drawer__close" type="button" aria-label="Close bag" (click)="cartState.closeDrawer()">×</button>
+    </div>
+
+    @if (cartState.drawerError()) {
+      <p class="cart-drawer__error" role="alert">{{ cartState.drawerError() }}</p>
+    }
+
+    @if (cartState.drawerLoading()) {
+      <div class="cart-drawer__state"><span class="spinner" aria-label="Loading bag"></span></div>
+    } @else if (!cartState.cart() || cartState.cart()!.items.length === 0) {
+      <div class="cart-drawer__state cart-drawer__empty">
+        <div class="cart-drawer__seal" aria-hidden="true">TCS</div>
+        <h3>Your bag is empty</h3>
+        <button class="btn btn-primary" type="button" (click)="cartState.closeDrawer()">Continue browsing</button>
+      </div>
+    } @else {
+      <ul class="cart-drawer__items">
+        @for (line of cartState.cart()!.items; track line.cartItemId) {
+          <li class="drawer-item">
+            <div class="drawer-item__image" aria-hidden="true">
+              @if (line.imageUrl) {
+                <img [src]="line.imageUrl" [alt]="line.productName" loading="lazy">
+              } @else {
+                <span>TCS</span>
+              }
+            </div>
+            <div class="drawer-item__body">
+              @if (line.productSlug) {
+                <a class="drawer-item__name" [routerLink]="['/products', line.productSlug]" (click)="cartState.closeDrawer()">{{ line.productName }}</a>
+              } @else {
+                <span class="drawer-item__name">{{ line.productName }}</span>
+              }
+              <span class="drawer-item__options">{{ optionText(line) }}</span>
+              <span class="drawer-item__price">{{ line.unitPrice | currency:'PKR':'code':'1.0-2' }}</span>
+              @if (!line.isAvailable) {
+                <span class="drawer-item__warn" role="status">Currently unavailable</span>
+              }
+              <div class="drawer-item__qty">
+                <button type="button" [disabled]="line.quantity <= 1 || cartState.busyId() === line.cartItemId" (click)="cartState.changeQuantity(line, line.quantity - 1)" [attr.aria-label]="'Decrease quantity of ' + line.productName">−</button>
+                <output aria-label="Quantity">{{ line.quantity }}</output>
+                <button type="button" [disabled]="!line.isAvailable || line.quantity >= line.quantityAvailable || cartState.busyId() === line.cartItemId" (click)="cartState.changeQuantity(line, line.quantity + 1)" [attr.aria-label]="'Increase quantity of ' + line.productName">+</button>
+              </div>
+            </div>
+            <button class="drawer-item__remove" type="button" [disabled]="cartState.busyId() === line.cartItemId" (click)="cartState.removeLine(line)" [attr.aria-label]="'Remove ' + line.productName">×</button>
+          </li>
+        }
+      </ul>
+
+      <div class="cart-drawer__footer">
+        <div class="cart-drawer__subtotal">
+          <span>Subtotal</span>
+          <strong>{{ cartState.cart()!.subtotal | currency:'PKR':'code':'1.0-2' }}</strong>
+        </div>
+        <p class="cart-drawer__note">Shipping and tax are confirmed at checkout.</p>
+        @if (hasUnavailable()) {
+          <p class="cart-drawer__warning" role="status">Remove unavailable items before checkout.</p>
+        }
+        <a class="btn btn-primary cart-drawer__btn" routerLink="/checkout" [class.is-disabled]="hasUnavailable()" (click)="cartState.closeDrawer()">Checkout</a>
+        <a class="btn btn-outline cart-drawer__btn" routerLink="/cart" (click)="cartState.closeDrawer()">View bag</a>
+      </div>
+    }
+  </aside>
+}

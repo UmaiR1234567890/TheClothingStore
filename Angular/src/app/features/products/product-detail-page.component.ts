@@ -216,9 +216,9 @@ export class ProductDetailPageComponent implements OnInit {
     this.adding.set(true);
     this.cart.addItem({ productVariantId: variant.productVariantId, quantity: this.quantity() }).subscribe({
       next: (cart) => {
-        this.cartState.setCount(cart.totalQuantity);
+        this.cartState.applyCart(cart);
         this.cartMessage.set('Added to your bag.');
-        this.bagConfirmOpen.set(true);
+        this.cartState.openDrawer();
         this.adding.set(false);
       },
       error: (failure: unknown) => {
