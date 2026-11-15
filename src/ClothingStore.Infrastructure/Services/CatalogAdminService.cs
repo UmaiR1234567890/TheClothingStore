@@ -849,8 +849,8 @@ internal sealed class CatalogAdminService(
         var sizeType = group.GroupName.Contains("Shoe", StringComparison.OrdinalIgnoreCase) ||
                        group.GroupName.Contains("Footwear", StringComparison.OrdinalIgnoreCase)
             ? "Footwear" : "Clothing";
-        if (await db.Sizes.AnyAsync(x => x.SizeType == sizeType && x.Name.ToLower() == name.ToLower(), cancellationToken))
-            throw new ServiceException(409, "duplicate_size", "A size with this value already exists.");
+        if (await db.Sizes.AnyAsync(x => x.SizeGroupId == groupId && x.Name.ToLower() == name.ToLower(), cancellationToken))
+            throw new ServiceException(409, "duplicate_size", "This group already has a size with this value.");
         var size = new Size
         {
             SizeGroupId = groupId,
@@ -869,8 +869,8 @@ internal sealed class CatalogAdminService(
         var size = await db.Sizes.SingleOrDefaultAsync(x => x.SizeId == sizeId && x.SizeGroupId == groupId, cancellationToken)
             ?? throw new ServiceException(404, "size_not_found", "The size does not exist in this group.");
         var name = request.Name.Trim();
-        if (await db.Sizes.AnyAsync(x => x.SizeId != sizeId && x.SizeType == size.SizeType && x.Name.ToLower() == name.ToLower(), cancellationToken))
-            throw new ServiceException(409, "duplicate_size", "A size with this value already exists.");
+        if (await db.Sizes.AnyAsync(x => x.SizeId != sizeId && x.SizeGroupId == groupId && x.Name.ToLower() == name.ToLower(), cancellationToken))
+            throw new ServiceException(409, "duplicate_size", "This group already has a size with this value.");
         size.Name = name;
         if (request.SortOrder != 0)
             size.SortOrder = request.SortOrder;
