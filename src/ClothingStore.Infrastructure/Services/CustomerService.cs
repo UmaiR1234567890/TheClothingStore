@@ -15,7 +15,30 @@ internal sealed class CustomerService(ClothingStoreDbContext db, AuditLogWriter 
             .Where(x => x.IdentityUserId == identityUserId && !x.IsDeleted)
             .Select(x => (int?)x.CustomerId)
             .SingleOrDefaultAsync(cancellationToken);
-        return customerId ?? throw new ServiceException(403, "customer_profile_required", "This account has no active customer profile.");
+        if (customerId is not null)
+            return customerId.Value;
+
+        var email = await db.Users.AsNoTracking()
+            .Where(x => x.Id == identityUserId)
+            .Select(x => x.Email)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(email))
+            throw new ServiceException(403, "customer_profile_required", "This account has no active customer profile.");
+
+        var normalized = email.Trim().ToLowerInvariant();
+        var customer = await db.Customers.SingleOrDefaultAsync(x => x.Email == normalized, cancellationToken);
+        if (customer is null)
+        {
+            customer = new Customer { IdentityUserId = identityUserId, Email = normalized };
+            db.Customers.Add(customer);
+        }
+        else if (customer.IdentityUserId is null)
+        {
+            customer.IdentityUserId = identityUserId;
+        }
+        customer.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        return customer.CustomerId;
     }
 
     public async Task<CustomerProfileDto> GetProfileAsync(int customerId, CancellationToken cancellationToken)
